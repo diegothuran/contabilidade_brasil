@@ -1,0 +1,12 @@
+{
+  "schema_version": "1.0.0",
+  "event_id": "audit-0001",
+  "tenant_id": "office-001",
+  "event_type": "journal_published",
+  "actor": { "kind": "user", "ref": "user-002" },
+  "occurred_at": "2026-09-30T18:00:00Z",
+  "target": { "type": "journal", "ref": "journal-0001" },
+  "reason": "Aprovação após revisão do contador",
+  "metadata": { "period_id": "2026-09", "legal_entity_id": "company-001" },
+  "integrity": { "event_hash": "hash-audit-0001", "previous_hash": null }
+}

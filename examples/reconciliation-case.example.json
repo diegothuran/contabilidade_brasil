@@ -1,0 +1,14 @@
+{
+  "schema_version": "1.0.0",
+  "case_id": "recon-0001",
+  "tenant_id": "office-001",
+  "account_id": "bank-001",
+  "status": "suggested",
+  "bank_transaction": { "transaction_id": "bank-tx-001", "date": "2026-09-15", "amount": "1000.00", "direction": "outflow", "description": "PAGAMENTO FORNECEDOR ABC", "external_id": "ofx-001" },
+  "candidates": [
+    { "candidate_id": "ln-0001", "candidate_type": "journal", "score": 0.9, "explanation": ["Valor idêntico", "Data a 2 dias", "Histórico compatível: fornecedor"], "matched_fields": ["amount", "date", "description"] }
+  ],
+  "selected_candidate_id": null,
+  "approved_by": null,
+  "audit_event_id": null
+}

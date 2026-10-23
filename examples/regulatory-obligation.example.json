@@ -1,0 +1,18 @@
+{
+  "schema_version": "1.0.0",
+  "obligation_id": "obligation-ecd-2026-09",
+  "tenant_id": "office-001",
+  "legal_entity_id": "company-001",
+  "establishment_id": "est-001",
+  "obligation_type": "ecd",
+  "jurisdiction": { "country": "BR", "state": null, "municipality_code": null, "authority": "SPED" },
+  "competence": "2026-09",
+  "due_date": "2027-06-30",
+  "status": "accepted",
+  "rule_version": "ecd-rule-2026.1",
+  "layout_version": "ECD-2026",
+  "dependencies": ["close-0001"],
+  "files": ["file-ecd-001"],
+  "transmissions": [ { "transmission_id": "tx-ecd-001", "status": "accepted", "protocol": "protocol-001", "receipt_ref": "receipt-001", "sent_at": "2027-06-20T15:00:00Z" } ],
+  "coverage": "pending_homologation"
+}

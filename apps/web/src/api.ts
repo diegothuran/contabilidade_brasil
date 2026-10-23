@@ -1,0 +1,91 @@
+import { accessToken, userManager } from "./auth";
+
+const apiUrl = import.meta.env.VITE_API_URL ?? "";
+
+export class ApiError extends Error {
+  status: number;
+  title: string;
+
+  constructor(status: number, title: string, detail: string) {
+    super(detail);
+    this.status = status;
+    this.title = title;
+  }
+}
+
+export async function api<T>(path: string, options: { method?: string; body?: unknown } = {}): Promise<T> {
+  const headers: Record<string, string> = {
+    Authorization: `Bearer ${await accessToken()}`,
+    "X-Correlation-Id": crypto.randomUUID(),
+  };
+  let body: string | undefined;
+  if (options.body !== undefined) {
+    body = JSON.stringify(options.body);
+    headers["Content-Type"] = "application/json";
+    headers["Idempotency-Key"] = crypto.randomUUID();
+  }
+  const response = await fetch(`${apiUrl}${path}`, {
+    method: options.method ?? (body ? "POST" : "GET"),
+    headers,
+    body,
+  });
+  if (response.status === 401) {
+    await userManager.signinRedirect();
+    throw new ApiError(401, "Não autenticado", "A sessão expirou.");
+  }
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new ApiError(response.status, payload.title ?? "Erro", payload.detail ?? "A operação falhou.");
+  }
+  return payload as T;
+}
+
+async function authorizedHeaders(): Promise<Record<string, string>> {
+  return {
+    Authorization: `Bearer ${await accessToken()}`,
+    "X-Correlation-Id": crypto.randomUUID(),
+    "Idempotency-Key": crypto.randomUUID(),
+  };
+}
+
+async function readPayload(response: Response): Promise<unknown> {
+  if (response.status === 401) {
+    await userManager.signinRedirect();
+    throw new ApiError(401, "Não autenticado", "A sessão expirou.");
+  }
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const problem = payload as { title?: string; detail?: string };
+    throw new ApiError(response.status, problem.title ?? "Erro", problem.detail ?? "A operação falhou.");
+  }
+  return payload;
+}
+
+export async function uploadDocument(file: File, fields: Record<string, string>): Promise<{ document_id: string }> {
+  const body = new FormData();
+  body.set("file", file);
+  for (const [key, value] of Object.entries(fields)) {
+    if (value) {
+      body.set(key, value);
+    }
+  }
+  const response = await fetch(`${apiUrl}/v1/documents`, { method: "POST", headers: await authorizedHeaders(), body });
+  return (await readPayload(response)) as { document_id: string };
+}
+
+export async function downloadDocument(documentId: string, fileName: string): Promise<void> {
+  const response = await fetch(`${apiUrl}/v1/documents/${documentId}/content`, {
+    headers: { Authorization: `Bearer ${await accessToken()}` },
+  });
+  if (!response.ok) {
+    await readPayload(response);
+    return;
+  }
+  const blob = await response.blob();
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = fileName;
+  anchor.click();
+  URL.revokeObjectURL(url);
+}

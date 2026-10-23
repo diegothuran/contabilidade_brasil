@@ -1,0 +1,17 @@
+{
+  "schema_version": "1.0.0",
+  "close_run_id": "close-0001",
+  "tenant_id": "office-001",
+  "legal_entity_id": "company-001",
+  "period_id": "2026-09",
+  "status": "closed",
+  "checklist": [
+    { "item_id": "check-001", "category": "bank", "status": "completed", "title": "Conciliação bancária aprovada", "owner_id": "user-001", "evidence_ref": "recon-report-001", "blocking": true },
+    { "item_id": "check-002", "category": "reports", "status": "completed", "title": "Balancete revisado", "owner_id": "user-002", "evidence_ref": "report-001", "blocking": true }
+  ],
+  "snapshot_ref": "snapshot-2026-09-company-001",
+  "evidence_package_ref": "evidence-package-0001",
+  "reopened_reason": null,
+  "approved_by": "user-002",
+  "audit_event_id": "audit-close-0001"
+}

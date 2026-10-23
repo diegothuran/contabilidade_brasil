@@ -1,0 +1,13 @@
+build:
+  docker:
+    web: deploy/pilot/Dockerfile
+  config:
+    VITE_OIDC_AUTHORITY: https://cognito-idp.us-east-1.amazonaws.com/REPLACE_POOL_ID
+    VITE_OIDC_CLIENT_ID: REPLACE_CLIENT_ID
+    VITE_OIDC_LOGOUT_URL: https://REPLACE_DOMAIN.auth.us-east-1.amazoncognito.com/logout
+release:
+  image: web
+  command:
+    - python
+    - -m
+    - contabil.migrate

@@ -1,0 +1,127 @@
+{
+  "realm": "contabil",
+  "enabled": true,
+  "displayName": "Contabilidade local",
+  "sslRequired": "none",
+  "registrationAllowed": false,
+  "loginWithEmailAllowed": false,
+  "resetPasswordAllowed": false,
+  "accessTokenLifespan": 3600,
+  "ssoSessionIdleTimeout": 36000,
+  "roles": {
+    "realm": [
+      { "name": "preparer", "description": "Prepara lançamentos" },
+      { "name": "approver", "description": "Aprova e publica" },
+      { "name": "admin", "description": "Administra o escritório" },
+      { "name": "viewer", "description": "Consulta" }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "contabil-web",
+      "name": "Contabilidade web local",
+      "enabled": true,
+      "publicClient": true,
+      "protocol": "openid-connect",
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": false,
+      "frontchannelLogout": true,
+      "rootUrl": "http://localhost:5173",
+      "baseUrl": "http://localhost:5173",
+      "redirectUris": ["http://localhost:5173/*"],
+      "webOrigins": ["http://localhost:5173"],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "http://localhost:5173/*"
+      },
+      "protocolMappers": [
+        {
+          "name": "tenant_id",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "consentRequired": false,
+          "config": {
+            "user.attribute": "tenant_id",
+            "claim.name": "tenant_id",
+            "jsonType.label": "String",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true",
+            "multivalued": "false",
+            "aggregate.attrs": "false"
+          }
+        },
+        {
+          "name": "api-audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.custom.audience": "contabil-api",
+            "access.token.claim": "true",
+            "id.token.claim": "false"
+          }
+        }
+      ]
+    }
+  ],
+  "users": [
+    {
+      "username": "preparer",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Preparador",
+      "lastName": "Demo",
+      "email": "preparer@demo.local",
+      "attributes": { "tenant_id": ["tenant_demo"] },
+      "realmRoles": ["preparer"],
+      "credentials": [{ "type": "password", "value": "dev-only-password", "temporary": false }]
+    },
+    {
+      "username": "approver",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Aprovador",
+      "lastName": "Demo",
+      "email": "approver@demo.local",
+      "attributes": { "tenant_id": ["tenant_demo"] },
+      "realmRoles": ["approver"],
+      "credentials": [{ "type": "password", "value": "dev-only-password", "temporary": false }]
+    },
+    {
+      "username": "admin",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Administrador",
+      "lastName": "Demo",
+      "email": "admin@demo.local",
+      "attributes": { "tenant_id": ["tenant_demo"] },
+      "realmRoles": ["preparer", "approver", "admin", "viewer"],
+      "credentials": [{ "type": "password", "value": "dev-only-password", "temporary": false }]
+    },
+    {
+      "username": "viewer",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Consulta",
+      "lastName": "Demo",
+      "email": "viewer@demo.local",
+      "attributes": { "tenant_id": ["tenant_demo"] },
+      "realmRoles": ["viewer"],
+      "credentials": [{ "type": "password", "value": "dev-only-password", "temporary": false }]
+    },
+    {
+      "username": "outsider",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Outro",
+      "lastName": "Escritorio",
+      "email": "outsider@demo.local",
+      "attributes": { "tenant_id": ["tenant_other"] },
+      "realmRoles": ["preparer"],
+      "credentials": [{ "type": "password", "value": "dev-only-password", "temporary": false }]
+    }
+  ]
+}

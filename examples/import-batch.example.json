@@ -1,0 +1,19 @@
+{
+  "schema_version": "1.0.0",
+  "batch_id": "batch-0001",
+  "tenant_id": "office-001",
+  "legal_entity_id": "entity-001",
+  "period_id": "period-2026-09",
+  "source_system": "legacy-accounting",
+  "mode": "dry_run",
+  "status": "ready",
+  "idempotency_key": "migration-2026-09-opening-001",
+  "created_by": "preparer-001",
+  "published_by": null,
+  "files": [
+    { "file_id": "file-001", "file_name": "opening_balances.csv", "sha256": "b222222222222222222222222222222222222222222222222222222222222222", "kind": "opening_balance", "object_uri": "object://poc/opening_balances.csv" }
+  ],
+  "summary": { "rows_received": 100, "rows_valid": 98, "rows_invalid": 2, "debit_total": "250000.00", "credit_total": "250000.00", "difference": "0.00" },
+  "errors": [ { "row": 17, "code": "ACCOUNT_NOT_MAPPED", "message": "Conta de origem sem mapeamento aprovado" } ],
+  "reconciliation_report_id": "reconciliation-report-001"
+}

@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contabilidade-brasil.local/schemas/audit-event.schema.json",
+  "title": "Audit event",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "event_id", "tenant_id", "event_type", "actor", "occurred_at", "target", "integrity"],
+  "properties": {
+    "schema_version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" },
+    "event_id": { "type": "string", "minLength": 8, "maxLength": 160 },
+    "tenant_id": { "type": "string", "maxLength": 160 },
+    "event_type": { "type": "string", "enum": ["journal_created", "journal_published", "journal_reversed", "period_reopened", "reconciliation_approved", "import_published", "document_exported", "permission_changed", "obligation_transmitted", "certificate_used", "login", "other"] },
+    "actor": { "type": "object", "additionalProperties": false, "required": ["kind", "ref"], "properties": { "kind": { "type": "string", "enum": ["user", "service", "system"] }, "ref": { "type": "string", "maxLength": 160 } } },
+    "occurred_at": { "type": "string", "format": "date-time" },
+    "target": { "type": "object", "additionalProperties": false, "required": ["type", "ref"], "properties": { "type": { "type": "string", "maxLength": 120 }, "ref": { "type": "string", "maxLength": 200 } } },
+    "reason": { "type": ["string", "null"], "maxLength": 2000 },
+    "metadata": { "type": "object", "additionalProperties": true, "maxProperties": 40 },
+    "integrity": { "type": "object", "additionalProperties": false, "required": ["event_hash", "previous_hash"], "properties": { "event_hash": { "type": "string", "maxLength": 200 }, "previous_hash": { "type": ["string", "null"], "maxLength": 200 } } }
+  }
+}

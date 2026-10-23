@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contabilidade-brasil.local/schemas/reconciliation-case.schema.json",
+  "title": "Reconciliation case",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "case_id", "tenant_id", "account_id", "status", "bank_transaction", "candidates"],
+  "properties": {
+    "schema_version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" },
+    "case_id": { "type": "string", "minLength": 8, "maxLength": 160 },
+    "tenant_id": { "type": "string", "maxLength": 160 },
+    "legal_entity_id": { "type": "string", "maxLength": 160 },
+    "account_id": { "type": "string", "maxLength": 160 },
+    "bank_account_id": { "type": "string", "maxLength": 160 },
+    "status": { "type": "string", "enum": ["open", "suggested", "approved", "rejected", "reversed", "ignored"] },
+    "bank_transaction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["transaction_id", "date", "amount", "direction", "description"],
+      "properties": {
+        "transaction_id": { "type": "string", "maxLength": 200 },
+        "date": { "type": "string", "format": "date" },
+        "amount": { "type": "string", "pattern": "^[0-9]+(\\.[0-9]{1,6})?$" },
+        "direction": { "type": "string", "enum": ["inflow", "outflow"] },
+        "description": { "type": "string", "maxLength": 2000 },
+        "external_id": { "type": ["string", "null"], "maxLength": 200 }
+      }
+    },
+    "candidates": {
+      "type": "array",
+      "maxItems": 20,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["candidate_id", "candidate_type", "score", "explanation"],
+        "properties": {
+          "candidate_id": { "type": "string", "maxLength": 200 },
+          "candidate_type": { "type": "string", "enum": ["payable", "receivable", "journal", "fee", "transfer", "unknown"] },
+          "score": { "type": "number", "minimum": 0, "maximum": 1 },
+          "explanation": { "type": "array", "minItems": 1, "items": { "type": "string", "maxLength": 500 }, "maxItems": 10 },
+          "matched_fields": { "type": "array", "items": { "type": "string", "maxLength": 100 }, "maxItems": 20 }
+        }
+      }
+    },
+    "selected_candidate_id": { "type": ["string", "null"], "maxLength": 200 },
+    "approved_by": { "type": ["string", "null"], "maxLength": 160 },
+    "audit_event_id": { "type": ["string", "null"], "maxLength": 160 },
+    "journal_id": { "type": ["string", "null"], "maxLength": 160 },
+    "reason": { "type": ["string", "null"], "maxLength": 2000 }
+  }
+}

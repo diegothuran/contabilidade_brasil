@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contabilidade-brasil.local/schemas/import-batch.schema.json",
+  "title": "Import batch",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "batch_id", "tenant_id", "source_system", "mode", "status", "files", "summary"],
+  "properties": {
+    "schema_version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" },
+    "batch_id": { "type": "string", "minLength": 8, "maxLength": 160 },
+    "tenant_id": { "type": "string", "maxLength": 160 },
+    "legal_entity_id": { "type": ["string", "null"], "maxLength": 160 },
+    "period_id": { "type": ["string", "null"], "maxLength": 80 },
+    "source_system": { "type": "string", "maxLength": 160 },
+    "mode": { "type": "string", "enum": ["dry_run", "publish", "rollback"] },
+    "status": { "type": "string", "enum": ["received", "validating", "ready", "published", "partially_published", "failed", "rolled_back"] },
+    "idempotency_key": { "type": "string", "maxLength": 200 },
+    "created_by": { "type": ["string", "null"], "maxLength": 160 },
+    "published_by": { "type": ["string", "null"], "maxLength": 160 },
+    "files": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["file_id", "file_name", "sha256", "kind"],
+        "properties": {
+          "file_id": { "type": "string", "maxLength": 160 },
+          "file_name": { "type": "string", "maxLength": 300 },
+          "sha256": { "type": "string", "pattern": "^[a-fA-F0-9]{64}$" },
+          "kind": { "type": "string", "enum": ["chart_of_accounts", "opening_balance", "journal", "customer", "supplier", "bank", "xml", "other"] },
+          "object_uri": { "type": ["string", "null"], "maxLength": 1000 }
+        }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["rows_received", "rows_valid", "rows_invalid", "debit_total", "credit_total"],
+      "properties": {
+        "rows_received": { "type": "integer", "minimum": 0 },
+        "rows_valid": { "type": "integer", "minimum": 0 },
+        "rows_invalid": { "type": "integer", "minimum": 0 },
+        "debit_total": { "type": "string", "pattern": "^[0-9]+(\\.[0-9]{1,6})?$" },
+        "credit_total": { "type": "string", "pattern": "^[0-9]+(\\.[0-9]{1,6})?$" },
+        "difference": { "type": "string", "pattern": "^[0-9]+(\\.[0-9]{1,6})?$" }
+      }
+    },
+    "errors": { "type": "array", "maxItems": 10000, "items": { "type": "object", "additionalProperties": false, "required": ["row", "code", "message"], "properties": { "row": { "type": "integer", "minimum": 1 }, "code": { "type": "string", "maxLength": 100 }, "message": { "type": "string", "maxLength": 1000 } } } },
+    "reconciliation_report_id": { "type": ["string", "null"], "maxLength": 160 }
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "schema_version": "1.0.0",
+  "journal_id": "journal-0001",
+  "tenant_id": "office-001",
+  "legal_entity_id": "company-001",
+  "period_id": "2026-09",
+  "status": "published",
+  "currency": "BRL",
+  "entry_date": "2026-09-30",
+  "description": "Reconhecimento de despesa de serviço",
+  "lines": [
+    { "line_id": "line-1", "account_id": "expense-001", "side": "debit", "amount": "1000.00", "description": "Despesa de serviço", "cost_center_id": "cc-001", "dimension_values": {} },
+    { "line_id": "line-2", "account_id": "payable-001", "side": "credit", "amount": "1000.00", "description": "Fornecedor a pagar", "cost_center_id": null, "dimension_values": {} }
+  ],
+  "source": { "source_type": "payable", "source_id": "payable-0001", "source_hash": "a111111111111111111111111111111111111111111111111111111111111111", "reverses_journal_id": null },
+  "created_by": "user-001",
+  "published_at": "2026-09-30T18:00:00Z",
+  "published_by": "user-002",
+  "audit_event_id": "audit-0001"
+}

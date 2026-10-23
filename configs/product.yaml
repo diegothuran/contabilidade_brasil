@@ -1,0 +1,55 @@
+schema_version: 1.0.0
+product:
+  name: pending-product-name
+  locale: pt-BR
+  currency: BRL
+  target: accounting_offices_20_to_200_cnpjs
+architecture:
+  mode: modular_monolith
+  relational_database: postgresql
+  object_storage: s3_compatible
+  queue: pending
+  identity_provider: pending
+ledger:
+  decimal_scale: 6
+  require_balanced_journal: true
+  published_journal_immutable: true
+  allow_direct_database_writes: false
+  closed_period_requires_reopen: true
+migration:
+  require_dry_run: true
+  require_reconciliation: true
+  preserve_external_ids: true
+  idempotency_required: true
+reconciliation:
+  human_approval_required: true
+  allow_partial_settlement: true
+  require_explanation: true
+  date_tolerance_days: 3
+  match_mode: one_to_one
+  statement_formats: [csv, ofx]
+regulatory:
+  registry_externalized: true
+  initial_states: pending
+  initial_obligations: [ecd, xml_inbound]
+  certificates: pending
+  production_transmission: false
+security:
+  tenant_isolation: mandatory
+  mfa_for_administrators: true
+  secrets_in_logs: false
+  raw_documents_in_logs: false
+  ai_can_publish_journal: false
+  ai_can_transmit_obligation: false
+observability:
+  correlation_id: required
+  audit_events: required
+  trace_documents_and_operations: true
+  capture_full_payloads: false
+retention:
+  policy: pending
+  legal_hold: supported
+limits:
+  max_import_rows: 100000
+  max_document_size_bytes: 1000000000
+  max_reconciliation_candidates: 20

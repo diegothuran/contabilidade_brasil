@@ -1,0 +1,13 @@
+{
+  "schema_version": "1.0.0",
+  "document_id": "document-0001",
+  "tenant_id": "office-001",
+  "legal_entity_id": "company-001",
+  "document_type": "invoice",
+  "competence": "2026-09",
+  "original": { "file_name": "invoice-123.xml", "media_type": "application/xml", "sha256": "c333333333333333333333333333333333333333333333333333333333333333", "object_ref": "object://poc/invoice-123.xml", "size_bytes": 12000 },
+  "provenance": { "source_type": "government", "source_ref": "nfe-key-123", "received_at": "2026-09-15T12:00:00Z", "received_by": "connector-nfe" },
+  "retention": { "policy_id": "fiscal-document-default", "legal_hold": false, "retain_until": "2037-09-15" },
+  "classification": "fiscal_document",
+  "derived_versions": []
+}
