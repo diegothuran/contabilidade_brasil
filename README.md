@@ -1,4 +1,4 @@
-# Fundação spec-driven — plataforma contábil brasileira
+# contabilidade_brasil
 
 Esta pasta define a base para construir uma plataforma contábil e de operação de escritórios no Brasil. Ela foi derivada do benchmark recebido e não tenta copiar literalmente nenhum concorrente.
 
