@@ -6,6 +6,8 @@ async function login(page: import("@playwright/test").Page, username: string) {
   await page.locator("#username").fill(username);
   await page.locator("#password").fill("dev-only-password");
   await page.locator("#kc-login").click();
+  await page.waitForURL("**/app/rastro");
+  await page.goto("/app/journals");
   await expect(page.getByRole("heading", { name: "Lançamentos" })).toBeVisible();
 }
 

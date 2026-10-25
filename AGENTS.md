@@ -23,6 +23,8 @@ Leia `README.md`, `docs/benchmark-synthesis.md`, `docs/domain-model.md`, `docs/a
 
 Comece com um monólito modular e interfaces de adaptador. Não extraia microserviços só por preferência. Primeiro prove ledger, migração, conciliação e fechamento com testes de contrato e dados sintéticos.
 
+O monorepo tem dois serviços implantáveis ([ADR 016](docs/adr/016-frontend-separado.md)). `apps/web` é a interface: não acessa banco, não guarda segredo e não decide regra de tenant. `apps/api` é o domínio e o único serviço que toca o banco, o object storage e o outbox. Mudança de contrato publica a API antes da interface.
+
 O motor regulatório deve ser separado do ledger. Um adaptador fiscal pode falhar sem corromper o livro. Operações assíncronas devem retornar status e correlation ID. A API deve ter idempotency key, paginação, limites e versionamento.
 
 ## Definition of Done

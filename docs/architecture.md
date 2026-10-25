@@ -37,6 +37,17 @@ Storage
 
 PostgreSQL compatível é a escolha inicial natural para o ledger transacional. AlloyDB pode ser uma opção quando o ambiente GCP, a operação e a conectividade forem confirmados. A decisão do banco não deve alterar os contratos de domínio.
 
+## Serviços implantáveis
+
+O repositório é um monorepo com dois serviços, como no [ADR 016](adr/016-frontend-separado.md).
+
+| Serviço | Pasta | Responsabilidade |
+| --- | --- | --- |
+| Interface | `apps/web` | Sala de fechamento e rotinas do razão. Build estático em nginx. Fala com a API por HTTPS com o token do usuário. |
+| Domínio | `apps/api` | API, módulos de domínio, auditoria e ciclo do outbox. Único serviço que acessa o banco e o object storage. |
+
+Schemas, configs e scripts de validação ficam na raiz e servem aos dois. A extração seguinte, se houver, continua sendo o pipeline de conectores e jobs fiscais.
+
 ## Regras de fronteira
 
 O frontend nunca escreve diretamente no banco. Conectores nunca publicam journals sem passar por serviço de aplicação, validação e idempotência. O motor regulatório não altera dados contábeis sem uma operação versionada. Workers retomam jobs por `operation_id` e não repetem transmissão não idempotente sem reconciliação.

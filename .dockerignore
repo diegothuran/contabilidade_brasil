@@ -8,7 +8,7 @@
 **/test-results
 **/.vite
 *.md
-!apps/web/**/*.md
+apps/web
 .env
 .env.*
 !.env.example

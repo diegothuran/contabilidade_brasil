@@ -17,3 +17,4 @@
 | [013](013-conciliacao-por-casos.md) | Conciliação liga extrato e razão só com aprovação humana. |
 | [014](014-deploy-piloto-aws-sa-east-1.md) | AWS São Paulo quando o escritório depender do sistema no dia a dia. |
 | [015](015-piloto-barato-heroku.md) | Primeiro piloto no Heroku, dyno Basic e Postgres Essential-0. |
+| [016](016-frontend-separado.md) | A interface é um serviço próprio; o domínio continua num processo. |

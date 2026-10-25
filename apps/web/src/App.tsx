@@ -14,7 +14,8 @@ import { JournalFormPage } from "./pages/JournalFormPage";
 import { JournalsPage } from "./pages/JournalsPage";
 import { PeriodsPage } from "./pages/PeriodsPage";
 import { TrialBalancePage } from "./pages/TrialBalancePage";
-import { Entity, Me, SessionProvider } from "./session";
+import { RastroShell } from "./rastro/RastroShell";
+import { Entity, Me, SessionProvider, useSession } from "./session";
 
 const ENTITY_KEY = "contabil.entity";
 
@@ -78,25 +79,49 @@ function Shell() {
   if (me.isLoading || entities.isLoading || !me.data || !entities.data) {
     return <p className="muted">Carregando escritório…</p>;
   }
-  if (entities.data.items.length === 0) {
-    return <p className="muted">O escritório {me.data.tenant_name} ainda não tem empresa.</p>;
-  }
-  if (!entityId) {
+  const items = entities.data.items;
+  const selectedId = items.some((item) => item.legal_entity_id === entityId) ? entityId : "";
+  if (items.length > 0 && !selectedId) {
     return <p className="muted">Carregando escritório…</p>;
   }
 
   return (
-    <SessionProvider value={{ me: me.data, entities: entities.data?.items ?? [], entityId, setEntityId }}>
+    <SessionProvider value={{ me: me.data, entities: items, entityId: selectedId, setEntityId }}>
+      <Routes>
+        <Route path="/app/rastro" element={<RastroShell />} />
+        <Route path="/app/rastro/*" element={<RastroShell />} />
+        <Route path="*" element={items.length === 0 ? <EmptyOffice name={me.data.tenant_name} /> : <OperationalShell />} />
+      </Routes>
+    </SessionProvider>
+  );
+}
+
+function EmptyOffice({ name }: { name: string }) {
+  return (
+    <main className="login">
+      <section>
+        <p className="muted">{name}</p>
+        <h1>O escritório ainda não tem empresa.</h1>
+        <p>A sala de fechamento abre em demonstração e não usa uma empresa do sistema.</p>
+        <NavLink className="button" to="/app/rastro">Abrir sala de fechamento</NavLink>
+      </section>
+    </main>
+  );
+}
+
+function OperationalShell() {
+  const { me, entities, entityId, setEntityId } = useSession();
+  return (
       <div className="shell">
         <header className="topbar">
           <div>
             <div className="brand">Contabilidade</div>
-            <div className="muted">{me.data.tenant_name} · {me.data.display_name}</div>
+            <div className="muted">{me.tenant_name} · {me.display_name}</div>
           </div>
           <label>
             Empresa
             <select data-testid="entity-select" value={entityId} onChange={(event) => setEntityId(event.target.value)}>
-              {(entities.data?.items ?? []).map((entity) => (
+              {entities.map((entity) => (
                 <option key={entity.legal_entity_id} value={entity.legal_entity_id}>
                   {entity.name}
                 </option>
@@ -118,6 +143,7 @@ function Shell() {
           <NavLink to="/app/imports">Importação</NavLink>
           <NavLink to="/app/periods">Períodos</NavLink>
           <NavLink to="/app/audit">Auditoria</NavLink>
+          <NavLink to="/app/rastro">Sala de fechamento</NavLink>
         </nav>
         <main className="content">
           <Routes>
@@ -137,6 +163,5 @@ function Shell() {
           </Routes>
         </main>
       </div>
-    </SessionProvider>
   );
 }

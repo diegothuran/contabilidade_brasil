@@ -13,3 +13,5 @@ Começar com monólito modular, workers assíncronos e interfaces de adaptador. 
 ## Consequências
 
 O primeiro deploy é mais simples e consistente. O time precisa manter fronteiras de módulo e evitar acesso direto ao banco entre módulos.
+
+O [ADR 016](016-frontend-separado.md) tira a interface estática do processo da API. Ela não guarda dado nem regra. O domínio continua neste monólito.

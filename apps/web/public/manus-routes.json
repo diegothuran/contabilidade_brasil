@@ -1,0 +1,26 @@
+{
+  "routes": [
+    { "path": "/app/journals", "title": "Lançamentos" },
+    { "path": "/app/journals/new", "title": "Novo lançamento" },
+    { "path": "/app/journals/:journalId", "title": "Lançamento" },
+    { "path": "/app/trial-balance", "title": "Balancete" },
+    { "path": "/app/accounts", "title": "Plano de contas" },
+    { "path": "/app/documents", "title": "Documentos" },
+    { "path": "/app/banks", "title": "Bancos" },
+    { "path": "/app/reconciliation", "title": "Conciliação" },
+    { "path": "/app/imports", "title": "Importação" },
+    { "path": "/app/imports/:batchId", "title": "Lote de importação" },
+    { "path": "/app/periods", "title": "Períodos" },
+    { "path": "/app/audit", "title": "Auditoria" },
+    { "path": "/app/rastro", "title": "Rastro — Hoje" },
+    { "path": "/app/rastro/fechamentos", "title": "Rastro — Fechamentos" },
+    { "path": "/app/rastro/fechamentos/:period", "title": "Rastro — Fechamento da competência" },
+    { "path": "/app/rastro/conciliacao", "title": "Rastro — Conciliação" },
+    { "path": "/app/rastro/migracoes", "title": "Rastro — Migrações" },
+    { "path": "/app/rastro/ledger", "title": "Rastro — Ledger" },
+    { "path": "/app/rastro/revisoes-ia", "title": "Rastro — Revisões de IA" },
+    { "path": "/app/rastro/obrigacoes", "title": "Rastro — Obrigações" },
+    { "path": "/app/rastro/integracoes", "title": "Rastro — Integrações" },
+    { "path": "/app/rastro/biblioteca", "title": "Rastro — Evidências" }
+  ]
+}

@@ -44,7 +44,7 @@ Adicionar sugestões de classificação, conciliação e explicação. A aplica�
 
 ## Primeiro ambiente hospedado
 
-O primeiro ambiente hospedado testa plano, razão, documentos e conciliação bancária 1:1 num dyno só, no plano mais barato, como no [ADR 015](../adr/015-piloto-barato-heroku.md). A interface, a API e o outbox dividem o processo. A credencial única do banco obedece ao RLS por `FORCE ROW LEVEL SECURITY`. O dado desse ambiente fica nos Estados Unidos. Portal, fechamento e obrigação fiscal continuam nas fases D e E. A forma AWS do [ADR 014](../adr/014-deploy-piloto-aws-sa-east-1.md) entra com documento de cliente real ou quando o escritório depender do sistema no dia a dia.
+O primeiro ambiente hospedado testa plano, razão, documentos e conciliação bancária 1:1 no plano mais barato, como no [ADR 015](../adr/015-piloto-barato-heroku.md). A API e o outbox dividem um dyno. A interface, com a sala de fechamento como entrada, ocupa outro, como no [ADR 016](../adr/016-frontend-separado.md). A credencial única do banco obedece ao RLS por `FORCE ROW LEVEL SECURITY`. O dado desse ambiente fica nos Estados Unidos. Portal, fechamento e obrigação fiscal continuam nas fases D e E. A forma AWS do [ADR 014](../adr/014-deploy-piloto-aws-sa-east-1.md) entra com documento de cliente real ou quando o escritório depender do sistema no dia a dia.
 
 ## Dependências críticas
 

@@ -6,6 +6,7 @@ interface ImportMetaEnv {
   readonly VITE_OIDC_USE_ID_TOKEN: string;
   readonly VITE_OIDC_LOGOUT_URL: string;
   readonly VITE_API_URL: string;
+  readonly VITE_RASTRO_DEMO: string;
 }
 
 interface ImportMeta {

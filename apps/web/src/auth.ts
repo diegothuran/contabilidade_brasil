@@ -18,7 +18,7 @@ export async function completeSignIn(): Promise<void> {
   const params = new URLSearchParams(window.location.search);
   if (params.has("code") && params.has("state")) {
     await userManager.signinRedirectCallback();
-    window.history.replaceState({}, document.title, "/app/journals");
+    window.history.replaceState({}, document.title, "/app/rastro");
   }
 }
 

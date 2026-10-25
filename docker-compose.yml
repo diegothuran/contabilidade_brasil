@@ -114,13 +114,14 @@ services:
 
   web:
     build:
-      context: .
-      dockerfile: apps/web/Dockerfile
+      context: apps/web
       args:
         VITE_OIDC_AUTHORITY: http://localhost:${KEYCLOAK_PORT:-8080}/realms/contabil
         VITE_OIDC_CLIENT_ID: contabil-web
         VITE_API_URL: http://localhost:8000
     image: contabil-web:local
+    environment:
+      PORT: "5173"
     ports:
       - "5173:5173"
     depends_on:

@@ -1,0 +1,10 @@
+build:
+  docker:
+    web: Dockerfile
+  config:
+    VITE_OIDC_AUTHORITY: https://cognito-idp.us-east-2.amazonaws.com/us-east-2_41PwGEQFH
+    VITE_OIDC_CLIENT_ID: 7t9mdf2kt3o7mb28v32nk10vhq
+    VITE_OIDC_USE_ID_TOKEN: "1"
+    VITE_OIDC_LOGOUT_URL: https://us-east-241pwgeqfh.auth.us-east-2.amazoncognito.com/logout
+    VITE_API_URL: https://contabilidade-brasil-9b3a64403fb1.herokuapp.com
+    VITE_RASTRO_DEMO: "true"

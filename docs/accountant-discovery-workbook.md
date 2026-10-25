@@ -91,4 +91,4 @@ A conciliação bancária deste corte também adotou regras para poder ser testa
 
 ## Decisões provisórias do piloto hospedado
 
-17. Quem é o primeiro usuário administrador do escritório no ambiente hospedado, e esse usuário aceita MFA por aplicativo? O piloto usa um dyno só e não guarda documento de cliente real.
+17. Quem é o primeiro usuário administrador do escritório no ambiente hospedado, e esse usuário aceita MFA por aplicativo? O piloto usa um dyno para a API e outro para a interface, e não guarda documento de cliente real.

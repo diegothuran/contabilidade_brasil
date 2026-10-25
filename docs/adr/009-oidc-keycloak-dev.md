@@ -12,4 +12,4 @@ A API valida JWT pelo issuer, JWKS e audience configurados. O Keycloak em `start
 
 ## Consequências
 
-Dá para exercitar aprovação e isolamento sem fixar o IdP. Produção continua exigindo decisão de identidade, MFA e ciclo de vida de usuário. O realm local não é configuração de produção. O piloto do [ADR 015](015-piloto-barato-heroku.md) configura os nomes das claims e valida o ID token do Cognito.
+Dá para exercitar aprovação e isolamento sem fixar o IdP. Produção continua exigindo decisão de identidade, MFA e ciclo de vida de usuário. O realm local não é configuração de produção. O piloto do [ADR 015](015-piloto-barato-heroku.md) configura os nomes das claims e valida o ID token do Cognito. Desde o [ADR 016](016-frontend-separado.md), o callback e o logout ficam na origem da interface, não na da API.

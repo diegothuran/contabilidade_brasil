@@ -14,7 +14,7 @@ Em outubro de 2026, o Heroku cobra US$ 7 por um dyno Basic (512 MB, sempre ligad
 
 O ambiente hospedado atual é um app Heroku no runtime comum dos Estados Unidos, no menor plano sempre ligado.
 
-- **Um processo.** Um dyno Basic atende HTTPS e roda o ciclo do outbox no mesmo processo. A interface estática sai por esse processo. Não há segundo dyno, NAT, balanceador dedicado nem CloudFront. O passo a passo está em [deploy/pilot/README.md](../../deploy/pilot/README.md).
+- **Um processo para o domínio.** Um dyno Basic atende a API em HTTPS e roda o ciclo do outbox no mesmo processo. Não há NAT, balanceador dedicado nem CloudFront. A interface estática saía por esse processo; desde o [ADR 016](016-frontend-separado.md) ela é um app próprio, também Basic. O passo a passo está em [deploy/pilot/README.md](../../deploy/pilot/README.md).
 - **Banco.** Heroku Postgres `essential-0`. O Alembic segue igual. O seed de demonstração não roda. A credencial única é dona das tabelas e não pode criar outro papel. `FORCE ROW LEVEL SECURITY` faz essa credencial obedecer às policies. `outbox_events` fica sem `FORCE`: o ciclo do outbox lê todos os escritórios e, em seguida, fixa `app.tenant_id` antes de mexer no restante.
 - **Arquivos.** Bucket S3 privado na mesma região do dyno, com versionamento e bloqueio de acesso público. O módulo de documentos só troca endpoint e credencial. MinIO não entra. A aplicação não cria o bucket.
 - **Login.** Cognito na mesma região do dyno, com MFA por aplicativo para quem administra. A interface envia o ID token. A API continua validando issuer, JWKS e audience, e lê o usuário e o escritório pelos claims configurados (`cognito:username` e `custom:tenant_id`). Keycloak não sobe.
@@ -23,7 +23,7 @@ Segredo fica na config do Heroku. Há um ambiente, separado do localhost. Docume
 
 ## Consequências
 
-A conta prevista, em preço público de outubro de 2026, fica em torno de **US$ 12 por mês**: US$ 7 do dyno e US$ 5 do banco. Cognito para dezenas de usuários e um bucket pequeno ficam na faixa gratuita. Imposto e um segundo ambiente ficam de fora.
+A conta prevista, em preço público de outubro de 2026, fica em torno de **US$ 12 por mês**: US$ 7 do dyno e US$ 5 do banco. Com o app da interface do [ADR 016](016-frontend-separado.md), passa a cerca de US$ 19. Cognito para dezenas de usuários e um bucket pequeno ficam na faixa gratuita. Imposto e um segundo ambiente ficam de fora.
 
 O dado deste ambiente fica nos Estados Unidos. O plano aceita até cerca de 4 horas de indisponibilidade no mês, manutenção sem aviso e um disco de 1 GB. O papel separado de aplicação volta a ter credencial própria quando o ambiente for o de São Paulo. Até lá, `FORCE ROW LEVEL SECURITY` é o que faz o RLS valer para a credencial dona.
 

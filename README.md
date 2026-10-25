@@ -43,6 +43,9 @@ Depois leia:
 
 | Caminho | Finalidade |
 | --- | --- |
+| `apps/api/` | Serviço de domínio: API, razão, conciliação, documentos, auditoria e outbox. |
+| `apps/web/` | Serviço de interface: sala de fechamento e rotinas do razão. |
+| `deploy/` | Imagens locais e o roteiro do piloto hospedado. |
 | `docs/references/` | Benchmark recebido e fontes de contexto preservadas. |
 | `docs/specs/` | Cinco anchors spec-driven e backlog de POCs. |
 | `docs/adr/` | Decisões arquiteturais com consequências explícitas. |
@@ -76,7 +79,9 @@ Para conciliar: em Bancos, ligue um ativo postável à conta e informe só os qu
 
 O primeiro boot do Keycloak pode levar cerca de um minuto. Para repetir a carga inicial, apague o volume com `docker compose down -v`.
 
-O piloto hospedado, num dyno só, está em [deploy/pilot/README.md](deploy/pilot/README.md). Ele não substitui este compose.
+Depois do login, a interface abre a sala de fechamento em `/app/rastro`. Ela usa dados sintéticos enquanto `VITE_RASTRO_DEMO` não for `false`. As rotinas do razão ficam em `/app/journals` e no menu **Rotinas do razão**.
+
+O piloto hospedado roda em dois apps Heroku, um para a interface e outro para a API com o outbox. O roteiro está em [deploy/pilot/README.md](deploy/pilot/README.md). Ele não substitui este compose.
 
 ```bash
 docker compose exec api pytest
