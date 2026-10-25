@@ -1,4 +1,4 @@
-import { accessToken, userManager } from "./auth";
+import { accessToken } from "./auth";
 
 const apiUrl = import.meta.env.VITE_API_URL ?? "";
 
@@ -29,11 +29,10 @@ export async function api<T>(path: string, options: { method?: string; body?: un
     headers,
     body,
   });
-  if (response.status === 401) {
-    await userManager.signinRedirect();
-    throw new ApiError(401, "Não autenticado", "A sessão expirou.");
-  }
   const payload = await response.json().catch(() => ({}));
+  if (response.status === 401) {
+    throw new ApiError(response.status, payload.title ?? "Não autenticado", payload.detail ?? "A sessão expirou.");
+  }
   if (!response.ok) {
     throw new ApiError(response.status, payload.title ?? "Erro", payload.detail ?? "A operação falhou.");
   }
@@ -49,11 +48,11 @@ async function authorizedHeaders(): Promise<Record<string, string>> {
 }
 
 async function readPayload(response: Response): Promise<unknown> {
-  if (response.status === 401) {
-    await userManager.signinRedirect();
-    throw new ApiError(401, "Não autenticado", "A sessão expirou.");
-  }
   const payload = await response.json().catch(() => ({}));
+  if (response.status === 401) {
+    const problem = payload as { title?: string; detail?: string };
+    throw new ApiError(response.status, problem.title ?? "Não autenticado", problem.detail ?? "A sessão expirou.");
+  }
   if (!response.ok) {
     const problem = payload as { title?: string; detail?: string };
     throw new ApiError(response.status, problem.title ?? "Erro", problem.detail ?? "A operação falhou.");

@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { NavLink, Route, Routes } from "react-router-dom";
-import { api } from "./api";
+import { ApiError, api } from "./api";
 import { userManager } from "./auth";
 import { AccountsPage } from "./pages/AccountsPage";
 import { AuditPage } from "./pages/AuditPage";
@@ -71,9 +71,17 @@ function Shell() {
   }, [entityId]);
 
   if (me.isError || entities.isError) {
-    return <p className="error">Não foi possível carregar o escritório.</p>;
+    const error = me.error ?? entities.error;
+    const detail = error instanceof ApiError ? error.message : "Não foi possível carregar o escritório.";
+    return <p className="error">{detail}</p>;
   }
-  if (me.isLoading || entities.isLoading || !me.data || !entityId) {
+  if (me.isLoading || entities.isLoading || !me.data || !entities.data) {
+    return <p className="muted">Carregando escritório…</p>;
+  }
+  if (entities.data.items.length === 0) {
+    return <p className="muted">O escritório {me.data.tenant_name} ainda não tem empresa.</p>;
+  }
+  if (!entityId) {
     return <p className="muted">Carregando escritório…</p>;
   }
 

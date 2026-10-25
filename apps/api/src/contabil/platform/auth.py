@@ -67,10 +67,12 @@ def authenticate(session: Session, token: str) -> Principal:
     username = _claim(payload, settings.oidc_username_claim)
     tenant_id = _claim(payload, settings.oidc_tenant_claim)
     if not isinstance(username, str) or not username:
+        logger.warning("token sem a claim %s", settings.oidc_username_claim)
         raise DomainError(401, "Não autenticado", "O token não identifica o usuário.")
     if isinstance(tenant_id, list):
         tenant_id = tenant_id[0] if tenant_id else None
     if not isinstance(tenant_id, str) or not tenant_id:
+        logger.warning("token sem a claim %s", settings.oidc_tenant_claim)
         raise DomainError(401, "Não autenticado", "O token não identifica o escritório.")
     apply_tenant(session, tenant_id)
     row = session.execute(
