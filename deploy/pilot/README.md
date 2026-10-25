@@ -2,7 +2,7 @@
 
 Um dyno Heroku Basic atende a interface, a API e o ciclo do outbox. O banco é Postgres Essential-0. O dado fica nos Estados Unidos. Documento de cliente real continua fora deste ambiente, como no [ADR 015](../../docs/adr/015-piloto-barato-heroku.md).
 
-Substitua os três valores de `build.config` em [heroku.yml](../../heroku.yml) antes do primeiro push. A interface grava o endereço do Cognito na hora do build. Trocar o pool exige um build novo.
+O `build.config` em [heroku.yml](../../heroku.yml) usa o endereço público do app e o client `contabil-web`. Isso libera o primeiro build. A interface grava esses valores na hora do build. O login só funciona quando um provedor real substituir esse endereço; aí o build precisa ser refeito.
 
 ## App e banco
 

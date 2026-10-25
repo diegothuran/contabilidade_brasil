@@ -1,6 +1,6 @@
 build:
   docker:
-    web: deploy/pilot/Dockerfile
+    web: Dockerfile
   config:
     VITE_OIDC_AUTHORITY: https://contabilidade-brasil-9b3a64403fb1.herokuapp.com
     VITE_OIDC_CLIENT_ID: contabil-web
