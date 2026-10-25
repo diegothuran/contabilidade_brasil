@@ -3,7 +3,7 @@ build:
     web: Dockerfile
   config:
     VITE_OIDC_AUTHORITY: https://cognito-idp.us-east-2.amazonaws.com/us-east-2_41PwGEQFH
-    VITE_OIDC_CLIENT_ID: 7i9mdf2ki3o7mb28v32nk10vhq
+    VITE_OIDC_CLIENT_ID: 7t9mdf2kt3o7mb28v32nk10vhq
     VITE_OIDC_LOGOUT_URL: https://us-east-241pwgeqfh.auth.us-east-2.amazoncognito.com/logout
 release:
   image: web
