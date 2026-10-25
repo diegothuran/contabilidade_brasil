@@ -2,9 +2,9 @@ build:
   docker:
     web: deploy/pilot/Dockerfile
   config:
-    VITE_OIDC_AUTHORITY: https://cognito-idp.us-east-1.amazonaws.com/REPLACE_POOL_ID
-    VITE_OIDC_CLIENT_ID: REPLACE_CLIENT_ID
-    VITE_OIDC_LOGOUT_URL: https://REPLACE_DOMAIN.auth.us-east-1.amazoncognito.com/logout
+    VITE_OIDC_AUTHORITY: https://contabilidade-brasil-9b3a64403fb1.herokuapp.com
+    VITE_OIDC_CLIENT_ID: contabil-web
+    VITE_OIDC_LOGOUT_URL: https://contabilidade-brasil-9b3a64403fb1.herokuapp.com/
 release:
   image: web
   command:
