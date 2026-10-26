@@ -1,65 +1,186 @@
 # contabilidade_brasil
 
-Esta pasta define a base para construir uma plataforma contábil e de operação de escritórios no Brasil. Ela foi derivada do benchmark recebido e não tenta copiar literalmente nenhum concorrente.
+Base de produto, domínio e código para uma plataforma contábil de escritórios no Brasil. A interface se chama **Rastro**: fechamento com evidência.
 
-## Tese inicial
+O repositório tem duas partes. A primeira é a fundação de produto: benchmark, modelo de domínio, specs, ADRs e contratos JSON. A segunda é uma aplicação que já roda: razão de partidas dobradas, períodos, importação, conciliação bancária, documentos e auditoria, com uma interface web e um piloto hospedado.
 
-O produto deve competir por **confiança operacional mensurável**. Cada saldo precisa ser explicado até a origem. Cada obrigação precisa ter versão, status, protocolo e responsável. Cada migração precisa ser reconciliável. Cada cliente deve conseguir sair com seus dados em formato útil.
+Ainda não é um produto fiscal pronto. Não há regra tributária, obrigação acessória, transmissão a órgão nem plano referencial suficiente para produção.
 
-O primeiro foco recomendado é um escritório contábil com aproximadamente **20–200 CNPJs**, em dois ou três estados e com um conjunto fiscal controlado. O produto deve coexistir com o legado durante a entrada, em vez de exigir uma troca completa no primeiro dia.
+## Tese
 
-## Escopo da fundação
+O produto deve competir por **confiança operacional mensurável**:
 
-A base contempla:
+- cada saldo é explicado até a origem;
+- cada obrigação tem versão, status, protocolo e responsável;
+- cada migração é reconciliável;
+- cada cliente consegue sair com os seus dados em formato útil.
 
-- ledger de partidas dobradas, plano de contas, dimensões e períodos;
-- importação e migração com dry-run e reconciliação;
-- contas a pagar/receber e conciliação bancária explicável;
-- fechamento com checklist, aprovação, lock e reabertura auditável;
-- documentos, evidências, portal e tarefas entre contador e cliente;
-- motor regulatório versionado e matriz pública de cobertura;
-- adaptadores para documentos fiscais e obrigações;
-- RBAC/ABAC, segregação de funções, auditoria e exportação;
-- API versionada, webhooks idempotentes e observabilidade;
-- IA apenas como assistência explicável, sem publicar lançamentos ou transmitir obrigações sozinha.
+O primeiro público é um escritório com cerca de **20 a 200 CNPJs**, em dois ou três estados, com um conjunto fiscal controlado. O produto entra ao lado do sistema legado e não exige troca completa no primeiro dia.
 
-Folha completa, cobertura nacional de NFS-e, banking próprio, crédito, manufatura profunda, marketplace amplo e IA autônoma ficam fora do primeiro ciclo.
+## O que o sistema faz hoje
 
-## Como usar com o contador
+| Área | O que funciona | Onde fica na sala |
+| --- | --- | --- |
+| Escritório e acesso | Login OIDC, escritório (tenant) isolado no banco por RLS, papéis `preparer`, `approver`, `admin` e `viewer`. | Barra lateral e rodapé com usuário e papéis |
+| Empresas | O admin cadastra a empresa com CNPJ validado e único no escritório. Ela nasce com matriz, modelo mínimo de contas e 12 períodos abertos. | Rotinas do razão › Nova empresa |
+| Plano de contas | Contas sintéticas e analíticas por empresa. Só conta analítica (postável) recebe lançamento. | Rotinas do razão › Plano de contas |
+| Lançamentos | Rascunho equilibrado, envio, aprovação e publicação. Quem cria não aprova nem publica. Publicado não se edita: corrige-se por estorno vinculado. | Hoje, Dados e ledger, Rotinas do razão › Novo lançamento |
+| Balancete | Débito, crédito e saldo por conta e competência, com drill-down até a linha. | Rotinas do razão › Balancete |
+| Períodos | Fechar a competência bloqueia postagem normal. Reabrir pede motivo e aprovação de outra pessoa. | Fechamentos |
+| Importação | Lote CSV em simulação, relatório de diferenças e publicação por outra pessoa. Identificador já importado não entra de novo. | Migrações |
+| Bancos e conciliação | Conta bancária ligada ao plano, extrato CSV ou OFX, casos Sugerido e Sem candidato, aprovação humana do vínculo. | Conciliação; Rotinas do razão › Bancos |
+| Documentos | Arquivo original no object storage com hash SHA-256, tipo e competência. | Evidências |
+| Auditoria | Eventos encadeados por hash, com verificação da cadeia. | Rotinas do razão › Auditoria |
 
-Comece por [caderno de descoberta](docs/accountant-discovery-workbook.md). Ele transforma a experiência do contador em decisões testáveis: como o escritório fecha hoje, onde ocorrem retrabalho e risco, quais arquivos realmente chegam, quais obrigações são prioritárias e que evidência precisa ser preservada.
+Revisões de IA, obrigações e entregas, integrações externas e administração aparecem no menu, mas a tela diz que ainda não há contrato. Elas não simulam estado.
 
-Depois leia:
+## Como usar
 
-1. [síntese do benchmark e hipóteses de oportunidade](docs/benchmark-synthesis.md);
-2. [modelo de domínio](docs/domain-model.md);
-3. [contratos contábeis em linguagem humana](docs/data-contracts.md);
-4. [arquitetura](docs/architecture.md);
-5. [Product Spec](docs/specs/01-product-spec.md) até [Agent Configuration](docs/specs/05-agent-configuration.md);
-6. [backlog de discovery e POCs](docs/specs/06-discovery-and-poc-backlog.md);
-7. [schemas e exemplos](schemas/README.md).
+### Papéis
+
+| Papel | Pode |
+| --- | --- |
+| `preparer` | Criar conta e rascunho, enviar para aprovação, montar lote de importação, enviar documento e extrato, pedir reabertura. |
+| `approver` | Aprovar, rejeitar e publicar o lançamento de outra pessoa; publicar lote; aprovar conciliação; fechar período e aprovar a reabertura pedida por outra pessoa. |
+| `admin` | O que os dois acima podem, mais cadastrar empresa. |
+| `viewer` | Consultar. |
+
+A segregação vale mesmo para quem tem vários papéis: quem criou o lançamento não aprova nem publica esse lançamento.
+
+### Um ciclo de trabalho
+
+1. Entre pela tela do Rastro. O login vai ao provedor de identidade e volta para `/app/rastro`.
+2. Na barra **Cliente / CNPJ**, no topo, escolha a empresa. A competência ao lado é dessa empresa.
+3. Em **Hoje**, veja os lançamentos recentes. A lista completa fica em **Dados e ledger**.
+4. Em **Rotinas do razão › Novo lançamento**, monte um rascunho equilibrado e envie para aprovação.
+5. Outra pessoa, com papel `approver`, abre o lançamento, aprova e publica.
+6. Confira o saldo em **Rotinas do razão › Balancete** e desça até a linha.
+7. Em **Conciliação**, envie o extrato e decida cada caso sugerido.
+8. Em **Fechamentos**, feche a competência quando ela estiver pronta.
+
+A caminhada sintética da empresa fictícia Orbe fica em **Demonstração**, no grupo Sistema. Ela mostra o desenho futuro da sala e não grava lançamento.
+
+## Arquitetura
+
+Monólito modular para o domínio e um serviço separado só para a interface ([ADR 003](docs/adr/003-monolito-modular.md), [ADR 016](docs/adr/016-frontend-separado.md)). A ideia é provar ledger, migração, conciliação e fechamento sem espalhar invariantes contábeis por vários serviços.
+
+```mermaid
+flowchart LR
+    browser[Navegador] -->|"login OIDC + PKCE"| idp[Provedor de identidade]
+    browser -->|"HTML e JS"| web["apps/web<br/>Rastro em nginx"]
+    browser -->|"HTTPS + ID token"| api["apps/api<br/>FastAPI"]
+    api --> db[("PostgreSQL<br/>RLS por escritório")]
+    api --> s3[("Object storage S3<br/>arquivo original e hash")]
+    api --> outbox["Outbox no Postgres"]
+    outbox --> worker["Worker<br/>importação e extrato"]
+    worker --> db
+    worker --> s3
+```
+
+### Serviços
+
+| Serviço | Pasta | Responsabilidade |
+| --- | --- | --- |
+| Interface | `apps/web` | React e Vite, servido por nginx sem root. Uma casca só, a sala Rastro ([ADR 018](docs/adr/018-uma-casca-visual.md)). Não acessa banco, não guarda segredo e não decide regra de tenant. |
+| Domínio | `apps/api` | FastAPI, SQLAlchemy e Alembic. É o único serviço que toca banco, object storage e outbox. |
+
+### Módulos do domínio
+
+| Módulo | Pasta em `apps/api/src/contabil/` | Conteúdo |
+| --- | --- | --- |
+| Tenancy | `tenancy/` | Escritório, membership, empresa e cadastro com CNPJ. |
+| Master data | `master_data/` | Plano de contas, centro de custo e o modelo mínimo de contas. |
+| Ledger | `ledger/` | Journals, linhas, aprovação, publicação, estorno e balancete. |
+| Períodos | `periods/` | Abertura, fechamento e reabertura aprovada. |
+| Importação | `imports/` | Lotes CSV, simulação, relatório de diferenças e publicação. |
+| Conciliação | `reconciliation/` | Contas bancárias, parser de CSV e OFX, matching explicável e casos. |
+| Documentos | `documents/` | Upload, hash e download do arquivo original. |
+| Auditoria | `audit/` | Eventos encadeados por hash e verificação. |
+| Plataforma | `platform/` | Autenticação, RLS, idempotência, correlation ID, outbox, storage, dinheiro em decimal. |
+
+### Garantias no código
+
+- **Partidas dobradas:** publicação exige débitos iguais a créditos; dinheiro é `Decimal`, nunca float.
+- **Imutabilidade:** journal publicado não muda; trigger no banco reforça a regra ([ADR 001](docs/adr/001-ledger-immutavel.md), [ADR 010](docs/adr/010-rls-e-triggers.md)).
+- **Isolamento:** toda tabela de negócio tem `tenant_id` e RLS forçada, inclusive para o dono da tabela ([ADR 005](docs/adr/005-isolamento-de-tenant.md)).
+- **Aprovação humana:** nenhum efeito contábil sai sem uma segunda pessoa autorizada ([ADR 004](docs/adr/004-aprovacao-humana.md)).
+- **Idempotência:** POSTs que mudam estado aceitam `Idempotency-Key`; o mesmo pedido devolve a mesma resposta ([ADR 006](docs/adr/006-adaptadores-e-idempotencia.md)).
+- **Jobs:** importação e extrato vão para o outbox, com retry limitado e dead-letter ([ADR 008](docs/adr/008-outbox-postgresql.md), [ADR 012](docs/adr/012-jobs-outbox.md)).
+- **Evidência:** o arquivo original fica no object storage com hash; o banco guarda metadado e referência ([ADR 011](docs/adr/011-object-storage-s3.md)).
+
+O desenho completo, inclusive módulos ainda não construídos, está em [docs/architecture.md](docs/architecture.md) e no [modelo de domínio](docs/domain-model.md).
+
+## Deploy
+
+### Local
+
+```mermaid
+flowchart LR
+    subgraph compose[docker compose]
+        web["web :5173"]
+        api["api :8000"]
+        worker[worker]
+        migrate["migrate (Alembic + seed)"]
+        pg[("postgres :5432")]
+        kc["keycloak :8080"]
+        minio["minio :9000"]
+    end
+    web --> api
+    api --> pg
+    api --> minio
+    api --> kc
+    worker --> pg
+    worker --> minio
+    migrate --> pg
+```
+
+O compose sobe tudo, inclusive um Keycloak de desenvolvimento e um MinIO ([ADR 009](docs/adr/009-oidc-keycloak-dev.md)). O `migrate` aplica as migrações e carrega o seed sintético antes da API subir.
+
+### Piloto hospedado
+
+```mermaid
+flowchart LR
+    user[Navegador] --> cognito["AWS Cognito<br/>us-east-2"]
+    user --> webapp["Heroku: contabilidade-brasil-web<br/>dyno Basic, nginx"]
+    user --> apiapp["Heroku: contabilidade-brasil<br/>dyno Basic, API + outbox"]
+    apiapp --> hpg[("Heroku Postgres<br/>Essential-0")]
+    apiapp -.->|"quando configurado"| bucket[("Bucket S3 privado")]
+```
+
+| Peça | Escolha | Observação |
+| --- | --- | --- |
+| Interface | App Heroku `contabilidade-brasil-web` | Publicado com `git subtree push --prefix apps/web heroku-web main`. |
+| API | App Heroku `contabilidade-brasil` | Publicado com `git push heroku main`. O release roda as migrações. O outbox roda no mesmo processo. |
+| Banco | Heroku Postgres Essential-0 | RLS forçada; o seed de demonstração não roda aqui. |
+| Login | AWS Cognito, client público com PKCE | MFA opcional por aplicativo; o escritório vem do atributo `custom:tenant_id`. |
+| Arquivos | Bucket S3 privado | Ainda não configurado. Sem ele, documentos, importação e extrato ficam indisponíveis. |
+
+O piloto custa cerca de US$ 19 por mês e guarda o dado nos Estados Unidos. Por isso só aceita dado fictício ([ADR 015](docs/adr/015-piloto-barato-heroku.md)). A ida para AWS São Paulo está descrita no [ADR 014](docs/adr/014-deploy-piloto-aws-sa-east-1.md), para quando o escritório depender do sistema no dia a dia.
+
+O roteiro completo do piloto está em [deploy/pilot/README.md](deploy/pilot/README.md): apps, Cognito, configuração, bootstrap do escritório, usuário de teste, primeira empresa e o comando das três empresas de teste.
 
 ## Estrutura
 
 | Caminho | Finalidade |
 | --- | --- |
-| `apps/api/` | Serviço de domínio: API, razão, conciliação, documentos, auditoria e outbox. |
-| `apps/web/` | Serviço de interface: sala de fechamento e rotinas do razão. |
-| `deploy/` | Imagens locais e o roteiro do piloto hospedado. |
-| `docs/references/` | Benchmark recebido e fontes de contexto preservadas. |
+| `apps/api/` | Serviço de domínio: API, módulos, migrações Alembic, testes unitários e de integração. |
+| `apps/web/` | Serviço de interface: sala Rastro, rotinas e smoke E2E com Playwright. |
+| `deploy/` | Imagens locais (Postgres, Keycloak) e o roteiro do piloto. |
 | `docs/specs/` | Cinco anchors spec-driven e backlog de POCs. |
 | `docs/adr/` | Decisões arquiteturais com consequências explícitas. |
+| `docs/rastro/` | Contrato de interface da sala: vocabulário, estados, tokens e menu. |
+| `docs/references/` | Benchmark recebido e fontes de contexto preservadas. |
 | `docs/` | Modelo de domínio, arquitetura, síntese e caderno do contador. |
 | `schemas/` | Contratos JSON e OpenAPI. |
-| `examples/` | Fixtures para validar os contratos. |
+| `examples/` | Fixtures sintéticas para validar os contratos. |
 | `prompts/` | Prompt de assistência contábil com guardrails. |
-| `configs/` | Configuração sem segredos e sem regras fiscais escondidas. |
+| `configs/` | Configuração sem segredos e sem regra fiscal escondida. |
 | `scripts/` | Validações estruturais e semânticas. |
 | `tests/contract/` | Testes de contrato e invariantes contábeis. |
 
 ## Rodar em localhost
 
-A fundação local sobe API, worker, PostgreSQL, MinIO, Keycloak e a interface. Os segredos do exemplo são falsos e servem só para esta máquina.
+Os segredos do exemplo são falsos e servem só para esta máquina.
 
 ```bash
 cp .env.example .env
@@ -70,26 +191,26 @@ docker compose up --build
 - API e OpenAPI gerada: `http://localhost:8000/docs`
 - Keycloak: `http://localhost:8080` (realm `contabil`). Se essa porta já estiver em uso, defina `KEYCLOAK_PORT` no `.env` antes do build; a interface e o emissor do token usam essa porta.
 - MinIO: API em `http://localhost:9000` e console em `http://localhost:9001`. Usuário e senha vêm de `MINIO_ROOT_USER` e `MINIO_ROOT_PASSWORD` no `.env`. A imagem local é a do Chainguard, porque `minio/minio` não está mais no Docker Hub; o contrato da aplicação continua S3.
-
-Para importar um lote: entre como `preparer`, envie o CSV em Importação e espere o estado Pronto. Entre como `approver` e publique. O mesmo arquivo, no mesmo sistema de origem, não gera lançamento de novo; a linha fica como já importada e o relatório explica a diferença. O cabeçalho de cada tipo está em `GET /v1/import-batches/templates/{kind}`.
-
-Para conciliar: em Bancos, ligue um ativo postável à conta e informe só os quatro últimos dígitos. Em Conciliação, envie um CSV (`date;description;amount;external_id`) ou um OFX. O mesmo movimento não entra duas vezes. Um caso sugerido mostra a linha do razão, o score e o motivo. Só `approver` aprova. Se não houver linha, o preparador pode criar um rascunho; publicá-lo, por outra pessoa, resolve o caso.
-- Usuários `preparer`, `approver`, `admin`, `viewer` e `outsider`, senha `dev-only-password`
+- Usuários `preparer`, `approver`, `admin`, `viewer` e `outsider`, senha `dev-only-password`. O `outsider` é de outro escritório e serve para provar o isolamento.
 - Adminer, se quiser inspecionar o banco: `docker compose --profile tools up adminer` em `http://localhost:8081`
 
 O primeiro boot do Keycloak pode levar cerca de um minuto. Para repetir a carga inicial, apague o volume com `docker compose down -v`.
 
-Depois do login, a interface abre a sala de fechamento em `/app/rastro`. Ela usa dados sintéticos enquanto `VITE_RASTRO_DEMO` não for `false`. As rotinas do razão ficam em `/app/journals` e no menu **Rotinas do razão**.
+Para importar um lote: entre como `preparer`, envie o CSV em **Migrações** e espere o estado Pronto. Entre como `approver` e publique. O mesmo arquivo, no mesmo sistema de origem, não gera lançamento de novo; a linha fica como já importada e o relatório explica a diferença. O cabeçalho de cada tipo está em `GET /v1/import-batches/templates/{kind}`.
 
-O piloto hospedado roda em dois apps Heroku, um para a interface e outro para a API com o outbox. O roteiro está em [deploy/pilot/README.md](deploy/pilot/README.md). Ele não substitui este compose.
+Para conciliar: em **Rotinas do razão**, abra **Bancos**, ligue um ativo postável à conta e informe só os quatro últimos dígitos. Em **Conciliação**, envie um CSV (`date;description;amount;external_id`) ou um OFX. O mesmo movimento não entra duas vezes. Um caso sugerido mostra a linha do razão, o score e o motivo. Só `approver` aprova. Se não houver linha, o preparador pode criar um rascunho; publicá-lo, por outra pessoa, resolve o caso.
+
+## Testes e validação
 
 ```bash
 docker compose exec api pytest
 ```
 
+Os testes de integração precisam do compose no ar. Os unitários rodam sem Docker, dentro de `apps/api`, com `pytest tests/unit`.
+
 O build da interface executa `tsc`. Na máquina, com Node, use `npm run typecheck` e `npm run lint` dentro de `apps/web`. O smoke de ponta a ponta é `npm run e2e` em `apps/web`, com o compose no ar.
 
-## Validação
+Contratos e documentação:
 
 ```bash
 python3 -m pip install -r requirements-dev.txt
@@ -99,8 +220,46 @@ python3 -m pytest tests/contract -q
 openapi-spec-validator schemas/openapi.yaml
 ```
 
+## Como usar com o contador
+
+Comece pelo [caderno de descoberta](docs/accountant-discovery-workbook.md). Ele transforma a experiência do contador em decisões testáveis: como o escritório fecha hoje, onde ocorrem retrabalho e risco, quais arquivos realmente chegam, quais obrigações são prioritárias e que evidência precisa ser preservada.
+
+Depois leia:
+
+1. [síntese do benchmark e hipóteses de oportunidade](docs/benchmark-synthesis.md);
+2. [modelo de domínio](docs/domain-model.md);
+3. [contratos contábeis em linguagem humana](docs/data-contracts.md);
+4. [arquitetura](docs/architecture.md);
+5. [Product Spec](docs/specs/01-product-spec.md) até [Agent Configuration](docs/specs/05-agent-configuration.md);
+6. [backlog de discovery e POCs](docs/specs/06-discovery-and-poc-backlog.md);
+7. [schemas e exemplos](schemas/README.md);
+8. [ADRs](docs/adr/README.md).
+
+## Escopo da fundação
+
+A visão completa contempla:
+
+- ledger de partidas dobradas, plano de contas, dimensões e períodos;
+- importação e migração com dry-run e reconciliação;
+- contas a pagar e receber e conciliação bancária explicável;
+- fechamento com checklist, aprovação, lock e reabertura auditável;
+- documentos, evidências, portal e tarefas entre contador e cliente;
+- motor regulatório versionado e matriz pública de cobertura;
+- adaptadores para documentos fiscais e obrigações;
+- RBAC e ABAC, segregação de funções, auditoria e exportação;
+- API versionada, webhooks idempotentes e observabilidade;
+- IA apenas como assistência explicável, sem publicar lançamentos ou transmitir obrigações sozinha.
+
+Ainda não construído: contas a pagar e receber, checklist e pacote de fechamento, motor regulatório, obrigações, conectores governamentais, portal do cliente e assistência por IA.
+
+Folha completa, cobertura nacional de NFS-e, banking próprio, crédito, manufatura profunda, marketplace amplo e IA autônoma ficam fora do primeiro ciclo.
+
 ## Decisões que ainda não devem ser inventadas
 
-A equipe ainda precisa decidir nome do produto, ICP final, estados e municípios do piloto, regime tributário, provedores fiscais, política de certificados, retenção, RPO/RTO, cloud, banco, modelo de pricing, critérios de migração e o que o contador considera “fechamento pronto”.
+A equipe ainda precisa decidir nome do produto, ICP final, estados e municípios do piloto, regime tributário, provedores fiscais, política de certificados, retenção, RPO e RTO, cloud definitiva, modelo de pricing, critérios de migração, o plano de contas que substitui o modelo mínimo e o que o contador considera “fechamento pronto”.
 
 O benchmark é um insumo de decisão. Uma ausência pública de feature não prova que o concorrente não a possui, e uma feature anunciada não prova cobertura universal. A fonte preservada está em [benchmark-software-contabil.md](docs/references/benchmark-software-contabil.md).
+
+## Regras para quem contribui
+
+Dado real de cliente, XML, certificado e credencial não entram no repositório. As regras de domínio e a definição de pronto estão em [AGENTS.md](AGENTS.md).
