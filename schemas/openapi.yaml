@@ -440,6 +440,41 @@ paths:
           schema: { type: string }
       responses:
         '200': { description: Status da operação, content: { application/json: { schema: { $ref: '#/components/schemas/OperationAccepted' } } } }
+  /v1/users:
+    get:
+      summary: Pessoas do escritório autenticado
+      operationId: listUsers
+      responses:
+        '200': { description: Usuários e papéis }
+        '403': { description: Papel insuficiente }
+    post:
+      summary: Convida uma pessoa para o escritório
+      operationId: inviteUser
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [username, display_name, email, roles]
+              properties:
+                username: { type: string, minLength: 1, maxLength: 64 }
+                display_name: { type: string, minLength: 1, maxLength: 200 }
+                email: { type: string, minLength: 3, maxLength: 200 }
+                roles:
+                  type: array
+                  minItems: 1
+                  maxItems: 4
+                  items: { type: string, enum: [preparer, approver, admin, viewer] }
+      responses:
+        '201': { description: Convite registrado }
+        '400': { description: Dados do convite inválidos }
+        '403': { description: Papel insuficiente }
+        '409': { description: Usuário já existe neste ou noutro escritório }
+        '503': { description: Diretório de usuários não configurado }
   /v1/me:
     get:
       summary: Identidade, escritório e papéis do token

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboa
 import { NavLink, Route, Routes, useLocation, useNavigate, useParams } from "react-router-dom";
 import { userManager } from "../auth";
 import { AccountsPage } from "../pages/AccountsPage";
+import { AdministrationPage } from "../pages/AdministrationPage";
 import { AuditPage } from "../pages/AuditPage";
 import { BanksPage } from "../pages/BanksPage";
 import { CompanyFormPage } from "../pages/CompanyFormPage";
@@ -286,10 +287,9 @@ export function RastroShell() {
           </div>
           <div className="nav-group">
             <span className="nav-group__label">Governança</span>
-            <NavLink to="/app/rastro/administracao" className={({ isActive }) => `nav-link nav-link--planned ${isActive ? "nav-link--active" : ""}`} onClick={() => setSidebarOpen(false)}>
+            <NavLink to="/app/rastro/administracao" className={({ isActive }) => `nav-link ${isActive ? "nav-link--active" : ""}`} onClick={() => setSidebarOpen(false)}>
               <span className="nav-mark" aria-hidden="true">A</span>
               <span>Administração</span>
-              <small>planejado</small>
             </NavLink>
           </div>
         </nav>
@@ -364,7 +364,7 @@ export function RastroShell() {
             <Route path="/app/rastro/biblioteca" element={<Routine><DocumentsPage /></Routine>} />
             <Route path="/app/rastro/integracoes" element={<PlannedPage title="Integrações" detail="Nenhum conector externo está configurado. As contas bancárias da empresa ficam em Rotinas do razão." />} />
             <Route path="/app/rastro/rotinas" element={<RoutinesPage />} />
-            <Route path="/app/rastro/administracao" element={<PlannedPage title="Administração" detail="Papéis, políticas e retenção ainda não têm tela. O acesso continua o do provedor de identidade e o papel gravado no escritório." />} />
+            <Route path="/app/rastro/administracao" element={<Routine><AdministrationPage /></Routine>} />
             <Route path="/app/journals/new" element={<Routine><JournalFormPage /></Routine>} />
             <Route path="/app/journals/:journalId" element={<Routine><JournalDetailPage /></Routine>} />
             <Route path="/app/journals" element={<Routine><JournalsPage /></Routine>} />

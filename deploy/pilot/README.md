@@ -100,20 +100,19 @@ heroku run --app NOME-API python -m contabil.bootstrap \
 
 Para provar o isolamento, repita com outro `--tenant-id` e outro usuário. Esse segundo usuário não vê o dado do primeiro.
 
-## Usuário de teste
+## Convite pela sala
 
-Em **Gerenciamento de usuários › Usuários › Criar usuário**, crie o usuário sem convite e com senha temporária. Depois, em **Atributos do usuário**, defina `custom:tenant_id` igual ao do escritório. Sem aplicativo cadastrado, ele entra só com senha. Registre-o com papel de consulta:
+O primeiro admin continua no bootstrap acima. As pessoas seguintes nascem em **Administração**, com o admin logado. O Cognito envia a senha temporária para o e-mail informado. No primeiro acesso a pessoa troca essa senha. O MFA segue opcional.
+
+Isso só envia e-mail depois de um usuário IAM restrito ao user pool, com `cognito-idp:AdminCreateUser` e `cognito-idp:AdminGetUser`. O client público da tela não recebe essa permissão. As chaves ficam só na API:
 
 ```bash
-heroku run --app NOME-API python -m contabil.bootstrap \
-  --tenant-id escritorio \
-  --tenant-name "Escritório piloto" \
-  --user-id USUARIO-DE-TESTE \
-  --display-name "Nome de quem testa" \
-  --roles viewer
+heroku config:set --app NOME-API \
+  COGNITO_ADMIN_ACCESS_KEY=CHAVE \
+  COGNITO_ADMIN_SECRET_KEY=SEGREDO
 ```
 
-Para lançar e aprovar, use `--roles preparer,approver,viewer`. O bootstrap não altera uma membership que já existe.
+Sem essas variáveis, a tela diz que o diretório de usuários não está configurado. O remetente é o padrão do Cognito, com o limite desse remetente. O bootstrap não altera uma membership que já existe e continua útil para o primeiro admin.
 
 ## Primeira empresa
 

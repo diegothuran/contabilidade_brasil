@@ -43,6 +43,8 @@ class Settings(BaseSettings):
     static_dir: str = ""
     seed_demo: bool = False
     object_storage_create_buckets: bool = False
+    cognito_admin_access_key: str = ""
+    cognito_admin_secret_key: str = ""
 
     @field_validator("database_url", "database_admin_url", mode="before")
     @classmethod

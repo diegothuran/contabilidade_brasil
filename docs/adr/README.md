@@ -20,3 +20,4 @@
 | [016](016-frontend-separado.md) | A interface é um serviço próprio; o domínio continua num processo. |
 | [017](017-cadastro-de-empresa.md) | Só o admin cadastra empresa, com CNPJ único no escritório e modelo mínimo de teste. |
 | [018](018-uma-casca-visual.md) | A interface tem uma casca só. O contexto é a empresa do escritório. |
+| [019](019-convite-de-usuario.md) | Só o admin convida. O Cognito envia a senha por e-mail. |

@@ -42,10 +42,12 @@ Revisões de IA, obrigações e entregas, integrações externas e administraç�
 | --- | --- |
 | `preparer` | Criar conta e rascunho, enviar para aprovação, montar lote de importação, enviar documento e extrato, pedir reabertura. |
 | `approver` | Aprovar, rejeitar e publicar o lançamento de outra pessoa; publicar lote; aprovar conciliação; fechar período e aprovar a reabertura pedida por outra pessoa. |
-| `admin` | O que os dois acima podem, mais cadastrar empresa. |
+| `admin` | O que os dois acima podem, mais cadastrar empresa e convidar pessoas para o escritório. |
 | `viewer` | Consultar. |
 
 A segregação vale mesmo para quem tem vários papéis: quem criou o lançamento não aprova nem publica esse lançamento.
+
+O primeiro admin nasce no comando `contabil.bootstrap`. Os seguintes entram em **Administração**: o admin informa usuário, nome, e-mail e papéis. O Cognito manda a senha temporária por e-mail, e a pessoa troca essa senha no primeiro acesso. A tela não mostra a senha ([ADR 019](docs/adr/019-convite-de-usuario.md)).
 
 ### Um ciclo de trabalho
 

@@ -1,18 +1,24 @@
 from __future__ import annotations
 
 import base64
+import re
 from datetime import datetime
 
 from sqlalchemy import select, tuple_
 from sqlalchemy.orm import Session
 
 from contabil.audit.service import append_event
-from contabil.master_data.starter_chart import STARTER_CHART_NAME, ACCOUNT_SPECS, add_open_year, add_starter_chart
+from contabil.bootstrap import ROLES
+from contabil.identity.directory import UserDirectory
+from contabil.master_data.starter_chart import ACCOUNT_SPECS, STARTER_CHART_NAME, add_open_year, add_starter_chart
 from contabil.platform.errors import DomainError
 from contabil.platform.ids import new_id
 from contabil.platform.principal import Principal
 from contabil.seed.cnpj import cnpj_digits
-from contabil.tables import Establishment, LegalEntity
+from contabil.tables import AppUser, Establishment, LegalEntity, Membership
+
+_USERNAME = re.compile(r"^[A-Za-z0-9._-]{1,64}$")
+_EMAIL = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
 
 def require_entity(session: Session, tenant_id: str, legal_entity_id: str) -> LegalEntity:
@@ -89,6 +95,74 @@ def create_legal_entity(session: Session, principal: Principal, *, name: str, cn
     payload["accounts_created"] = len(ACCOUNT_SPECS)
     payload["periods_created"] = periods_created
     return payload
+
+
+def invite_user(
+    session: Session,
+    principal: Principal,
+    directory: UserDirectory,
+    *,
+    username: str,
+    display_name: str,
+    email: str,
+    roles: list[str],
+) -> dict:
+    if _USERNAME.fullmatch(username) is None:
+        raise DomainError(
+            400,
+            "Nome de usuário inválido",
+            "Use de 1 a 64 caracteres: letras, números, ponto, hífen ou sublinhado.",
+        )
+    if _EMAIL.fullmatch(email) is None or len(email) > 200:
+        raise DomainError(400, "E-mail inválido", "Informe um e-mail para o convite.")
+    chosen = list(dict.fromkeys(roles))
+    if not chosen or any(role not in ROLES for role in chosen):
+        raise DomainError(400, "Papel inválido", "Escolha ao menos um papel: preparer, approver, admin, viewer.")
+    visible_name = display_name.strip()
+    if not visible_name or len(visible_name) > 200:
+        raise DomainError(400, "Nome inválido", "Informe o nome de exibição.")
+    existing = session.scalar(
+        select(Membership).where(Membership.tenant_id == principal.tenant_id, Membership.user_id == username)
+    )
+    if existing is not None:
+        raise DomainError(409, "Usuário já faz parte do escritório", "Este nome de usuário já tem acesso ao escritório.")
+    directory.create_user(username, email, visible_name, principal.tenant_id)
+    if session.get(AppUser, username) is None:
+        session.add(AppUser(id=username, display_name=visible_name))
+        session.flush()
+    session.add(
+        Membership(
+            id=new_id("mem"),
+            tenant_id=principal.tenant_id,
+            user_id=username,
+            roles=chosen,
+        )
+    )
+    append_event(
+        session,
+        tenant_id=principal.tenant_id,
+        event_type="other",
+        actor_ref=principal.user_id,
+        target_type="user",
+        target_ref=username,
+        metadata={"action": "user_invited", "roles": chosen},
+    )
+    return {"user_id": username, "display_name": visible_name, "roles": chosen}
+
+
+def list_users(session: Session, principal: Principal) -> dict:
+    rows = session.execute(
+        select(Membership, AppUser.display_name)
+        .join(AppUser, AppUser.id == Membership.user_id)
+        .where(Membership.tenant_id == principal.tenant_id)
+        .order_by(AppUser.display_name, Membership.user_id)
+    ).all()
+    return {
+        "items": [
+            {"user_id": membership.user_id, "display_name": name, "roles": list(membership.roles)}
+            for membership, name in rows
+        ]
+    }
 
 
 def entity_dict(entity: LegalEntity) -> dict:

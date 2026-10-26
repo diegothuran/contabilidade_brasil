@@ -1,4 +1,4 @@
-# SPEC — Contrato de interface v0.3.0
+# SPEC — Contrato de interface v0.3.1
 
 > Fonte de verdade da experiência do front-end. Atualizações de comportamento, estado, linguagem visual ou estrutura precisam atualizar este arquivo antes do código.
 
@@ -112,13 +112,14 @@ A sala fica em `/app/rastro` e é a primeira tela depois do login. Ela é a úni
 | Evidências | Documentos da empresa. |
 | Integrações | Estado vazio: nenhum conector externo. As contas bancárias ficam nas rotinas. |
 | Rotinas do razão | Novo lançamento, balancete, plano, bancos, auditoria e, para o admin, nova empresa. |
-| Administração | Estado vazio: papéis continuam no provedor de identidade. |
+| Administração | O admin convida uma pessoa. A senha temporária vai por e-mail e não aparece na tela. Quem não é admin vê que só o admin convida. |
 | Demonstração | Caminhada sintética da Orbe, só com `VITE_RASTRO_DEMO` diferente de `false`. |
 
 A barra de contexto é o seletor da empresa e da competência do escritório. A caminhada sintética tem o próprio seletor e não altera a empresa do sistema. As rotas `/app/journals`, `/app/accounts` e vizinhas permanecem e renderizam na mesma casca.
 
 ## 13. Changelog
 
+- `0.3.1` — Administração convida para o escritório; a senha temporária sai por e-mail.
 - `0.3.0` — uma casca só; o contexto passa a ser a empresa do escritório; a Orbe fica na demonstração.
 - `0.2.1` — a tela de login usa a marca e os tokens da sala.
 - `0.2.0` — sala vira a entrada do produto, no serviço de interface separado da API.
