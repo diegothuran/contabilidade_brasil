@@ -58,7 +58,8 @@ No Cognito, região do dyno (o piloto atual usa `us-east-2`):
 2. Crie um app client público, com authorization code e PKCE, sem client secret.
 3. Callback e sign-out: `https://NOME-WEB.herokuapp.com/`, com a barra no final. O endereço da API não entra.
 4. O client precisa ler `custom:tenant_id`, `email` e `profile`. O ID token é o que a API valida; o audience dele é o próprio client id.
-5. Crie o usuário administrador com `custom:tenant_id` igual ao `--tenant-id` do bootstrap e exija MFA por aplicativo (TOTP).
+5. Em **Autenticação › Fazer login › Autenticação multifator**, deixe o MFA opcional, só por aplicativo autenticador.
+6. Crie o usuário administrador com `custom:tenant_id` igual ao `--tenant-id` do bootstrap e cadastre nele o aplicativo autenticador (TOTP).
 
 ## Arquivos
 
@@ -98,6 +99,21 @@ heroku run --app NOME-API python -m contabil.bootstrap \
 ```
 
 Para provar o isolamento, repita com outro `--tenant-id` e outro usuário. Esse segundo usuário não vê o dado do primeiro.
+
+## Usuário de teste
+
+Em **Gerenciamento de usuários › Usuários › Criar usuário**, crie o usuário sem convite e com senha temporária. Depois, em **Atributos do usuário**, defina `custom:tenant_id` igual ao do escritório. Sem aplicativo cadastrado, ele entra só com senha. Registre-o com papel de consulta:
+
+```bash
+heroku run --app NOME-API python -m contabil.bootstrap \
+  --tenant-id escritorio \
+  --tenant-name "Escritório piloto" \
+  --user-id USUARIO-DE-TESTE \
+  --display-name "Nome de quem testa" \
+  --roles viewer
+```
+
+Para lançar e aprovar, use `--roles preparer,approver,viewer`. O bootstrap não altera uma membership que já existe.
 
 ## Conferência
 

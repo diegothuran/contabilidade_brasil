@@ -102,6 +102,7 @@ A sala fica em `/app/rastro` e é a primeira tela depois do login. Ela pertence 
 
 ## 13. Changelog
 
+- `0.2.1` — a tela de login usa a marca e os tokens da sala.
 - `0.2.0` — sala vira a entrada do produto, no serviço de interface separado da API.
 - `0.1.1` — sala montada em `/app/rastro`, com demonstração explícita e rollback pelas rotas antigas.
 - `0.1.0` — contrato inicial aprovado junto ao plano “Sala de fechamento”.
