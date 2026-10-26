@@ -1,4 +1,4 @@
-# SPEC — Contrato de interface v0.1.0
+# SPEC — Contrato de interface v0.3.0
 
 > Fonte de verdade da experiência do front-end. Atualizações de comportamento, estado, linguagem visual ou estrutura precisam atualizar este arquivo antes do código.
 
@@ -58,7 +58,7 @@ O produto ajuda escritórios de contabilidade a **fechar e entregar com evidênc
 
 ## 5. Contexto global obrigatório
 
-A barra de contexto deve exibir, nesta ordem: `Escritório > Cliente/CNPJ > Competência > Regime/UF > Estado do fechamento`. Trocas de empresa ou competência não podem ser silenciosas quando há ação selecionada ou aprovação pendente. O protótipo usa dados fictícios e não comunica efeitos reais.
+A barra de contexto deve exibir, nesta ordem: `Escritório > Cliente/CNPJ > Competência > Regime/UF > Estado do fechamento`. No aplicativo, o escritório fica na barra lateral e a barra de contexto lista as empresas e as competências do escritório. Regime e UF só entram quando o cadastro os tiver. Trocas de empresa ou competência não podem ser silenciosas quando há ação selecionada ou aprovação pendente. A caminhada sintética usa dados fictícios e não comunica efeitos reais.
 
 ## 6. Regras de interação
 
@@ -98,10 +98,28 @@ Nome definitivo e identidade; estados/municípios do piloto; obrigações inicia
 
 ## 12. Montagem no aplicativo
 
-A sala fica em `/app/rastro` e é a primeira tela depois do login. Ela pertence ao serviço de interface `apps/web`, publicado num app próprio ([ADR 016](../adr/016-frontend-separado.md)). As rotas de lançamento, balancete, plano, documentos, bancos, conciliação, importação, períodos e auditoria permanecem. Com `VITE_RASTRO_DEMO` diferente de `false`, o miolo é a demonstração sintética da Orbe Serviços Digitais Ltda. em 01/2025. O escritório e o usuário exibidos na barra lateral vêm da sessão. A empresa cadastrada no sistema aparece só no aviso de demonstração e não troca quando o seletor fictício muda.
+A sala fica em `/app/rastro` e é a primeira tela depois do login. Ela é a única casca do serviço de interface `apps/web` ([ADR 016](../adr/016-frontend-separado.md), [ADR 018](../adr/018-uma-casca-visual.md)). Não há segundo menu nem segundo fundo.
+
+| Menu | O que abre |
+| --- | --- |
+| Hoje | Lançamentos recentes da empresa selecionada. |
+| Fechamentos | Períodos dessa empresa. |
+| Conciliação | Casos de conciliação. |
+| Migrações | Lotes de importação. |
+| Dados e ledger | Lançamentos. |
+| Revisões de IA | Estado vazio: não há contrato de sugestão nesta versão. |
+| Obrigações e entregas | Estado vazio: não há obrigação versionada nesta versão. |
+| Evidências | Documentos da empresa. |
+| Integrações | Estado vazio: nenhum conector externo. As contas bancárias ficam nas rotinas. |
+| Rotinas do razão | Novo lançamento, balancete, plano, bancos, auditoria e, para o admin, nova empresa. |
+| Administração | Estado vazio: papéis continuam no provedor de identidade. |
+| Demonstração | Caminhada sintética da Orbe, só com `VITE_RASTRO_DEMO` diferente de `false`. |
+
+A barra de contexto é o seletor da empresa e da competência do escritório. A caminhada sintética tem o próprio seletor e não altera a empresa do sistema. As rotas `/app/journals`, `/app/accounts` e vizinhas permanecem e renderizam na mesma casca.
 
 ## 13. Changelog
 
+- `0.3.0` — uma casca só; o contexto passa a ser a empresa do escritório; a Orbe fica na demonstração.
 - `0.2.1` — a tela de login usa a marca e os tokens da sala.
 - `0.2.0` — sala vira a entrada do produto, no serviço de interface separado da API.
 - `0.1.1` — sala montada em `/app/rastro`, com demonstração explícita e rollback pelas rotas antigas.

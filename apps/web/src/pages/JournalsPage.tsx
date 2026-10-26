@@ -21,6 +21,7 @@ export function JournalsPage() {
   return (
     <section>
       <h1>Lançamentos</h1>
+      <p><Link to="/app/journals/new">Novo lançamento</Link></p>
       {journals.isError ? <p className="error">{journals.error.message}</p> : null}
       <table data-testid="journal-list">
         <thead>

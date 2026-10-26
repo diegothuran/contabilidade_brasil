@@ -43,7 +43,7 @@ O repositório é um monorepo com dois serviços, como no [ADR 016](adr/016-fron
 
 | Serviço | Pasta | Responsabilidade |
 | --- | --- | --- |
-| Interface | `apps/web` | Sala de fechamento e rotinas do razão. Build estático em nginx. Fala com a API por HTTPS com o token do usuário. |
+| Interface | `apps/web` | Uma casca só, a sala de fechamento ([ADR 018](adr/018-uma-casca-visual.md)). Build estático em nginx. Fala com a API por HTTPS com o token do usuário. |
 | Domínio | `apps/api` | API, módulos de domínio, auditoria e ciclo do outbox. Único serviço que acessa o banco e o object storage. |
 
 Schemas, configs e scripts de validação ficam na raiz e servem aos dois. A extração seguinte, se houver, continua sendo o pipeline de conectores e jobs fiscais.

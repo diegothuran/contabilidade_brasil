@@ -57,7 +57,7 @@ export function DocumentsPage() {
 
   return (
     <section>
-      <h1>Documentos</h1>
+      <h1>Evidências</h1>
       <p className="muted">O arquivo original fica no armazenamento com o hash. Esta tela não guarda senha, certificado nem o conteúdo em log.</p>
       {can(me.roles, "preparer", "approver", "admin") ? (
         <form

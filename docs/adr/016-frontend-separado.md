@@ -30,6 +30,6 @@ Em preço público de outubro de 2026, a conta do piloto vai de cerca de US$ 12 
 
 Uma mudança só de tela não reinicia a API nem o outbox. Uma mudança de contrato exige publicar os dois apps, a API primeiro. O Cognito precisa ter o callback e o logout da origem da interface, com barra no final. O endereço da API deixa de mostrar tela.
 
-A sala segue em demonstração enquanto `VITE_RASTRO_DEMO` não for `false`. As rotinas do razão em `/app/journals` e nas rotas vizinhas continuam no mesmo serviço de interface.
+A sala e as rotinas do razão usam a mesma casca, como no [ADR 018](018-uma-casca-visual.md). A caminhada sintética fica em `/app/rastro/demonstracao` enquanto `VITE_RASTRO_DEMO` não for `false`. As rotas `/app/journals` e vizinhas continuam no mesmo serviço de interface e abrem dentro dessa casca.
 
 No compose local nada muda de forma: a interface já era um contêiner separado, agora construído só com a pasta `apps/web`.

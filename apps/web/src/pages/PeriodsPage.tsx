@@ -28,7 +28,7 @@ export function PeriodsPage() {
 
   return (
     <section>
-      <h1>Períodos</h1>
+      <h1>Fechamentos</h1>
       <p className="muted">O fechamento desta fase é o lock da competência. O checklist completo fica para a fase de close run.</p>
       {act.isError ? <p className="error">{act.error instanceof ApiError ? `${act.error.title}. ${act.error.message}` : "Falha na operação."}</p> : null}
       <table>

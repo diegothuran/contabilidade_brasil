@@ -1,8 +1,21 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from "react";
 import { NavLink, Route, Routes, useLocation, useNavigate, useParams } from "react-router-dom";
 import { userManager } from "../auth";
+import { AccountsPage } from "../pages/AccountsPage";
+import { AuditPage } from "../pages/AuditPage";
+import { BanksPage } from "../pages/BanksPage";
+import { CompanyFormPage } from "../pages/CompanyFormPage";
+import { DocumentsPage } from "../pages/DocumentsPage";
+import { ImportDetailPage, ImportsPage } from "../pages/ImportsPage";
+import { JournalDetailPage } from "../pages/JournalDetailPage";
+import { JournalFormPage } from "../pages/JournalFormPage";
+import { JournalsPage } from "../pages/JournalsPage";
+import { PeriodsPage } from "../pages/PeriodsPage";
+import { ReconciliationPage as LedgerReconciliationPage } from "../pages/ReconciliationPage";
+import { TrialBalancePage } from "../pages/TrialBalancePage";
 import { useSession } from "../session";
-import { LiveContextBar, LiveSurface } from "./LiveSurface";
+import { LiveContextBar } from "./LiveSurface";
+import { OfficeHome, PlannedPage, RoutinesPage } from "./OfficeHome";
 import "./rastro.css";
 import { rastroDemoEnabled } from "./demo";
 import {
@@ -23,12 +36,16 @@ const RASTRO_HOME = "/app/rastro";
 
 function useRastroNavigate() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const base = location.pathname.startsWith("/app/rastro/demonstracao")
+    ? "/app/rastro/demonstracao"
+    : RASTRO_HOME;
   return (path: string) => {
     if (path.startsWith("/app/")) {
       navigate(path);
       return;
     }
-    navigate(path === "/" ? RASTRO_HOME : `${RASTRO_HOME}${path}`);
+    navigate(path === "/" ? base : `${base}${path}`);
   };
 }
 
@@ -69,6 +86,47 @@ const routeMeta: Record<string, { crumb: string; label: string }> = {
   "/app/rastro/integracoes": { crumb: "Plataforma", label: "Integrações" },
   "/app/rastro/biblioteca": { crumb: "Rastreabilidade", label: "Evidências" },
 };
+
+const workRoutes: Record<string, { crumb: string; label: string }> = {
+  ...routeMeta,
+  "/app/rastro/rotinas": { crumb: "Sistema", label: "Rotinas do razão" },
+  "/app/rastro/administracao": { crumb: "Governança", label: "Administração" },
+  "/app/journals": { crumb: "Rastreabilidade", label: "Lançamentos" },
+  "/app/journals/new": { crumb: "Sistema", label: "Novo lançamento" },
+  "/app/trial-balance": { crumb: "Sistema", label: "Balancete" },
+  "/app/accounts": { crumb: "Sistema", label: "Plano de contas" },
+  "/app/documents": { crumb: "Rastreabilidade", label: "Evidências" },
+  "/app/banks": { crumb: "Sistema", label: "Bancos" },
+  "/app/reconciliation": { crumb: "Operação", label: "Conciliação" },
+  "/app/imports": { crumb: "Operação", label: "Migrações" },
+  "/app/periods": { crumb: "Operação", label: "Fechamentos" },
+  "/app/audit": { crumb: "Sistema", label: "Auditoria" },
+  "/app/companies/new": { crumb: "Sistema", label: "Nova empresa" },
+};
+
+function currentRoute(pathname: string): { crumb: string; label: string } {
+  if (pathname.startsWith("/app/rastro/demonstracao")) {
+    const inner = pathname.slice("/app/rastro/demonstracao".length) || "/";
+    const demoPath = inner === "/" ? "/app/rastro" : `/app/rastro${inner}`;
+    if (demoPath.startsWith("/app/rastro/fechamentos/") && demoPath !== "/app/rastro/fechamentos") {
+      const key = demoPath.slice("/app/rastro/fechamentos/".length);
+      return { crumb: "Demonstração", label: key === "2025-01" ? "Competência 01/2025" : `Competência ${key}` };
+    }
+    const known = routeMeta[demoPath];
+    return known ? { crumb: "Demonstração", label: known.label } : { crumb: "Demonstração", label: "Hoje" };
+  }
+  if (pathname.startsWith("/app/journals/") && pathname !== "/app/journals/new") {
+    return { crumb: "Rastreabilidade", label: "Lançamento" };
+  }
+  if (pathname.startsWith("/app/imports/") || pathname.startsWith("/app/rastro/migracoes/")) {
+    return { crumb: "Operação", label: "Migração" };
+  }
+  return workRoutes[pathname] ?? { crumb: "Operação", label: "Hoje" };
+}
+
+function Routine({ children }: { children: ReactNode }) {
+  return <div className="routine">{children}</div>;
+}
 
 type Toast = { title: string; detail: string } | null;
 type ObligationState = "preparada" | "validada" | "transmitida" | "protocolo recebido" | "aceite confirmado";
@@ -112,14 +170,8 @@ export function RastroShell() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const company = companies.find((item) => item.id === companyId) ?? companies[0];
-  const periodKey = location.pathname.startsWith("/app/rastro/fechamentos/")
-    ? location.pathname.slice("/app/rastro/fechamentos/".length)
-    : "";
-  const route = routeMeta[location.pathname] ?? (
-    periodKey
-      ? { crumb: "Fechamentos", label: periodKey === "2025-01" ? "Competência 01/2025" : `Competência ${periodKey}` }
-      : routeMeta["/app/rastro"]
-  );
+  const demonstration = location.pathname.startsWith("/app/rastro/demonstracao");
+  const route = currentRoute(location.pathname);
   const unresolvedCloseItems = closeTasks.filter((task) => task.blocker).length;
 
   const notify = (title: string, detail: string) => setToast({ title, detail });
@@ -198,7 +250,7 @@ export function RastroShell() {
         <div className="office-summary">
           <span className="eyebrow">Escritório</span>
           <strong>{session.me.tenant_name}</strong>
-          <span>{demo ? "Demonstração sintética" : "Conectado ao sistema"}</span>
+          <span>{demonstration ? "Demonstração sintética" : "Conectado ao sistema"}</span>
         </div>
 
         <nav className="main-nav">
@@ -221,18 +273,24 @@ export function RastroShell() {
           ))}
           <div className="nav-group">
             <span className="nav-group__label">Sistema</span>
-            <NavLink to="/app/journals" className="nav-link legacy-link" onClick={() => setSidebarOpen(false)}>
+            <NavLink to="/app/rastro/rotinas" className={({ isActive }) => `nav-link ${isActive ? "nav-link--active" : ""}`} onClick={() => setSidebarOpen(false)}>
               <span className="nav-mark" aria-hidden="true">R</span>
               <span>Rotinas do razão</span>
             </NavLink>
+            {demo ? (
+              <NavLink to="/app/rastro/demonstracao" className={({ isActive }) => `nav-link ${isActive ? "nav-link--active" : ""}`} onClick={() => setSidebarOpen(false)}>
+                <span className="nav-mark" aria-hidden="true">D</span>
+                <span>Demonstração</span>
+              </NavLink>
+            ) : null}
           </div>
           <div className="nav-group">
             <span className="nav-group__label">Governança</span>
-            <button className="nav-link nav-link--planned" type="button" onClick={() => notify("Administração planejada", "Papéis, políticas, entitlements e retenção serão conectados quando seus contratos de domínio estiverem definidos.")}>
+            <NavLink to="/app/rastro/administracao" className={({ isActive }) => `nav-link nav-link--planned ${isActive ? "nav-link--active" : ""}`} onClick={() => setSidebarOpen(false)}>
               <span className="nav-mark" aria-hidden="true">A</span>
               <span>Administração</span>
               <small>planejado</small>
-            </button>
+            </NavLink>
           </div>
         </nav>
 
@@ -262,7 +320,7 @@ export function RastroShell() {
           </div>
         </header>
 
-        {demo ? (
+        {demonstration ? (
           <p className="demo-banner" role="status">
             <strong>Demonstração sintética.</strong>
             <span>
@@ -273,7 +331,7 @@ export function RastroShell() {
           </p>
         ) : null}
 
-        {demo ? <section className="context-bar" aria-label="Contexto operacional">
+        {demonstration ? <section className="context-bar" aria-label="Contexto operacional">
           <div className="context-label"><span className="context-dot" />Contexto de trabalho</div>
           <label className="context-select">
             <span>Cliente / CNPJ</span>
@@ -294,23 +352,52 @@ export function RastroShell() {
         </section> : <LiveContextBar />}
 
         <div className="page-container">
-          {demo ? <Routes>
-            <Route path="/app/rastro" element={<TodayPage company={company} period={period} tasks={closeTasks} reconciliations={reconciliations} integrations={integrations} obligationState={obligationState} onEvidence={setEvidence} onNotice={notify} />} />
-            <Route path="/app/rastro/fechamentos" element={<CloseListPage company={company} period={period} tasks={closeTasks} onEvidence={setEvidence} />} />
-            <Route path="/app/rastro/fechamentos/:period" element={<ClosePeriodPage company={company} period={period} tasks={closeTasks} unresolved={unresolvedCloseItems} onResolve={resolveCloseTask} onEvidence={setEvidence} onNotice={notify} />} />
-            <Route path="/app/rastro/conciliacao" element={<ReconciliationPage company={company} period={period} items={reconciliations} onDecide={decideReconciliation} onEvidence={setEvidence} />} />
-            <Route path="/app/rastro/migracoes" element={<MigrationPage company={company} period={period} actor={actorName} onEvidence={setEvidence} onNotice={notify} />} />
-            <Route path="/app/rastro/ledger" element={<LedgerPage company={company} period={period} onEvidence={setEvidence} />} />
-            <Route path="/app/rastro/revisoes-ia" element={<AiReviewPage company={company} period={period} items={aiSuggestions} onReview={reviewSuggestion} onEvidence={setEvidence} />} />
-            <Route path="/app/rastro/obrigacoes" element={<ObligationPage company={company} period={period} state={obligationState} onAdvance={setObligationState} onEvidence={setEvidence} onNotice={notify} />} />
-            <Route path="/app/rastro/integracoes" element={<IntegrationsPage company={company} period={period} items={integrations} onRetry={retryIntegration} onEvidence={setEvidence} />} />
-            <Route path="/app/rastro/biblioteca" element={<EvidenceLibraryPage company={company} period={period} onEvidence={setEvidence} onNotice={notify} />} />
-            <Route path="/app/rastro/*" element={<TodayPage company={company} period={period} tasks={closeTasks} reconciliations={reconciliations} integrations={integrations} obligationState={obligationState} onEvidence={setEvidence} onNotice={notify} />} />
-          </Routes> : <LiveSurface />}
+          <Routes>
+            <Route path="/app/rastro" element={<OfficeHome />} />
+            <Route path="/app/rastro/fechamentos" element={<Routine><PeriodsPage /></Routine>} />
+            <Route path="/app/rastro/conciliacao" element={<Routine><LedgerReconciliationPage /></Routine>} />
+            <Route path="/app/rastro/migracoes" element={<Routine><ImportsPage /></Routine>} />
+            <Route path="/app/rastro/migracoes/:batchId" element={<Routine><ImportDetailPage /></Routine>} />
+            <Route path="/app/rastro/ledger" element={<Routine><JournalsPage /></Routine>} />
+            <Route path="/app/rastro/revisoes-ia" element={<PlannedPage title="Revisões de IA" detail="Não há sugestão ligada a esta empresa. Uma sugestão só passa a ter efeito depois de aprovação humana, e este contrato ainda não está nesta versão." />} />
+            <Route path="/app/rastro/obrigacoes" element={<PlannedPage title="Obrigações e entregas" detail="Não há obrigação versionada para esta empresa. Transmissão, protocolo e recibo continuam fora desta versão." />} />
+            <Route path="/app/rastro/biblioteca" element={<Routine><DocumentsPage /></Routine>} />
+            <Route path="/app/rastro/integracoes" element={<PlannedPage title="Integrações" detail="Nenhum conector externo está configurado. As contas bancárias da empresa ficam em Rotinas do razão." />} />
+            <Route path="/app/rastro/rotinas" element={<RoutinesPage />} />
+            <Route path="/app/rastro/administracao" element={<PlannedPage title="Administração" detail="Papéis, políticas e retenção ainda não têm tela. O acesso continua o do provedor de identidade e o papel gravado no escritório." />} />
+            <Route path="/app/journals/new" element={<Routine><JournalFormPage /></Routine>} />
+            <Route path="/app/journals/:journalId" element={<Routine><JournalDetailPage /></Routine>} />
+            <Route path="/app/journals" element={<Routine><JournalsPage /></Routine>} />
+            <Route path="/app/trial-balance" element={<Routine><TrialBalancePage /></Routine>} />
+            <Route path="/app/accounts" element={<Routine><AccountsPage /></Routine>} />
+            <Route path="/app/documents" element={<Routine><DocumentsPage /></Routine>} />
+            <Route path="/app/banks" element={<Routine><BanksPage /></Routine>} />
+            <Route path="/app/reconciliation" element={<Routine><LedgerReconciliationPage /></Routine>} />
+            <Route path="/app/imports/:batchId" element={<Routine><ImportDetailPage /></Routine>} />
+            <Route path="/app/imports" element={<Routine><ImportsPage /></Routine>} />
+            <Route path="/app/periods" element={<Routine><PeriodsPage /></Routine>} />
+            <Route path="/app/audit" element={<Routine><AuditPage /></Routine>} />
+            <Route path="/app/companies/new" element={<Routine><CompanyFormPage /></Routine>} />
+            {demo ? (
+              <>
+                <Route path="/app/rastro/demonstracao" element={<TodayPage company={company} period={period} tasks={closeTasks} reconciliations={reconciliations} integrations={integrations} obligationState={obligationState} onEvidence={setEvidence} onNotice={notify} />} />
+                <Route path="/app/rastro/demonstracao/fechamentos" element={<CloseListPage company={company} period={period} tasks={closeTasks} onEvidence={setEvidence} />} />
+                <Route path="/app/rastro/demonstracao/fechamentos/:period" element={<ClosePeriodPage company={company} period={period} tasks={closeTasks} unresolved={unresolvedCloseItems} onResolve={resolveCloseTask} onEvidence={setEvidence} onNotice={notify} />} />
+                <Route path="/app/rastro/demonstracao/conciliacao" element={<ReconciliationPage company={company} period={period} items={reconciliations} onDecide={decideReconciliation} onEvidence={setEvidence} />} />
+                <Route path="/app/rastro/demonstracao/migracoes" element={<MigrationPage company={company} period={period} actor={actorName} onEvidence={setEvidence} onNotice={notify} />} />
+                <Route path="/app/rastro/demonstracao/ledger" element={<LedgerPage company={company} period={period} onEvidence={setEvidence} />} />
+                <Route path="/app/rastro/demonstracao/revisoes-ia" element={<AiReviewPage company={company} period={period} items={aiSuggestions} onReview={reviewSuggestion} onEvidence={setEvidence} />} />
+                <Route path="/app/rastro/demonstracao/obrigacoes" element={<ObligationPage company={company} period={period} state={obligationState} onAdvance={setObligationState} onEvidence={setEvidence} onNotice={notify} />} />
+                <Route path="/app/rastro/demonstracao/integracoes" element={<IntegrationsPage company={company} period={period} items={integrations} onRetry={retryIntegration} onEvidence={setEvidence} />} />
+                <Route path="/app/rastro/demonstracao/biblioteca" element={<EvidenceLibraryPage company={company} period={period} onEvidence={setEvidence} onNotice={notify} />} />
+              </>
+            ) : null}
+            <Route path="*" element={<OfficeHome />} />
+          </Routes>
         </div>
       </main>
 
-      {demo && selectedEvidence ? <EvidenceDrawer evidence={selectedEvidence} onClose={() => setEvidence(null)} /> : null}
+      {demonstration && selectedEvidence ? <EvidenceDrawer evidence={selectedEvidence} onClose={() => setEvidence(null)} /> : null}
       {toast && <ToastMessage toast={toast} onDismiss={() => setToast(null)} />}
     </div>
     </div>
@@ -344,7 +431,7 @@ function TodayPage({ company, period, tasks, reconciliations, integrations, obli
         eyebrow={`Central de trabalho · ${company.name} · ${period}`}
         title={`O fechamento pede atenção em ${blockers + openReconciliations} pontos.`}
         description="Priorize itens que bloqueiam a competência. Cada decisão abre a fonte, a regra e a trilha de evidências."
-        action={<button className="button button--secondary" type="button" onClick={() => navigate("/app/rastro/fechamentos/2025-01")}>Abrir fechamento</button>}
+        action={<button className="button button--secondary" type="button" onClick={() => navigate("/fechamentos/2025-01")}>Abrir fechamento</button>}
       />
 
       <section className="metric-strip" aria-label="Resumo operacional">
@@ -381,7 +468,7 @@ function TodayPage({ company, period, tasks, reconciliations, integrations, obli
             <div className="progress-scale"><span>Entradas</span><span>Conciliação</span><span>Fechamento</span><span>Entrega</span></div>
             <div className="close-pulse__stats">
               <strong>{completed} de {tasks.length}</strong><span>checkpoints concluídos</span>
-              <button className="inline-action" type="button" onClick={() => navigate("/app/rastro/fechamentos/2025-01")}>Ver checkpoints →</button>
+              <button className="inline-action" type="button" onClick={() => navigate("/fechamentos/2025-01")}>Ver checkpoints →</button>
             </div>
           </section>
 
@@ -396,14 +483,14 @@ function TodayPage({ company, period, tasks, reconciliations, integrations, obli
           </section>
 
           <section className="panel small-list">
-            <div className="panel-heading"><h2>Próximos prazos</h2><button className="text-button" type="button" onClick={() => navigate("/app/rastro/obrigacoes")}>Calendário</button></div>
+            <div className="panel-heading"><h2>Próximos prazos</h2><button className="text-button" type="button" onClick={() => navigate("/obrigacoes")}>Calendário</button></div>
             <Deadline name="Conferir ECD" meta="Amanhã · 10:00" tone="attention" />
             <Deadline name="Solicitar extrato" meta="Hoje · 17:00" tone="danger" />
             <Deadline name="Revisar IA-071" meta="Hoje · 16:30" tone="attention" />
           </section>
           <section className="panel integration-summary">
             <div><span className="eyebrow">Saúde das integrações</span><h2>{healthyIntegrations} saudável(is) · {integrations.length - healthyIntegrations} com atenção</h2><p>Frescor, fila e fallback ficam visíveis antes do fechamento.</p></div>
-            <button className="inline-action" type="button" onClick={() => navigate("/app/rastro/integracoes")}>Abrir integrações →</button>
+            <button className="inline-action" type="button" onClick={() => navigate("/integracoes")}>Abrir integrações →</button>
           </section>
         </aside>
       </div>
@@ -433,7 +520,7 @@ function CloseListPage({ company, period, tasks, onEvidence }: ContextProps & { 
         <div className="table-scroll">
           <table className="data-table">
             <thead><tr><th>Cliente / competência</th><th>Progresso</th><th>Estado</th><th>Bloqueios</th><th>Responsável</th><th><span className="sr-only">Ações</span></th></tr></thead>
-            <tbody>{rows.map((row) => <tr key={row.company}><td><strong>{row.company}</strong><span>{row.period} · Lucro Presumido · SP</span></td><td><div className="mini-progress"><span style={{ width: `${row.progress}%` }} /></div><b>{row.progress}%</b></td><td><StatusBadge tone={row.tone} label={row.state} /></td><td><span className="table-note">{row.blocker}</span></td><td>{row.owner}</td><td><button className="text-button" type="button" disabled={row.company !== "Orbe Serviços Digitais Ltda." || period !== "01/2025"} onClick={() => navigate("/app/rastro/fechamentos/2025-01")}>Abrir →</button></td></tr>)}</tbody>
+            <tbody>{rows.map((row) => <tr key={row.company}><td><strong>{row.company}</strong><span>{row.period} · Lucro Presumido · SP</span></td><td><div className="mini-progress"><span style={{ width: `${row.progress}%` }} /></div><b>{row.progress}%</b></td><td><StatusBadge tone={row.tone} label={row.state} /></td><td><span className="table-note">{row.blocker}</span></td><td>{row.owner}</td><td><button className="text-button" type="button" disabled={row.company !== "Orbe Serviços Digitais Ltda." || period !== "01/2025"} onClick={() => navigate("/fechamentos/2025-01")}>Abrir →</button></td></tr>)}</tbody>
           </table>
         </div>
       </section>
@@ -450,7 +537,7 @@ function CloseDetailPage({ company, period, tasks, unresolved, onResolve, onEvid
   const canApprove = unresolved === 0;
   return (
     <>
-      <PageHeader eyebrow={`Fechamento · ${company.name} · ${period}`} title="Fechamento com checkpoints e evidências." description="A competência só avança quando bloqueios são resolvidos ou tratados com justificativa. O protótipo não fecha períodos reais." action={<button className="button button--secondary" type="button" onClick={() => navigate("/app/rastro/biblioteca")}>Ver pacote de evidências</button>} />
+      <PageHeader eyebrow={`Fechamento · ${company.name} · ${period}`} title="Fechamento com checkpoints e evidências." description="A competência só avança quando bloqueios são resolvidos ou tratados com justificativa. O protótipo não fecha períodos reais." action={<button className="button button--secondary" type="button" onClick={() => navigate("/biblioteca")}>Ver pacote de evidências</button>} />
       <section className="close-hero panel">
         <div className="close-hero__state"><StatusBadge tone={canApprove ? "info" : "attention"} label={canApprove ? "Pronto para aprovação" : "Pré-fechamento"} /><h2>{completed} de {tasks.length} checkpoints concluídos</h2><p>{unresolved > 0 ? `${unresolved} item(ns) ainda impede(m) o avanço para aprovação.` : "Todos os bloqueios foram resolvidos nesta demonstração."}</p></div>
         <div className="close-hero__actions"><button className="button" type="button" disabled={!canApprove} onClick={() => onNotice("Aprovação preparada", "Em produção, esta ação exigirá papel autorizador, resumo de impacto e evento de auditoria.")}>Preparar aprovação</button><button className="button button--secondary" type="button" onClick={() => onEvidence("CloseRun CR-2025-01-ORBE · checklist, snapshot e política de bloqueio")}>Ver histórico</button></div>

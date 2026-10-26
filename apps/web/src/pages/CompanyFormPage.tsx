@@ -27,8 +27,7 @@ export function CompanyFormPage() {
   });
 
   return (
-    <main className="content">
-      <section className="panel">
+    <section className="panel">
         <h1>Cadastrar empresa</h1>
         <p className="muted">Use dados fictícios. O piloto guarda o cadastro nos Estados Unidos.</p>
         <form
@@ -57,7 +56,6 @@ export function CompanyFormPage() {
         {create.isError ? (
           <p className="error">{create.error instanceof ApiError ? create.error.message : "Falha ao cadastrar a empresa."}</p>
         ) : null}
-      </section>
-    </main>
+    </section>
   );
 }

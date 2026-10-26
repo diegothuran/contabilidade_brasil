@@ -117,7 +117,7 @@ Para lançar e aprovar, use `--roles preparer,approver,viewer`. O bootstrap não
 
 ## Primeira empresa
 
-O admin entra e abre **Nova empresa**. O cadastro pede nome, CNPJ e ano. A empresa nasce com matriz, o modelo mínimo de teste e 12 períodos abertos. Use CNPJ fictício: o dado fica nos Estados Unidos.
+O admin entra na sala, abre **Rotinas do razão** e depois **Nova empresa**. A barra de contexto, no topo, é o seletor da empresa. O cadastro pede nome, CNPJ e ano. A empresa nasce com matriz, o modelo mínimo de teste e 12 períodos abertos. Use CNPJ fictício: o dado fica nos Estados Unidos. Os lançamentos ficam em **Dados e ledger**. A caminhada da Orbe fica em **Demonstração** e não grava nada.
 
 ## Empresas de teste
 

@@ -218,6 +218,34 @@
 .rastro .demo-banner strong { color: #6d5314; font-size: .75rem; }
 .rastro .demo-banner span { color: #6d5314; }
 .rastro .legacy-link { color: #d5e8f5; }
+.rastro .routine { display: grid; gap: 18px; }
+.rastro .routine h1 { font-size: clamp(1.8rem, 2.6vw, 2.4rem); }
+.rastro .routine p { color: var(--ink-700); font-size: .9rem; }
+.rastro .routine .muted { color: var(--ink-600); }
+.rastro .routine a { color: var(--blue-rastro); font-weight: 650; text-decoration: none; }
+.rastro .routine button, .rastro .routine .button {
+  display: inline-flex; min-height: 35px; align-items: center; justify-content: center;
+  border: 1px solid var(--blue-rastro); border-radius: 7px; background: var(--blue-rastro);
+  color: #fff; padding: 0 12px; font-size: .74rem; font-weight: 650; text-decoration: none;
+}
+.rastro .routine button.secondary, .rastro .routine a.secondary {
+  background: #fff; color: var(--ink-800); border-color: var(--line-dark);
+}
+.rastro .routine input, .rastro .routine select, .rastro .routine textarea {
+  background: #fff; border: 1px solid var(--line-dark); border-radius: 7px;
+  padding: 8px 10px; color: var(--ink-900); min-width: 8rem;
+}
+.rastro .routine label { display: grid; gap: 6px; color: var(--ink-700); font-size: .78rem; font-weight: 650; }
+.rastro .routine .row, .rastro .routine .actions, .rastro .routine .totals { display: flex; gap: 12px; flex-wrap: wrap; align-items: end; }
+.rastro .routine .lines { display: grid; gap: 10px; }
+.rastro .routine table { width: 100%; border-collapse: collapse; background: var(--surface); border: 1px solid var(--line); border-radius: 11px; }
+.rastro .routine th { padding: 11px 16px; border-bottom: 1px solid var(--line); background: #fbfdff; color: var(--ink-600); font-family: Inter, sans-serif; font-size: .61rem; font-weight: 700; letter-spacing: .07em; text-align: left; text-transform: uppercase; }
+.rastro .routine td { padding: 14px 16px; border-bottom: 1px solid var(--line); font-size: .84rem; vertical-align: top; }
+.rastro .routine .amount { font-variant-numeric: tabular-nums; text-align: right; }
+.rastro .routine .badge { display: inline-flex; padding: 3px 8px; border-radius: 999px; background: var(--blue-soft); color: var(--blue-deep); font-size: .68rem; font-weight: 650; }
+.rastro .routine .error { background: var(--danger-soft); color: var(--danger); border: 1px solid #f0c8cb; border-radius: 8px; padding: 10px 12px; }
+.rastro .routine .ok { background: var(--success-soft); color: var(--success); border-radius: 8px; padding: 10px 12px; }
+.rastro .routine .panel { padding: 22px; }
 .rastro .sidebar-logout { margin-left: auto; border: 0; background: transparent; color: #d5e8f5; font-size: .72rem; font-weight: 650; }
 
 .rastro.login-screen { display: grid; grid-template-columns: minmax(300px, 440px) minmax(0, 1fr); min-height: 100vh; background: var(--paper); }

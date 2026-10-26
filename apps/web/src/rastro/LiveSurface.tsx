@@ -22,6 +22,21 @@ type PeriodItem = {
   status: string;
 };
 
+function formatCnpj(value: string): string {
+  const digits = value.replace(/\D/g, "");
+  if (digits.length !== 14) {
+    return value || "Sem CNPJ";
+  }
+  return `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5, 8)}/${digits.slice(8, 12)}-${digits.slice(12)}`;
+}
+
+const PERIOD_STATUS: Record<string, string> = {
+  open: "Aberto",
+  closed: "Fechado",
+  reopened: "Reaberto",
+  closing: "Fechando",
+};
+
 const pages: Record<string, { title: string; legacy: string; load: (legalEntityId: string) => Promise<AdapterSource> }> = {
   "/app/rastro": { title: "Hoje", legacy: "/app/journals", load: () => getTodaySummary() },
   "/app/rastro/fechamentos": { title: "Fechamentos", legacy: "/app/periods", load: getCloseRun },
@@ -68,7 +83,8 @@ export function LiveContextBar() {
       return;
     }
     if (!items.some((item) => item.period_id === periodId)) {
-      setPeriodId(items[0].period_id);
+      const latest = [...items].sort((left, right) => left.fiscal_year - right.fiscal_year || left.month - right.month).at(-1);
+      setPeriodId(latest?.period_id ?? "");
     }
   }, [items, periodId]);
 
@@ -80,6 +96,7 @@ export function LiveContextBar() {
       <label className="context-select">
         <span>Cliente / CNPJ</span>
         <select
+          data-testid="entity-select"
           value={entityId}
           disabled={entities.length === 0}
           onChange={(event) => setEntityId(event.target.value)}
@@ -90,7 +107,7 @@ export function LiveContextBar() {
           ))}
         </select>
       </label>
-      <span className="context-cnpj">{selected?.cnpj || "Sem CNPJ no sistema"}</span>
+      <span className="context-cnpj">{formatCnpj(selected?.cnpj ?? "")}</span>
       <label className="context-select context-select--period">
         <span>Competência</span>
         <select value={periodId} disabled={items.length === 0} onChange={(event) => setPeriodId(event.target.value)}>
@@ -102,8 +119,8 @@ export function LiveContextBar() {
           ))}
         </select>
       </label>
-      <span className="context-meta">{current ? current.status : "Sem período"}</span>
-      <span className="status-badge status-badge--attention"><i aria-hidden="true" />{entityId ? "Troca ligada ao sistema" : "Sem empresa"}</span>
+      <span className="context-meta">{selected ? selected.currency : "Sem empresa"}</span>
+      <span className="status-badge status-badge--attention"><i aria-hidden="true" />{current ? (PERIOD_STATUS[current.status] ?? current.status) : "Sem período"}</span>
     </section>
   );
 }

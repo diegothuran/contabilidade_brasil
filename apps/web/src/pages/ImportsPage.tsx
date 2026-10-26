@@ -96,7 +96,7 @@ export function ImportsPage() {
 
   return (
     <section>
-      <h1>Importação</h1>
+      <h1>Migrações</h1>
       <p className="muted">O lote nasce em simulação. Publicar é uma aprovação de outra pessoa e não duplica um identificador já importado.</p>
       {can(me.roles, "preparer", "approver", "admin") ? (
         <form
