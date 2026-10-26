@@ -15,6 +15,7 @@ import { JournalsPage } from "./pages/JournalsPage";
 import { PeriodsPage } from "./pages/PeriodsPage";
 import { TrialBalancePage } from "./pages/TrialBalancePage";
 import { RastroShell } from "./rastro/RastroShell";
+import "./rastro/rastro.css";
 import { Entity, Me, SessionProvider, useSession } from "./session";
 
 const ENTITY_KEY = "contabil.entity";
@@ -31,23 +32,58 @@ export function App() {
   }, []);
 
   if (!ready) {
-    return <p className="muted">Carregando sessão…</p>;
+    return <LoginScreen pending />;
   }
   if (!signedIn) {
-    return (
-      <main className="login">
-        <section>
-          <p className="muted">Fundação local</p>
-          <h1>Fechar com evidência</h1>
-          <p>O razão, a aprovação e a trilha desta fase rodam neste ambiente. Entre com um usuário de demonstração.</p>
-          <button type="button" data-testid="login-button" onClick={() => void userManager.signinRedirect()}>
-            Entrar
-          </button>
-        </section>
-      </main>
-    );
+    return <LoginScreen />;
   }
   return <Shell />;
+}
+
+function LoginScreen({ pending = false }: { pending?: boolean }) {
+  return (
+    <main className="rastro login-screen">
+      <LoginBrand />
+      <section className="login-panel">
+        <div className="panel login-card" aria-busy={pending}>
+          <span className="eyebrow">Acesso</span>
+          <h2>Entre no escritório</h2>
+          {pending ? (
+            <p>Carregando sessão…</p>
+          ) : (
+            <>
+              <p>Use o usuário do escritório. A sala de fechamento abre em seguida.</p>
+              <button type="button" className="button" data-testid="login-button" onClick={() => void userManager.signinRedirect()}>
+                Entrar
+              </button>
+            </>
+          )}
+        </div>
+      </section>
+    </main>
+  );
+}
+
+function LoginBrand() {
+  return (
+    <section className="login-brand">
+      <div className="brand-lockup">
+        <div className="brand-mark" aria-hidden="true"><span>R</span><i /></div>
+        <div>
+          <strong>Rastro</strong>
+          <small>fechamento com evidência</small>
+        </div>
+      </div>
+      <div className="login-brand__copy">
+        <h1>O fechamento do escritório, com a evidência ao lado.</h1>
+        <ul className="login-points">
+          <li><span>H</span>Fila do dia e o que bloqueia o mês</li>
+          <li><span>C</span>Conciliação com a decisão registrada</li>
+          <li><span>E</span>Documento, hash e trilha no mesmo lugar</li>
+        </ul>
+      </div>
+    </section>
+  );
 }
 
 function Shell() {
@@ -98,12 +134,15 @@ function Shell() {
 
 function EmptyOffice({ name }: { name: string }) {
   return (
-    <main className="login">
-      <section>
-        <p className="muted">{name}</p>
-        <h1>O escritório ainda não tem empresa.</h1>
-        <p>A sala de fechamento abre em demonstração e não usa uma empresa do sistema.</p>
-        <NavLink className="button" to="/app/rastro">Abrir sala de fechamento</NavLink>
+    <main className="rastro login-screen">
+      <LoginBrand />
+      <section className="login-panel">
+        <div className="panel login-card">
+          <span className="eyebrow">{name}</span>
+          <h2>O escritório ainda não tem empresa.</h2>
+          <p>A sala de fechamento abre em demonstração e não usa uma empresa do sistema.</p>
+          <NavLink className="button" to="/app/rastro">Abrir sala de fechamento</NavLink>
+        </div>
       </section>
     </main>
   );

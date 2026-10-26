@@ -219,4 +219,23 @@
 .rastro .demo-banner span { color: #6d5314; }
 .rastro .legacy-link { color: #d5e8f5; }
 .rastro .sidebar-logout { margin-left: auto; border: 0; background: transparent; color: #d5e8f5; font-size: .72rem; font-weight: 650; }
+
+.rastro.login-screen { display: grid; grid-template-columns: minmax(300px, 440px) minmax(0, 1fr); min-height: 100vh; background: var(--paper); }
+.rastro .login-brand { display: flex; flex-direction: column; justify-content: space-between; gap: 32px; padding: 28px 32px 36px; background: var(--ink-950); color: #d9e6f0; }
+.rastro .login-brand .brand-lockup { padding: 0; border-bottom: 0; }
+.rastro .login-brand h1 { max-width: 12em; margin: 0 0 22px; color: #fff; font-size: clamp(2rem, 3vw, 2.65rem); }
+.rastro .login-points { display: grid; gap: 12px; margin: 0; padding: 0; list-style: none; }
+.rastro .login-points li { display: flex; align-items: center; gap: 10px; color: #b6cad9; font-size: .84rem; }
+.rastro .login-points span { display: grid; width: 22px; height: 22px; flex: 0 0 auto; place-items: center; border: 1px solid rgba(182, 202, 217, .55); border-radius: 5px; color: #d5e8f5; font-size: .64rem; font-weight: 700; }
+.rastro .login-panel { display: grid; place-items: center; padding: 32px 24px; }
+.rastro .login-card { width: min(420px, 100%); padding: 28px; }
+.rastro .login-card h2 { margin: 8px 0 10px; font-family: Newsreader, Georgia, serif; font-size: 1.9rem; font-weight: 600; letter-spacing: -.03em; }
+.rastro .login-card p { margin-bottom: 22px; font-size: .9rem; }
+.rastro .login-card .button, .rastro a.button { width: 100%; min-height: 42px; padding: 0 16px; font-size: .82rem; text-decoration: none; }
+@media (max-width: 760px) {
+  .rastro.login-screen { grid-template-columns: 1fr; }
+  .rastro .login-brand { gap: 22px; padding: 22px 20px 26px; }
+  .rastro .login-brand h1 { font-size: 1.85rem; }
+  .rastro .login-panel { padding: 24px 16px 36px; }
+}
 @media (max-width: 760px) { .rastro .demo-banner { padding: 10px 16px; } }
