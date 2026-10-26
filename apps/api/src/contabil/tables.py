@@ -45,6 +45,7 @@ class Membership(Base):
 
 class LegalEntity(Base):
     __tablename__ = "legal_entities"
+    __table_args__ = (UniqueConstraint("tenant_id", "cnpj", name="uq_legal_entities_tenant_cnpj"),)
 
     id: Mapped[str] = mapped_column(String(160), primary_key=True)
     tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.id"))

@@ -453,6 +453,28 @@ paths:
       operationId: listLegalEntities
       responses:
         '200': { description: Empresas }
+    post:
+      summary: Cadastra empresa com matriz, modelo mínimo e períodos do ano
+      operationId: createLegalEntity
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [name, cnpj, fiscal_year]
+              properties:
+                name: { type: string, minLength: 1, maxLength: 200 }
+                cnpj: { type: string, minLength: 1, maxLength: 32 }
+                fiscal_year: { type: integer, minimum: 2000, maximum: 2100 }
+      responses:
+        '201': { description: Empresa criada }
+        '400': { description: CNPJ inválido }
+        '403': { description: Papel insuficiente }
+        '409': { description: CNPJ já cadastrado neste escritório }
   /v1/legal-entities/{legal_entity_id}/accounts:
     get:
       summary: Plano de contas da empresa

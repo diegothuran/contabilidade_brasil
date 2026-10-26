@@ -89,6 +89,8 @@ def persist(ctx: Ctx, request: Request, status_code: int, body: dict):
             raise DomainError(409, "Chave de idempotência reutilizada", "A mesma chave foi enviada com outro pedido.") from exc
         if name == "uq_accounts_entity_code":
             raise DomainError(409, "Conta já existe", "Já existe uma conta com este código na empresa.") from exc
+        if name == "uq_legal_entities_tenant_cnpj":
+            raise DomainError(409, "CNPJ já cadastrado", "Este escritório já tem uma empresa com este CNPJ.") from exc
         logger.warning("integrity constraint %s", name)
         raise DomainError(409, "Conflito de persistência", "O banco rejeitou a operação.") from exc
     return JSONResponse(body, status_code=status_code)

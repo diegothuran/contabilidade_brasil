@@ -232,6 +232,7 @@
 .rastro .login-card h2 { margin: 8px 0 10px; font-family: Newsreader, Georgia, serif; font-size: 1.9rem; font-weight: 600; letter-spacing: -.03em; }
 .rastro .login-card p { margin-bottom: 22px; font-size: .9rem; }
 .rastro .login-card .button, .rastro a.button { width: 100%; min-height: 42px; padding: 0 16px; font-size: .82rem; text-decoration: none; }
+.rastro .login-card .button + .button { margin-top: 8px; }
 @media (max-width: 760px) {
   .rastro.login-screen { grid-template-columns: 1fr; }
   .rastro .login-brand { gap: 22px; padding: 22px 20px 26px; }

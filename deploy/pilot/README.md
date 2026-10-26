@@ -115,11 +115,26 @@ heroku run --app NOME-API python -m contabil.bootstrap \
 
 Para lançar e aprovar, use `--roles preparer,approver,viewer`. O bootstrap não altera uma membership que já existe.
 
+## Primeira empresa
+
+O admin entra e abre **Nova empresa**. O cadastro pede nome, CNPJ e ano. A empresa nasce com matriz, o modelo mínimo de teste e 12 períodos abertos. Use CNPJ fictício: o dado fica nos Estados Unidos.
+
+## Empresas de teste
+
+Este comando não é o seed de demonstração. Pode ser repetido: empresa que já existe, pelo CNPJ, é pulada.
+
+```bash
+heroku run --no-tty --exit-code --app NOME-API -- python -m contabil.pilot_samples --tenant-id escritorio
+```
+
+Ele cria três empresas fictícias, com lançamentos publicados no mês anterior e uma conta bancária. O extrato OFX só entra se `OBJECT_STORAGE_BUCKET` e `OBJECT_STORAGE_ACCESS_KEY` estiverem definidos. Sem isso, o comando imprime `extrato=skipped` e documentos, importação e conciliação por arquivo continuam indisponíveis até o bucket da seção Arquivos existir.
+
 ## Conferência
 
 - `GET /readyz` da API responde `ready`.
 - A URL da interface abre a tela de entrada. Depois do Cognito, cai em `/app/rastro`.
 - O navegador não mostra erro de CORS em `/v1/me`.
-- O administrador entra, envia um OFX em Conciliação e vê um caso Sugerido.
+- O administrador cadastra uma empresa fictícia e ela aparece no seletor, com plano e períodos.
+- O administrador entra, envia um OFX em Conciliação e vê um caso Sugerido. Sem bucket, esse passo fica para depois do storage.
 - O usuário do outro escritório recebe 404 ao abrir um caso do primeiro.
 - O seed de demonstração não aparece.

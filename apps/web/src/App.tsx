@@ -8,6 +8,7 @@ import { AuditPage } from "./pages/AuditPage";
 import { BanksPage } from "./pages/BanksPage";
 import { ReconciliationPage } from "./pages/ReconciliationPage";
 import { JournalDetailPage } from "./pages/JournalDetailPage";
+import { CompanyFormPage } from "./pages/CompanyFormPage";
 import { DocumentsPage } from "./pages/DocumentsPage";
 import { ImportDetailPage, ImportsPage } from "./pages/ImportsPage";
 import { JournalFormPage } from "./pages/JournalFormPage";
@@ -16,7 +17,7 @@ import { PeriodsPage } from "./pages/PeriodsPage";
 import { TrialBalancePage } from "./pages/TrialBalancePage";
 import { RastroShell } from "./rastro/RastroShell";
 import "./rastro/rastro.css";
-import { Entity, Me, SessionProvider, useSession } from "./session";
+import { Entity, Me, SessionProvider, can, useSession } from "./session";
 
 const ENTITY_KEY = "contabil.entity";
 
@@ -126,13 +127,14 @@ function Shell() {
       <Routes>
         <Route path="/app/rastro" element={<RastroShell />} />
         <Route path="/app/rastro/*" element={<RastroShell />} />
-        <Route path="*" element={items.length === 0 ? <EmptyOffice name={me.data.tenant_name} /> : <OperationalShell />} />
+        <Route path="/app/companies/new" element={<CompanyFormPage />} />
+        <Route path="*" element={items.length === 0 ? <EmptyOffice name={me.data.tenant_name} admin={can(me.data.roles, "admin")} /> : <OperationalShell />} />
       </Routes>
     </SessionProvider>
   );
 }
 
-function EmptyOffice({ name }: { name: string }) {
+function EmptyOffice({ name, admin }: { name: string; admin: boolean }) {
   return (
     <main className="rastro login-screen">
       <LoginBrand />
@@ -141,7 +143,12 @@ function EmptyOffice({ name }: { name: string }) {
           <span className="eyebrow">{name}</span>
           <h2>O escritório ainda não tem empresa.</h2>
           <p>A sala de fechamento abre em demonstração e não usa uma empresa do sistema.</p>
-          <NavLink className="button" to="/app/rastro">Abrir sala de fechamento</NavLink>
+          {admin ? (
+            <NavLink className="button" to="/app/companies/new">Cadastrar empresa</NavLink>
+          ) : (
+            <p>Peça ao administrador para cadastrar a empresa.</p>
+          )}
+          <NavLink className="button button--secondary" to="/app/rastro">Abrir sala de fechamento</NavLink>
         </div>
       </section>
     </main>
@@ -173,6 +180,7 @@ function OperationalShell() {
         </header>
         <nav className="nav">
           <NavLink to="/app/journals" end>Lançamentos</NavLink>
+          {can(me.roles, "admin") ? <NavLink to="/app/companies/new">Nova empresa</NavLink> : null}
           <NavLink to="/app/journals/new">Novo lançamento</NavLink>
           <NavLink to="/app/trial-balance">Balancete</NavLink>
           <NavLink to="/app/accounts">Plano de contas</NavLink>

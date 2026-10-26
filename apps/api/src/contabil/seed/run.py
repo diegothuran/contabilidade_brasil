@@ -1,18 +1,16 @@
 from __future__ import annotations
 
-import calendar
 from datetime import date
 
+from contabil.ledger.posting import publish_balanced
 from contabil.ledger.schemas import JournalCreate, LineIn
-from contabil.ledger.service import approve_journal, create_journal, publish_journal, reverse_journal, submit_journal
+from contabil.ledger.service import approve_journal, publish_journal, reverse_journal, submit_journal
+from contabil.master_data.starter_chart import add_open_year, add_starter_chart
 from contabil.platform.db import session_factory
 from contabil.platform.principal import Principal
 from contabil.seed.cnpj import cnpj_digits
 from contabil.tables import (
-    Account,
-    AccountingPeriod,
     AppUser,
-    ChartOfAccounts,
     CostCenter,
     Establishment,
     LegalEntity,
@@ -20,72 +18,27 @@ from contabil.tables import (
     Tenant,
 )
 
-ACCOUNT_SPECS = (
-    ("1", "Ativo", "asset", False, None),
-    ("1.1.01", "Caixa", "asset", True, "1"),
-    ("1.1.02", "Bancos", "asset", True, "1"),
-    ("2", "Passivo", "liability", False, None),
-    ("2.1.01", "Fornecedores", "liability", True, "2"),
-    ("3", "Patrimônio líquido", "equity", False, None),
-    ("3.1.01", "Capital social", "equity", True, "3"),
-    ("4", "Receitas", "revenue", False, None),
-    ("4.1.01", "Receita de serviços", "revenue", True, "4"),
-    ("5", "Despesas", "expense", False, None),
-    ("5.1.01", "Despesas de serviços", "expense", True, "5"),
-)
 
-
-def _add_account(session, tenant_id: str, entity_id: str, spec: tuple) -> None:
-    code, name, account_type, postable, parent = spec
-    session.add(
-        Account(
-            id=f"{entity_id}-{code}",
-            tenant_id=tenant_id,
-            legal_entity_id=entity_id,
-            chart_id=f"chart_{entity_id}",
-            parent_id=None if parent is None else f"{entity_id}-{parent}",
-            code=code,
-            name=name,
-            account_type=account_type,
-            postable=postable,
-            active=True,
-        )
+def _add_chart(session, tenant_id: str, entity_id: str) -> None:
+    add_starter_chart(
+        session,
+        tenant_id=tenant_id,
+        legal_entity_id=entity_id,
+        chart_id=f"chart_{entity_id}",
+        chart_name="Plano sintético",
+        account_id=lambda code: f"{entity_id}-{code}",
+    )
+    add_open_year(
+        session,
+        tenant_id=tenant_id,
+        legal_entity_id=entity_id,
+        year=2026,
+        period_id=lambda year, month: f"{entity_id}-{year}-{month:02d}",
     )
 
 
-def _add_chart(session, tenant_id: str, entity_id: str) -> None:
-    session.add(ChartOfAccounts(id=f"chart_{entity_id}", tenant_id=tenant_id, legal_entity_id=entity_id, name="Plano sintético"))
-    session.flush()
-    for spec in ACCOUNT_SPECS:
-        if spec[4] is None:
-            _add_account(session, tenant_id, entity_id, spec)
-    session.flush()
-    for spec in ACCOUNT_SPECS:
-        if spec[4] is not None:
-            _add_account(session, tenant_id, entity_id, spec)
-    for month in range(1, 13):
-        last_day = calendar.monthrange(2026, month)[1]
-        session.add(
-            AccountingPeriod(
-                id=f"{entity_id}-2026-{month:02d}",
-                tenant_id=tenant_id,
-                legal_entity_id=entity_id,
-                fiscal_year=2026,
-                month=month,
-                start_date=date(2026, month, 1),
-                end_date=date(2026, month, last_day),
-                status="open",
-            )
-        )
-
-
 def _publish(session, preparer: Principal, approver: Principal, body: JournalCreate) -> str:
-    created = create_journal(session, preparer, body)
-    journal_id = created["journal_id"]
-    submit_journal(session, preparer, journal_id)
-    approve_journal(session, approver, journal_id)
-    publish_journal(session, approver, journal_id)
-    return journal_id
+    return publish_balanced(session, preparer, approver, body)
 
 
 def seed() -> None:

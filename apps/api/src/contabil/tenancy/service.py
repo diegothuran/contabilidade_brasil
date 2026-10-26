@@ -6,8 +6,13 @@ from datetime import datetime
 from sqlalchemy import select, tuple_
 from sqlalchemy.orm import Session
 
+from contabil.audit.service import append_event
+from contabil.master_data.starter_chart import STARTER_CHART_NAME, ACCOUNT_SPECS, add_open_year, add_starter_chart
 from contabil.platform.errors import DomainError
-from contabil.tables import LegalEntity
+from contabil.platform.ids import new_id
+from contabil.platform.principal import Principal
+from contabil.seed.cnpj import cnpj_digits
+from contabil.tables import Establishment, LegalEntity
 
 
 def require_entity(session: Session, tenant_id: str, legal_entity_id: str) -> LegalEntity:
@@ -15,6 +20,75 @@ def require_entity(session: Session, tenant_id: str, legal_entity_id: str) -> Le
     if entity is None:
         raise DomainError(404, "Não encontrado", "Empresa não encontrada.")
     return entity
+
+
+def normalize_cnpj(value: str) -> str:
+    return "".join(char for char in value if char.isdigit())
+
+
+def valid_cnpj(value: str) -> bool:
+    digits = normalize_cnpj(value)
+    if len(digits) != 14 or digits == digits[0] * 14:
+        return False
+    return cnpj_digits(digits[:12]) == digits
+
+
+def create_legal_entity(session: Session, principal: Principal, *, name: str, cnpj: str, fiscal_year: int) -> dict:
+    digits = normalize_cnpj(cnpj)
+    if not valid_cnpj(digits):
+        raise DomainError(400, "CNPJ inválido", "Informe um CNPJ com dígitos verificadores válidos.")
+    existing = session.scalar(
+        select(LegalEntity).where(LegalEntity.tenant_id == principal.tenant_id, LegalEntity.cnpj == digits)
+    )
+    if existing is not None:
+        raise DomainError(409, "CNPJ já cadastrado", "Este escritório já tem uma empresa com este CNPJ.")
+    entity_id = new_id("le")
+    entity = LegalEntity(
+        id=entity_id,
+        tenant_id=principal.tenant_id,
+        name=name.strip(),
+        cnpj=digits,
+        currency="BRL",
+    )
+    session.add(entity)
+    session.flush()
+    establishment = Establishment(
+        id=new_id("est"),
+        tenant_id=principal.tenant_id,
+        legal_entity_id=entity_id,
+        name="Matriz",
+    )
+    session.add(establishment)
+    chart_id = new_id("chart")
+    add_starter_chart(
+        session,
+        tenant_id=principal.tenant_id,
+        legal_entity_id=entity_id,
+        chart_id=chart_id,
+        chart_name=STARTER_CHART_NAME,
+        account_id=lambda code: f"{entity_id}-{code}",
+    )
+    periods_created = add_open_year(
+        session,
+        tenant_id=principal.tenant_id,
+        legal_entity_id=entity_id,
+        year=fiscal_year,
+        period_id=lambda year, month: f"{entity_id}-{year}-{month:02d}",
+    )
+    append_event(
+        session,
+        tenant_id=principal.tenant_id,
+        event_type="other",
+        actor_ref=principal.user_id,
+        target_type="legal_entity",
+        target_ref=entity_id,
+        metadata={"action": "legal_entity_created"},
+    )
+    payload = entity_dict(entity)
+    payload["chart_id"] = chart_id
+    payload["accounts_created"] = len(ACCOUNT_SPECS)
+    payload["periods_created"] = periods_created
+    return payload
 
 
 def entity_dict(entity: LegalEntity) -> dict:

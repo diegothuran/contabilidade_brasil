@@ -12,6 +12,8 @@ Portal, tarefas e solicitações ligam contador e cliente. A plataforma de integ
 
 `AccountingOffice`, `Tenant`, `User`, `Role`, `LegalEntity`, `Branch`, `Establishment`, `AccountingPeriod`, `FiscalYear`, `ChartOfAccounts`, `Account`, `ReferentialMapping`, `Dimension`, `CostCenter`, `Journal`, `JournalEntry`, `JournalLine`, `SourceDocument`, `ImportBatch`, `Receivable`, `Payable`, `BankTransaction`, `ReconciliationCase`, `FixedAsset`, `TaxContext`, `TaxRule`, `FiscalDocument`, `FiscalEvent`, `RegulatoryObligation`, `Transmission`, `Protocol`, `Receipt`, `Certificate`, `PowerOfAttorney`, `CloseRun`, `Approval`, `AuditEvent`, `RetentionPolicy` e `ExportPackage` são o vocabulário inicial. O schema físico ainda deve ser validado com o contador e com os dados de migração.
 
+No piloto, o admin cadastra a `LegalEntity` com CNPJ único no escritório. Ela nasce com matriz, um modelo mínimo de contas que não é referencial e os períodos abertos do ano informado ([ADR 017](adr/017-cadastro-de-empresa.md)).
+
 ## Estados importantes
 
 ### Journal

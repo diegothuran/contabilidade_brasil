@@ -18,3 +18,4 @@
 | [014](014-deploy-piloto-aws-sa-east-1.md) | AWS São Paulo quando o escritório depender do sistema no dia a dia. |
 | [015](015-piloto-barato-heroku.md) | Primeiro piloto no Heroku, dyno Basic e Postgres Essential-0. |
 | [016](016-frontend-separado.md) | A interface é um serviço próprio; o domínio continua num processo. |
+| [017](017-cadastro-de-empresa.md) | Só o admin cadastra empresa, com CNPJ único no escritório e modelo mínimo de teste. |

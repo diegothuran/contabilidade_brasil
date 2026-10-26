@@ -9,6 +9,7 @@ from contabil.audit.hash import canonical_payload, chain_hash
 from contabil.ledger.schemas import JournalCreate
 from contabil.platform.money import format_amount, format_signed, parse_amount
 from contabil.seed.cnpj import cnpj_digits
+from contabil.tenancy.service import valid_cnpj
 
 
 def test_money_rejects_float_text_and_keeps_scale() -> None:
@@ -62,3 +63,12 @@ def test_cnpj_check_digits() -> None:
     number = cnpj_digits("042520110001")
     assert number == "04252011000110"
     assert cnpj_digits(number[:12]) == number
+
+
+def test_valid_cnpj_accepts_check_digits_and_rejects_the_rest() -> None:
+    number = cnpj_digits("900000000001")
+    assert valid_cnpj(number)
+    assert valid_cnpj(f"{number[:2]}.{number[2:5]}.{number[5:8]}/{number[8:12]}-{number[12:]}")
+    assert not valid_cnpj(number[:-1] + ("0" if number[-1] != "0" else "1"))
+    assert not valid_cnpj("123")
+    assert not valid_cnpj("00000000000000")
