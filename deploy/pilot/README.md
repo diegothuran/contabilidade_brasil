@@ -131,7 +131,7 @@ Ele deixa cinco empresas fictícias, cada uma com um caso diferente:
 - Padaria Aurora: lançamentos publicados, um estorno, um rascunho, um pendente e um aprovado ainda não publicado. O checklist fica bloqueado.
 - Studio Norte: competência do mês anterior fechada, com snapshot, e um pedido de reabertura feito por outra pessoa.
 - Comercial Vale Azul: livros publicados e conta bancária.
-- Ateliê Brisa: só o plano e os períodos, para ver as telas vazias.
+- Ateliê Brisa: plano, períodos e lançamentos publicados em alguns meses do ano, para o balancete ter saldo.
 - Transportes Rio Claro: rascunho e lançamento pendente no mês corrente.
 
 O extrato, o recibo e o lote de importação só entram se `OBJECT_STORAGE_BUCKET` e `OBJECT_STORAGE_ACCESS_KEY` estiverem definidos. Sem isso, o comando imprime `extrato=skipped`. Documentos, migração e conciliação por arquivo continuam indisponíveis até o bucket da seção Arquivos existir.

@@ -1,4 +1,4 @@
-# SPEC — Contrato de interface v0.4.2
+# SPEC — Contrato de interface v0.4.3
 
 > Fonte de verdade da experiência do front-end. Atualizações de comportamento, estado, linguagem visual ou estrutura precisam atualizar este arquivo antes do código.
 
@@ -119,6 +119,7 @@ A barra de contexto marca a empresa escolhida e mantém a busca ao lado. A compe
 
 ## 13. Changelog
 
+- `0.4.3` — O balancete abre os lançamentos da conta pelo nome dela, em vez de “Drill-down”.
 - `0.4.2` — A competência fica só na barra, em mês e ano. As telas não repetem o identificador do período.
 - `0.4.1` — A empresa escolhida fica marcada no topo e a busca por nome ou CNPJ permanece visível.
 - `0.4.0` — Fechamentos percorre o checklist, grava o snapshot e baixa o pacote.

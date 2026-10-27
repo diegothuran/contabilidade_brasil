@@ -46,9 +46,6 @@ def test_pilot_samples_are_idempotent_and_skip_statements_without_storage(monkey
                 )
             )
             assert Decimal(debit) == Decimal(credit)
-            if company["published"] == 0:
-                assert Decimal(debit) == 0
-            else:
-                assert Decimal(debit) > 0
+            assert Decimal(debit) > 0
     finally:
         session.close()

@@ -59,9 +59,18 @@ function itemCount(payload: unknown): number | null {
 }
 
 function preferredPeriod(items: PeriodItem[]): string {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth() + 1;
   const sorted = [...items].sort((left, right) => left.fiscal_year - right.fiscal_year || left.month - right.month);
-  const open = [...sorted].reverse().find((item) => item.status === "open" || item.status === "reopened");
-  return (open ?? sorted.at(-1))?.period_id ?? "";
+  const started = sorted.filter((item) => item.fiscal_year < year || (item.fiscal_year === year && item.month <= month));
+  const pool = started.length > 0 ? started : sorted;
+  const current = pool.find((item) => item.fiscal_year === year && item.month === month && (item.status === "open" || item.status === "reopened"));
+  if (current) {
+    return current.period_id;
+  }
+  const open = [...pool].reverse().find((item) => item.status === "open" || item.status === "reopened");
+  return (open ?? pool.at(-1))?.period_id ?? "";
 }
 
 function periodTone(status: string): string {

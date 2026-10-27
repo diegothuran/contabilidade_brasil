@@ -7,7 +7,7 @@ import "./rastro/rastro.css";
 import { Entity, Me, SessionProvider } from "./session";
 
 const ENTITY_KEY = "contabil.entity";
-const PERIOD_KEY = "contabil.periods";
+const PERIOD_KEY = "contabil.periods.v2";
 
 function readPeriods(): Record<string, string> {
   try {

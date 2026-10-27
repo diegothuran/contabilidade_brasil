@@ -4,6 +4,7 @@ import argparse
 import os
 import sys
 from datetime import date
+from decimal import Decimal
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -283,6 +284,67 @@ def _enrich(
                 session, preparer, approver, entity_id, current_period, current_date, "pendente", "pending",
                 f"{entity_id}-5.1.01", f"{entity_id}-2.1.01", "15.00", "Pedágio aguardando aprovação", "Fornecedor",
             )
+    _ensure_activity(session, preparer, approver, entity_id, year, today)
+
+
+def _activity_months(year: int, today: date) -> list[int]:
+    months = {2, 4, 6, 8, today.month}
+    if year < today.year:
+        return sorted(months)
+    return sorted(month for month in months if month <= today.month)
+
+
+def _money(amount: Decimal) -> str:
+    return f"{amount.quantize(Decimal('0.01')):.2f}"
+
+
+def _ensure_activity(
+    session: Session,
+    preparer: Principal,
+    approver: Principal,
+    entity_id: str,
+    year: int,
+    today: date,
+) -> None:
+    caixa = f"{entity_id}-1.1.01"
+    banco = f"{entity_id}-1.1.02"
+    fornecedor = f"{entity_id}-2.1.01"
+    capital = f"{entity_id}-3.1.01"
+    receita = f"{entity_id}-4.1.01"
+    despesa = f"{entity_id}-5.1.01"
+    for month in _activity_months(year, today):
+        period_id = f"{entity_id}-{year}-{month:02d}"
+        period = session.get(AccountingPeriod, period_id)
+        if period is None or period.status not in {"open", "reopened"}:
+            continue
+        posted = date(year, month, min(12, today.day if month == today.month and year == today.year else 12))
+        scale = Decimal(month)
+        venda_banco = Decimal("200.00") + scale * Decimal("25.00")
+        venda_caixa = Decimal("80.00") + scale * Decimal("10.00")
+        gasto = Decimal("35.00") + scale * Decimal("8.00")
+        _ensure_journal(
+            session, preparer, approver, entity_id, period_id, posted, f"venda-banco-{year}-{month:02d}", "published",
+            banco, receita, _money(venda_banco), "Venda recebida no banco", "Receita de serviços",
+        )
+        _ensure_journal(
+            session, preparer, approver, entity_id, period_id, posted, f"venda-caixa-{year}-{month:02d}", "published",
+            caixa, receita, _money(venda_caixa), "Venda recebida no caixa", "Receita de serviços",
+        )
+        _ensure_journal(
+            session, preparer, approver, entity_id, period_id, posted, f"despesa-{year}-{month:02d}", "published",
+            despesa, fornecedor, _money(gasto), "Despesa de serviço do mês", "Fornecedor a pagar",
+        )
+        _ensure_journal(
+            session, preparer, approver, entity_id, period_id, posted, f"pagamento-{year}-{month:02d}", "published",
+            fornecedor, banco, _money(gasto), "Pagamento ao fornecedor", "Banco",
+        )
+    opening = f"{entity_id}-{year}-02"
+    opening_period = session.get(AccountingPeriod, opening)
+    if opening_period is not None and opening_period.status in {"open", "reopened"}:
+        _ensure_journal(
+            session, preparer, approver, entity_id, opening, date(year, 2, 2), "capital-inicial", "published",
+            banco, capital, "1000.00", "Integralização de capital", "Capital social",
+        )
 
 
 def _period_exists(session: Session, period_id: str) -> bool:
