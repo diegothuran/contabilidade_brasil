@@ -5,6 +5,7 @@ import { AccountsPage } from "../pages/AccountsPage";
 import { AdministrationPage } from "../pages/AdministrationPage";
 import { AuditPage } from "../pages/AuditPage";
 import { BanksPage } from "../pages/BanksPage";
+import { CloseRunPage } from "../pages/CloseRunPage";
 import { CompanyFormPage } from "../pages/CompanyFormPage";
 import { DocumentsPage } from "../pages/DocumentsPage";
 import { ImportDetailPage, ImportsPage } from "../pages/ImportsPage";
@@ -115,6 +116,9 @@ function currentRoute(pathname: string): { crumb: string; label: string } {
     }
     const known = routeMeta[demoPath];
     return known ? { crumb: "Demonstração", label: known.label } : { crumb: "Demonstração", label: "Hoje" };
+  }
+  if (pathname.startsWith("/app/rastro/fechamentos/")) {
+    return { crumb: "Fechamentos", label: "Checklist" };
   }
   if (pathname.startsWith("/app/journals/") && pathname !== "/app/journals/new") {
     return { crumb: "Rastreabilidade", label: "Lançamento" };
@@ -355,6 +359,7 @@ export function RastroShell() {
           <Routes>
             <Route path="/app/rastro" element={<OfficeHome />} />
             <Route path="/app/rastro/fechamentos" element={<Routine><PeriodsPage /></Routine>} />
+            <Route path="/app/rastro/fechamentos/:periodId" element={<Routine><CloseRunPage /></Routine>} />
             <Route path="/app/rastro/conciliacao" element={<Routine><LedgerReconciliationPage /></Routine>} />
             <Route path="/app/rastro/migracoes" element={<Routine><ImportsPage /></Routine>} />
             <Route path="/app/rastro/migracoes/:batchId" element={<Routine><ImportDetailPage /></Routine>} />

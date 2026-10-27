@@ -26,13 +26,13 @@ O primeiro público é um escritório com cerca de **20 a 200 CNPJs**, em dois o
 | Plano de contas | Contas sintéticas e analíticas por empresa. Só conta analítica (postável) recebe lançamento. | Rotinas do razão › Plano de contas |
 | Lançamentos | Rascunho equilibrado, envio, aprovação e publicação. Quem cria não aprova nem publica. Publicado não se edita: corrige-se por estorno vinculado. | Hoje, Dados e ledger, Rotinas do razão › Novo lançamento |
 | Balancete | Débito, crédito e saldo por conta e competência, com drill-down até a linha. | Rotinas do razão › Balancete |
-| Períodos | Fechar a competência bloqueia postagem normal. Reabrir pede motivo e aprovação de outra pessoa. | Fechamentos |
+| Períodos | O checklist bloqueia o fechamento. O snapshot fica gravado com SHA-256. Reabrir pede motivo e aprovação de outra pessoa e não altera o snapshot. | Fechamentos |
 | Importação | Lote CSV em simulação, relatório de diferenças e publicação por outra pessoa. Identificador já importado não entra de novo. | Migrações |
 | Bancos e conciliação | Conta bancária ligada ao plano, extrato CSV ou OFX, casos Sugerido e Sem candidato, aprovação humana do vínculo. | Conciliação; Rotinas do razão › Bancos |
 | Documentos | Arquivo original no object storage com hash SHA-256, tipo e competência. | Evidências |
 | Auditoria | Eventos encadeados por hash, com verificação da cadeia. | Rotinas do razão › Auditoria |
 
-Revisões de IA, obrigações e entregas, integrações externas e administração aparecem no menu, mas a tela diz que ainda não há contrato. Elas não simulam estado.
+Revisões de IA, obrigações e entregas e integrações externas aparecem no menu, mas a tela diz que ainda não há contrato. Elas não simulam estado.
 
 ## Como usar
 
@@ -58,7 +58,7 @@ O primeiro admin nasce no comando `contabil.bootstrap`. Os seguintes entram em *
 5. Outra pessoa, com papel `approver`, abre o lançamento, aprova e publica.
 6. Confira o saldo em **Rotinas do razão › Balancete** e desça até a linha.
 7. Em **Conciliação**, envie o extrato e decida cada caso sugerido.
-8. Em **Fechamentos**, feche a competência quando ela estiver pronta.
+8. Em **Fechamentos**, abra o checklist, revise o balancete e feche a competência. Baixe o pacote e confira o SHA-256.
 
 A caminhada sintética da empresa fictícia Orbe fica em **Demonstração**, no grupo Sistema. Ela mostra o desenho futuro da sala e não grava lançamento.
 
@@ -94,6 +94,7 @@ flowchart LR
 | Master data | `master_data/` | Plano de contas, centro de custo e o modelo mínimo de contas. |
 | Ledger | `ledger/` | Journals, linhas, aprovação, publicação, estorno e balancete. |
 | Períodos | `periods/` | Abertura, fechamento e reabertura aprovada. |
+| Fechamento | `closing/` | Checklist, snapshot imutável e pacote gerado no download. |
 | Importação | `imports/` | Lotes CSV, simulação, relatório de diferenças e publicação. |
 | Conciliação | `reconciliation/` | Contas bancárias, parser de CSV e OFX, matching explicável e casos. |
 | Documentos | `documents/` | Upload, hash e download do arquivo original. |
@@ -252,7 +253,7 @@ A visão completa contempla:
 - API versionada, webhooks idempotentes e observabilidade;
 - IA apenas como assistência explicável, sem publicar lançamentos ou transmitir obrigações sozinha.
 
-Ainda não construído: contas a pagar e receber, checklist e pacote de fechamento, motor regulatório, obrigações, conectores governamentais, portal do cliente e assistência por IA.
+Ainda não construído: contas a pagar e receber, motor regulatório, obrigações, conectores governamentais, portal do cliente e assistência por IA. O checklist de fechamento e o pacote já estão na sala ([ADR 020](docs/adr/020-fechamento-com-evidencia.md)).
 
 Folha completa, cobertura nacional de NFS-e, banking próprio, crédito, manufatura profunda, marketplace amplo e IA autônoma ficam fora do primeiro ciclo.
 

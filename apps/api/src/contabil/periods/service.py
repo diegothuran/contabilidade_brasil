@@ -60,27 +60,9 @@ def lock_period(session: Session, tenant_id: str, period_id: str) -> AccountingP
 
 def close_period(session: Session, principal: Principal, period_id: str) -> AccountingPeriod:
     ensure_role(principal, "approver", "admin")
-    period = lock_period(session, principal.tenant_id, period_id)
-    if period.status not in POSTING_PERIOD_STATUSES:
-        raise DomainError(409, "Estado inválido", "Somente período aberto ou reaberto pode ser fechado.")
-    period.status = "closed"
-    append_event(
-        session,
-        tenant_id=principal.tenant_id,
-        event_type="other",
-        actor_ref=principal.user_id,
-        target_type="accounting_period",
-        target_ref=period.id,
-        reason="Fechamento manual da competência",
-        metadata={"action": "period_closed"},
-    )
-    enqueue(
-        session,
-        tenant_id=principal.tenant_id,
-        event_type="PeriodClosed",
-        payload={"period_id": period.id, "legal_entity_id": period.legal_entity_id},
-    )
-    return period
+    from contabil.closing.service import close_open_run_for_period
+
+    return close_open_run_for_period(session, principal, period_id)
 
 
 def request_reopen(session: Session, principal: Principal, period_id: str, reason: str) -> ReopenRequest:
@@ -144,6 +126,9 @@ def approve_reopen(session: Session, principal: Principal, request_id: str) -> A
         event_type="PeriodReopened",
         payload={"period_id": period.id, "legal_entity_id": period.legal_entity_id, "reopen_request_id": reopen.id},
     )
+    from contabil.closing.service import reopen_closed_run
+
+    reopen_closed_run(session, principal.tenant_id, period.id, reopen.reason)
     return period
 
 

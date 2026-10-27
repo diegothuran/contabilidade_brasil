@@ -407,17 +407,84 @@ paths:
                 cost_center_id: { type: string }
       responses:
         '201': { description: Rascunho criado, content: { application/json: { schema: { $ref: '#/components/schemas/JournalEntry' } } } }
-  /v1/close-runs:
+  /v1/periods/{period_id}/close-runs:
     post:
-      summary: Cria uma execução de fechamento
-      operationId: createCloseRun
+      summary: Abre ou devolve a execução de fechamento aberta da competência
+      operationId: openCloseRun
+      parameters:
+        - $ref: '#/components/parameters/PeriodId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '201': { description: Execução aberta }
+        '200': { description: Execução aberta já existente }
+        '409': { description: Período fechado }
+  /v1/close-runs/{close_run_id}:
+    get:
+      summary: Checklist calculado da execução de fechamento
+      operationId: getCloseRun
+      parameters:
+        - in: path
+          name: close_run_id
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: Execução e checklist, content: { application/json: { schema: { $ref: '#/components/schemas/CloseRun' } } } }
+        '404': { description: Execução não encontrada }
+  /v1/close-runs/{close_run_id}/items/{item_id}:
+    post:
+      summary: Conclui a revisão do balancete ou marca um item como não aplicável
+      operationId: decideCloseItem
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - in: path
+          name: close_run_id
+          required: true
+          schema: { type: string }
+        - in: path
+          name: item_id
+          required: true
+          schema: { type: string }
       requestBody:
         required: true
         content:
           application/json:
-            schema: { $ref: '#/components/schemas/CloseRun' }
+            schema:
+              type: object
+              additionalProperties: false
+              required: [status]
+              properties:
+                status: { type: string, enum: [completed, not_applicable] }
+                reason: { type: string, maxLength: 2000 }
       responses:
-        '201': { description: Fechamento criado, content: { application/json: { schema: { $ref: '#/components/schemas/CloseRun' } } } }
+        '200': { description: Checklist atualizado }
+        '400': { description: Decisão inválida }
+        '403': { description: Papel insuficiente }
+        '409': { description: Execução não está aberta }
+  /v1/close-runs/{close_run_id}/close:
+    post:
+      summary: Fecha a competência quando não há bloqueio pendente e grava o snapshot
+      operationId: closeCloseRun
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - in: path
+          name: close_run_id
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: Competência fechada e snapshot gravado }
+        '409': { description: Itens bloqueantes pendentes }
+  /v1/close-runs/{close_run_id}/evidence-package:
+    get:
+      summary: Gera o pacote de evidências a partir do snapshot imutável
+      operationId: downloadEvidencePackage
+      parameters:
+        - in: path
+          name: close_run_id
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: Pacote JSON com manifesto e snapshot }
+        '409': { description: Execução ainda não fechada }
   /v1/obligations/{obligation_id}:
     get:
       summary: Consulta o status de uma obrigação

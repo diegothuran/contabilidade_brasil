@@ -28,10 +28,10 @@ A transição para `published` exige balanço, período aberto, conta postável,
 ### Período
 
 ```text
-open -> closing -> closed -> reopened -> closing
+open -> closed -> reopened -> closed
 ```
 
-Reabertura exige papel, motivo, aprovação e `AuditEvent`. O fechamento deve gerar snapshot e pacote de evidências.
+O valor `closing` existe na restrição do banco e não é usado: a competência continua aceitando lançamento enquanto o checklist está aberto. Reabertura exige papel, motivo, aprovação e `AuditEvent`, e preserva o snapshot da execução anterior. O fechamento grava o snapshot. O pacote de evidências é gerado no download.
 
 ### Obrigação
 

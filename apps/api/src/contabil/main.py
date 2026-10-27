@@ -16,6 +16,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from contabil.audit.router import router as audit_router
+from contabil.closing.router import router as closing_router
 from contabil.documents.router import router as documents_router
 from contabil.imports.router import router as imports_router
 from contabil.ledger.router import router as ledger_router
@@ -114,7 +115,7 @@ def create_app() -> FastAPI:
 
     @app.exception_handler(DomainError)
     async def handle_domain(_: Request, exc: DomainError) -> JSONResponse:
-        return problem_response(exc.status_code, exc.title, exc.detail)
+        return problem_response(exc.status_code, exc.title, exc.detail, errors=exc.errors)
 
     @app.exception_handler(IdempotentReplay)
     async def handle_replay(_: Request, exc: IdempotentReplay) -> JSONResponse:
@@ -157,6 +158,7 @@ def create_app() -> FastAPI:
     app.include_router(tenancy_router, prefix="/v1")
     app.include_router(master_data_router, prefix="/v1")
     app.include_router(periods_router, prefix="/v1")
+    app.include_router(closing_router, prefix="/v1")
     app.include_router(ledger_router, prefix="/v1")
     app.include_router(documents_router, prefix="/v1")
     app.include_router(imports_router, prefix="/v1")

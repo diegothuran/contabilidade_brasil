@@ -1,4 +1,4 @@
-# SPEC — Contrato de interface v0.3.1
+# SPEC — Contrato de interface v0.4.0
 
 > Fonte de verdade da experiência do front-end. Atualizações de comportamento, estado, linguagem visual ou estrutura precisam atualizar este arquivo antes do código.
 
@@ -103,7 +103,7 @@ A sala fica em `/app/rastro` e é a primeira tela depois do login. Ela é a úni
 | Menu | O que abre |
 | --- | --- |
 | Hoje | Lançamentos recentes da empresa selecionada. |
-| Fechamentos | Períodos dessa empresa. |
+| Fechamentos | Checklist da competência, fechamento, hash do snapshot e download do pacote. Reabertura continua na lista. |
 | Conciliação | Casos de conciliação. |
 | Migrações | Lotes de importação. |
 | Dados e ledger | Lançamentos. |
@@ -119,6 +119,7 @@ A barra de contexto é o seletor da empresa e da competência do escritório. A 
 
 ## 13. Changelog
 
+- `0.4.0` — Fechamentos percorre o checklist, grava o snapshot e baixa o pacote.
 - `0.3.1` — Administração convida para o escritório; a senha temporária sai por e-mail.
 - `0.3.0` — uma casca só; o contexto passa a ser a empresa do escritório; a Orbe fica na demonstração.
 - `0.2.1` — a tela de login usa a marca e os tokens da sala.

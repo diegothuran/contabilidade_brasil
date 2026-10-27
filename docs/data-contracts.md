@@ -44,9 +44,9 @@ A explicação deve indicar quais campos coincidiram e quais regras foram usadas
 
 ## CloseRun
 
-A execução de fechamento é uma instância de uma competência. O checklist deve conter itens bloqueantes e não bloqueantes. Fechar exige que todos os itens bloqueantes estejam concluídos ou explicitamente não aplicáveis.
+A execução de fechamento é uma instância de uma competência. O checklist v1 é fixo e versionado. Itens bloqueantes e não bloqueantes convivem. Fechar exige que todos os itens bloqueantes estejam concluídos ou explicitamente não aplicáveis, com motivo.
 
-Snapshot e evidence package não são apenas anexos. Eles são referências para reproduzir o estado, relatórios, versões de regras, aprovações, arquivos e retornos usados no fechamento.
+O snapshot é JSON no Postgres, com SHA-256, e não aceita alteração. O pacote de evidências não fica gravado como arquivo: o download monta o JSON a partir do snapshot. O estado `closing` do período existe no banco e não é usado, para a competência continuar aceitando lançamento enquanto o checklist está aberto.
 
 ## SourceDocument
 
@@ -74,7 +74,7 @@ A integridade do evento pode usar hash encadeado ou mecanismo equivalente. O pro
 SourceDocument -> ImportBatch ou SubledgerDocument
 SubledgerDocument -> JournalEntry -> JournalLine
 BankTransaction -> ReconciliationCase -> aprovação -> JournalEntry
-CloseRun -> checklist -> snapshot/evidence package
+CloseRun -> checklist -> snapshot no Postgres; pacote gerado no download
 RegulatoryObligation -> arquivos -> Transmission -> Protocol/Receipt
 AuditEvent -> todos os efeitos sensíveis
 ```

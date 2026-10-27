@@ -6,10 +6,11 @@ from contabil.platform.correlation import correlation_id
 
 
 class DomainError(Exception):
-    def __init__(self, status_code: int, title: str, detail: str) -> None:
+    def __init__(self, status_code: int, title: str, detail: str, *, errors: list | None = None) -> None:
         self.status_code = status_code
         self.title = title
         self.detail = detail
+        self.errors = errors
         super().__init__(detail)
 
 

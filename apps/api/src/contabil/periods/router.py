@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, Request
 from contabil.ledger.schemas import ReasonBody
 from sqlalchemy import select
 
+from contabil.closing.service import latest_runs
 from contabil.periods.service import (
     approve_reopen,
     close_period,
@@ -31,10 +32,15 @@ def get_periods(legal_entity_id: str, ctx: Ctx = Depends(get_context)) -> dict:
             select(ReopenRequest).where(ReopenRequest.tenant_id == ctx.principal.tenant_id, ReopenRequest.status == "pending")
         ).all()
     }
+    runs = latest_runs(ctx.session, ctx.principal.tenant_id, [period.id for period in periods])
     items = []
     for period in periods:
         payload = period_dict(period)
         payload["pending_reopen_request_id"] = pending.get(period.id)
+        run = runs.get(period.id)
+        payload["close_run_id"] = run.id if run is not None else None
+        payload["close_run_status"] = run.status if run is not None else None
+        payload["close_run_number"] = run.run_number if run is not None else None
         items.append(payload)
     return {"items": items}
 

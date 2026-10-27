@@ -36,3 +36,11 @@ def canonical_payload(
 
 def chain_hash(previous: str | None, canonical: str) -> str:
     return hashlib.sha256(((previous or "") + canonical).encode("utf-8")).hexdigest()
+
+
+def canonical_json(body: dict) -> str:
+    return json.dumps(body, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+
+
+def content_hash(body: dict) -> str:
+    return hashlib.sha256(canonical_json(body).encode("utf-8")).hexdigest()

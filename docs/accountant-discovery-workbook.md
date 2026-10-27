@@ -65,7 +65,7 @@ A fundação local adotou estas regras para poder ser testada. Elas não fecham 
 1. Quem cria um lançamento não o aprova nem o publica. Escritório de uma pessoa ainda não tem exceção.
 2. Dimensões são opcionais no contrato. O contador ainda define quais são obrigatórias por plano ou empresa.
 3. Conta sintética não recebe lançamento. O contador confirma quando uma conta pode ser postável.
-4. Fechar período nesta fase só trava a competência. Checklist, snapshot e pacote de evidências continuam na fase de fechamento.
+4. Fechar a competência exige a execução de fechamento. O checklist v1 é fixo (`2026.10-1`). Bloqueio pendente impede o fechamento. Não aplicável exige motivo. O snapshot JSON fica no banco, com SHA-256, e não é editado. O pacote sai no download. O estado `closing` não é usado. Correção depois do fechamento segue a ITG 2000 (R1), itens 31 a 36: reabrir e lançar estorno, transferência ou complementação.
 5. Reverter um lançamento de período fechado exige reabrir antes. O contador confirma se esse é o fluxo desejado.
 
 ## Decisões provisórias da Fase B
@@ -93,3 +93,8 @@ A conciliação bancária deste corte também adotou regras para poder ser testa
 
 17. Quem é o primeiro usuário administrador do escritório no ambiente hospedado, e esse usuário aceita MFA por aplicativo? O piloto usa um dyno para a API e outro para a interface, e não guarda documento de cliente real.
 18. Qual plano de contas substitui o modelo mínimo de teste, e a empresa deve nascer com o ano corrente? O cadastro atual cria 11 contas sintéticas e os 12 períodos do ano informado. Nenhuma delas é referencial.
+19. Quais itens do checklist mudam por porte ou regime? A versão `2026.10-1` é a mesma para toda empresa.
+20. A revisão do balancete pode ser feita por quem também publica, ou o escritório exige outra pessoa? Nesta fase, `approver` ou `admin` registra a revisão.
+21. Qual é a retenção por tipo de documento, além da guarda até prescrição ou decadência (Código Civil, art. 1.194; CTN, art. 195, parágrafo único; Lei 9.430/1996, art. 37)?
+22. O pacote precisa de outros relatórios além do balancete, dos lançamentos, da conciliação, dos lotes e dos documentos?
+23. O fechamento precisa de assinatura ICP-Brasil neste corte? A fundação não assina e não trata o pacote como livro autenticado da ECD (IN RFB 2.003/2021, art. 8º).

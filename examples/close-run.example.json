@@ -1,17 +1,50 @@
 {
-  "schema_version": "1.0.0",
+  "schema_version": "1.1.0",
   "close_run_id": "close-0001",
   "tenant_id": "office-001",
   "legal_entity_id": "company-001",
   "period_id": "2026-09",
   "status": "closed",
+  "run_number": 1,
+  "checklist_version": "2026.10-1",
   "checklist": [
-    { "item_id": "check-001", "category": "bank", "status": "completed", "title": "Conciliação bancária aprovada", "owner_id": "user-001", "evidence_ref": "recon-report-001", "blocking": true },
-    { "item_id": "check-002", "category": "reports", "status": "completed", "title": "Balancete revisado", "owner_id": "user-002", "evidence_ref": "report-001", "blocking": true }
+    {
+      "item_id": "reconciliation_pending",
+      "category": "bank",
+      "status": "completed",
+      "title": "Conciliação bancária pendente",
+      "owner_id": "user-001",
+      "evidence_ref": null,
+      "blocking": true,
+      "detail": "Nenhum caso em «conciliação bancária pendente».",
+      "count": 0,
+      "not_applicable_reason": null,
+      "decided_by": null,
+      "href": "/app/rastro/conciliacao",
+      "reference": "ITG 2000 (R1), item 14"
+    },
+    {
+      "item_id": "trial_balance_review",
+      "category": "approval",
+      "status": "completed",
+      "title": "Revisão do balancete",
+      "owner_id": "user-002",
+      "evidence_ref": null,
+      "blocking": true,
+      "detail": "Revisão registrada por user-002.",
+      "count": null,
+      "not_applicable_reason": null,
+      "decided_by": "user-002",
+      "href": "/app/trial-balance",
+      "reference": "ITG 2000 (R1), item 12"
+    }
   ],
-  "snapshot_ref": "snapshot-2026-09-company-001",
-  "evidence_package_ref": "evidence-package-0001",
+  "snapshot_ref": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "snapshot_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "evidence_package_ref": "/v1/close-runs/close-0001/evidence-package",
   "reopened_reason": null,
   "approved_by": "user-002",
+  "closed_by": "user-002",
+  "closed_at": "2026-10-02T12:00:00Z",
   "audit_event_id": "audit-close-0001"
 }

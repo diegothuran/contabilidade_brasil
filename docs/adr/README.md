@@ -21,3 +21,4 @@
 | [017](017-cadastro-de-empresa.md) | Só o admin cadastra empresa, com CNPJ único no escritório e modelo mínimo de teste. |
 | [018](018-uma-casca-visual.md) | A interface tem uma casca só. O contexto é a empresa do escritório. |
 | [019](019-convite-de-usuario.md) | Só o admin convida. O Cognito envia a senha por e-mail. |
+| [020](020-fechamento-com-evidencia.md) | Fechar exige checklist. O snapshot é imutável e o pacote sai no download. |

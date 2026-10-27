@@ -148,6 +148,19 @@ def test_published_journal_is_immutable(client, tokens, world):
 
 def test_closed_period_and_reopen(client, tokens, world):
     del world
+    opened = _post(client, tokens["approver"], "/v1/periods/le_test-2026-08/close-runs", {})
+    assert opened.status_code == 201, opened.text
+    run_id = opened.json()["close_run_id"]
+    blocked = _post(client, tokens["approver"], f"/v1/close-runs/{run_id}/close")
+    assert blocked.status_code == 409
+    assert blocked.json()["title"] == "Fechamento bloqueado"
+    reviewed = _post(
+        client,
+        tokens["approver"],
+        f"/v1/close-runs/{run_id}/items/trial_balance_review",
+        {"status": "completed"},
+    )
+    assert reviewed.status_code == 200
     closed = _post(client, tokens["approver"], "/v1/periods/le_test-2026-08/close")
     assert closed.status_code == 200
     assert closed.json()["status"] == "closed"

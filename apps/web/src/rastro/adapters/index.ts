@@ -35,11 +35,22 @@ export function getCloseRun(legalEntityId: string): Promise<AdapterSource> {
     if (blocked) {
       return blocked;
     }
-    const payload = await api<unknown>(`/v1/legal-entities/${encodeURIComponent(legalEntityId)}/periods`);
+    const payload = await api<{ items: { close_run_id?: string | null }[] }>(
+      `/v1/legal-entities/${encodeURIComponent(legalEntityId)}/periods`,
+    );
+    const closeRunId = payload.items.find((item) => item.close_run_id)?.close_run_id;
+    if (!closeRunId) {
+      return {
+        mode: "live",
+        endpoint: "POST /v1/periods/{period_id}/close-runs abre a execução. A lista ainda não tem uma.",
+        payload,
+      };
+    }
+    const checklist = await api<unknown>(`/v1/close-runs/${encodeURIComponent(closeRunId)}`);
     return {
       mode: "live",
-      endpoint: "GET /v1/legal-entities/{legal_entity_id}/periods. Não existe close run; a resposta é a lista de períodos.",
-      payload,
+      endpoint: "GET /v1/close-runs/{close_run_id}",
+      payload: checklist,
     };
   });
 }

@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { ApiError, api } from "../api";
 import { STATUS_LABEL, can, useSession } from "../session";
 
@@ -9,6 +10,8 @@ type Period = {
   month: number;
   status: string;
   pending_reopen_request_id?: string | null;
+  close_run_status?: string | null;
+  close_run_number?: number | null;
 };
 
 export function PeriodsPage() {
@@ -29,7 +32,7 @@ export function PeriodsPage() {
   return (
     <section>
       <h1>Fechamentos</h1>
-      <p className="muted">O fechamento desta fase é o lock da competência. O checklist completo fica para a fase de close run.</p>
+      <p className="muted">Cada competência fecha por um checklist. O snapshot fica gravado e o pacote de evidências é gerado no download.</p>
       {act.isError ? <p className="error">{act.error instanceof ApiError ? `${act.error.title}. ${act.error.message}` : "Falha na operação."}</p> : null}
       <table>
         <thead><tr><th>Competência</th><th>Estado</th><th></th></tr></thead>
@@ -37,11 +40,12 @@ export function PeriodsPage() {
           {(periods.data?.items ?? []).map((period) => (
             <tr key={period.period_id}>
               <td>{period.fiscal_year}-{String(period.month).padStart(2, "0")}</td>
-              <td>{STATUS_LABEL[period.status] ?? period.status}</td>
+              <td>
+                {STATUS_LABEL[period.status] ?? period.status}
+                {period.close_run_status ? ` · execução ${period.close_run_number} ${STATUS_LABEL[period.close_run_status] ?? period.close_run_status}` : ""}
+              </td>
               <td className="actions">
-                {(period.status === "open" || period.status === "reopened") && can(me.roles, "approver", "admin") ? (
-                  <button type="button" onClick={() => act.mutate({ path: `/v1/periods/${period.period_id}/close` })}>Fechar</button>
-                ) : null}
+                <Link to={`/app/rastro/fechamentos/${period.period_id}`}>Abrir checklist</Link>
                 {period.status === "closed" && !period.pending_reopen_request_id && can(me.roles, "preparer", "approver", "admin") ? (
                   <>
                     <input value={reason} onChange={(event) => setReason(event.target.value)} />

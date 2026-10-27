@@ -438,3 +438,49 @@ class ReconciliationMatch(Base):
     amount: Mapped[Decimal] = mapped_column(Numeric(20, 6))
     active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+
+class CloseRun(Base):
+    __tablename__ = "close_runs"
+    __table_args__ = (UniqueConstraint("period_id", "run_number", name="uq_close_runs_period_number"),)
+
+    id: Mapped[str] = mapped_column(String(160), primary_key=True)
+    tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.id"))
+    legal_entity_id: Mapped[str] = mapped_column(ForeignKey("legal_entities.id"))
+    period_id: Mapped[str] = mapped_column(ForeignKey("accounting_periods.id"))
+    run_number: Mapped[int] = mapped_column(Integer)
+    status: Mapped[str] = mapped_column(String(20))
+    checklist_version: Mapped[str] = mapped_column(String(40))
+    closed_by: Mapped[str | None] = mapped_column(String(160), nullable=True)
+    closed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    snapshot_sha256: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    reopened_reason: Mapped[str | None] = mapped_column(String(2000), nullable=True)
+    audit_event_id: Mapped[str | None] = mapped_column(String(160), nullable=True)
+    created_by: Mapped[str] = mapped_column(String(160))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+
+class CloseRunDecision(Base):
+    __tablename__ = "close_run_decisions"
+    __table_args__ = (UniqueConstraint("close_run_id", "item_id", name="uq_close_run_decisions_item"),)
+
+    id: Mapped[str] = mapped_column(String(160), primary_key=True)
+    tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.id"))
+    close_run_id: Mapped[str] = mapped_column(ForeignKey("close_runs.id"))
+    item_id: Mapped[str] = mapped_column(String(160))
+    status: Mapped[str] = mapped_column(String(32))
+    reason: Mapped[str | None] = mapped_column(String(2000), nullable=True)
+    decided_by: Mapped[str] = mapped_column(String(160))
+    decided_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+
+class CloseSnapshot(Base):
+    __tablename__ = "close_snapshots"
+    __table_args__ = (UniqueConstraint("close_run_id", name="uq_close_snapshots_run"),)
+
+    id: Mapped[str] = mapped_column(String(160), primary_key=True)
+    tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.id"))
+    close_run_id: Mapped[str] = mapped_column(ForeignKey("close_runs.id"))
+    payload: Mapped[dict] = mapped_column(JSONB)
+    sha256: Mapped[str] = mapped_column(String(64))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
