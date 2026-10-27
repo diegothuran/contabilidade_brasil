@@ -8,7 +8,7 @@ from contabil.identity.directory import UserDirectory, get_user_directory
 from contabil.platform.deps import Ctx, get_context
 from contabil.platform.idempotency import persist, replay_guard
 from contabil.platform.principal import ensure_role
-from contabil.platform.auth import bind_user
+from contabil.platform.auth import bind_user, offices_visible
 from contabil.tables import LegalEntity, Membership, Tenant
 from contabil.tenancy.service import create_legal_entity, entity_dict, invite_user, list_users
 
@@ -61,12 +61,17 @@ def post_user(
 @router.get("/me")
 def me(ctx: Ctx = Depends(get_context)) -> dict:
     bind_user(ctx.session, ctx.principal.user_id)
-    offices = ctx.session.execute(
+    home_id = ctx.principal.home_tenant_id or ctx.principal.tenant_id
+    home_roles = ctx.session.scalar(
+        select(Membership.roles).where(Membership.user_id == ctx.principal.user_id, Membership.tenant_id == home_id)
+    )
+    rows = ctx.session.execute(
         select(Tenant.id, Tenant.name)
         .join(Membership, Membership.tenant_id == Tenant.id)
         .where(Membership.user_id == ctx.principal.user_id)
         .order_by(Tenant.name)
     ).all()
+    offices = offices_visible("admin" in set(home_roles or []), ctx.principal.tenant_id, [(tenant_id, name) for tenant_id, name in rows])
     return {
         "user_id": ctx.principal.user_id,
         "display_name": ctx.principal.display_name,

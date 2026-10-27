@@ -1,4 +1,4 @@
-# SPEC — Contrato de interface v0.4.5
+# SPEC — Contrato de interface v0.4.6
 
 > Fonte de verdade da experiência do front-end. Atualizações de comportamento, estado, linguagem visual ou estrutura precisam atualizar este arquivo antes do código.
 
@@ -58,7 +58,7 @@ O produto ajuda escritórios de contabilidade a **fechar e entregar com evidênc
 
 ## 5. Contexto global obrigatório
 
-A barra de contexto deve exibir, nesta ordem: `Escritório > Cliente/CNPJ > Competência > Regime/UF > Estado do fechamento`. No aplicativo, o escritório fica na barra lateral. Quando a pessoa pertence a mais de um escritório, o nome vira um seletor; a troca só vale para um escritório em que ela já tem acesso e limpa a empresa e a competência escolhidas. A empresa escolhida fica marcada no topo, com razão social e CNPJ, ao lado de uma busca que permanece visível. A busca responde enquanto a pessoa digita, por nome ou CNPJ, inclusive por aproximação, e ignora maiúsculas, acentos e pontuação. A competência aparece uma vez, na barra, como mês e ano. O balancete, as pendências, o lançamento novo, a importação e a conciliação usam essa competência e não repetem o seletor. Regime e UF só entram quando o cadastro os tiver. Trocas de empresa ou competência não podem ser silenciosas quando há ação selecionada ou aprovação pendente. A caminhada sintética usa dados fictícios e não comunica efeitos reais.
+A barra de contexto deve exibir, nesta ordem: `Escritório > Cliente/CNPJ > Competência > Regime/UF > Estado do fechamento`. No aplicativo, o escritório fica na barra lateral. O seletor só aparece para o administrador geral que já tem acesso a mais de um escritório. Quem tem o login ligado a um escritório só vê o nome desse escritório. A troca limpa a empresa e a competência escolhidas. A empresa escolhida fica marcada no topo, com razão social e CNPJ, ao lado de uma busca que permanece visível. A busca responde enquanto a pessoa digita, por nome ou CNPJ, inclusive por aproximação, e ignora maiúsculas, acentos e pontuação. A competência aparece uma vez, na barra, como mês e ano. O balancete, as pendências, o lançamento novo, a importação e a conciliação usam essa competência e não repetem o seletor. Regime e UF só entram quando o cadastro os tiver. Trocas de empresa ou competência não podem ser silenciosas quando há ação selecionada ou aprovação pendente. A caminhada sintética usa dados fictícios e não comunica efeitos reais.
 
 ## 6. Regras de interação
 
@@ -122,6 +122,7 @@ A barra de contexto marca a empresa escolhida e mantém a busca ao lado. A compe
 ## 13. Changelog
 
 - `0.4.5` — Quem pertence a mais de um escritório troca o escritório na barra lateral. A empresa e a competência da sessão são limpas.
+- `0.4.6` — O seletor de escritório fica só para o administrador geral. Um login ligado a um escritório permanece nesse escritório.
 - `0.4.4` — Pendências e Balancete entram no menu de Operação. O pedido em aberto bloqueia o fechamento.
 - `0.4.3` — O balancete abre os lançamentos da conta pelo nome dela, em vez de “Drill-down”.
 - `0.4.2` — A competência fica só na barra, em mês e ano. As telas não repetem o identificador do período.

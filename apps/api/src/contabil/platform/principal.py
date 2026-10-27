@@ -10,6 +10,7 @@ class Principal:
     roles: frozenset[str]
     display_name: str
     tenant_name: str
+    home_tenant_id: str = ""
 
 
 def ensure_role(principal: Principal, *roles: str) -> None:

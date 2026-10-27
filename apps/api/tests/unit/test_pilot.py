@@ -72,7 +72,7 @@ def test_run_loop_returns_when_stopped() -> None:
 
 
 def test_chosen_tenant_keeps_the_home_office_when_the_header_is_empty() -> None:
-    from contabil.platform.auth import chosen_tenant
+    from contabil.platform.auth import chosen_tenant, offices_visible, switch_allowed
     from contabil.platform.errors import DomainError
 
     assert chosen_tenant("escritorio", None) == "escritorio"
@@ -80,6 +80,12 @@ def test_chosen_tenant_keeps_the_home_office_when_the_header_is_empty() -> None:
     assert chosen_tenant("escritorio", "litoral") == "litoral"
     with pytest.raises(DomainError):
         chosen_tenant("escritorio", "../outro")
+    assert switch_allowed(["admin"], "escritorio", "litoral") is True
+    assert switch_allowed(["preparer", "approver", "viewer"], "escritorio", "litoral") is False
+    assert switch_allowed(["viewer"], "escritorio", None) is True
+    offices = [("escritorio", "Escritório"), ("litoral", "Escritório Litoral")]
+    assert offices_visible(True, "escritorio", offices) == offices
+    assert offices_visible(False, "escritorio", offices) == [("escritorio", "Escritório")]
 
 
 def test_bootstrap_rejects_unknown_role() -> None:

@@ -639,7 +639,7 @@ paths:
   /v1/me:
     get:
       summary: Identidade, papéis e escritórios da pessoa
-      description: O escritório ativo é o do token. O header X-Tenant-Id escolhe outro escritório somente quando a pessoa já tem membership nele.
+      description: O escritório ativo é o do token. O header X-Tenant-Id só troca o escritório quando a pessoa é administradora no escritório do login e já tem membership no escritório pedido. Os demais logins recebem apenas o escritório do token.
       operationId: getMe
       responses:
         '200': { description: Sessão }

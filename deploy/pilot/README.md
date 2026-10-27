@@ -142,7 +142,7 @@ O segundo escritório fictício é o Litoral. O comando cria o escritório, copi
 heroku run --no-tty --exit-code --app NOME-API -- python -m contabil.pilot_samples --tenant-id litoral --catalog litoral --copy-admins-from escritorio
 ```
 
-Quem ficou administrador nos dois vê o seletor na barra lateral. A troca não muda o atributo do login; ela só vale enquanto a sessão do navegador guarda o escritório escolhido.
+O seletor da barra lateral só aparece para o administrador geral, que tem o papel admin no escritório do login e acesso a outro escritório. Um login ligado a um escritório só vê esse escritório. A troca não muda o atributo do login; ela só vale enquanto a sessão do navegador guarda o escritório escolhido.
 
 
 ## Conferência

@@ -17,7 +17,7 @@ import { JournalsPage } from "../pages/JournalsPage";
 import { PeriodsPage } from "../pages/PeriodsPage";
 import { ReconciliationPage as LedgerReconciliationPage } from "../pages/ReconciliationPage";
 import { TrialBalancePage } from "../pages/TrialBalancePage";
-import { useSession } from "../session";
+import { can, useSession } from "../session";
 import { focusCompanySearch } from "./CompanySearch";
 import { LiveContextBar } from "./LiveSurface";
 import { OfficeHome, PlannedPage, RoutinesPage } from "./OfficeHome";
@@ -261,7 +261,7 @@ export function RastroShell() {
 
         <div className="office-summary">
           <span className="eyebrow">Escritório</span>
-          {(session.me.offices ?? []).length > 1 ? (
+          {can(session.me.roles, "admin") && (session.me.offices ?? []).length > 1 ? (
             <select
               className="office-switch"
               aria-label="Escritório"

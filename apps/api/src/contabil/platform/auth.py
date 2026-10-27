@@ -28,6 +28,18 @@ def chosen_tenant(home: str, requested: str | None) -> str:
     return value
 
 
+def switch_allowed(home_roles: list[str] | tuple[str, ...] | frozenset[str], home: str, requested: str | None) -> bool:
+    if chosen_tenant(home, requested) == home:
+        return True
+    return "admin" in set(home_roles)
+
+
+def offices_visible(general_admin: bool, active_tenant_id: str, offices: list[tuple[str, str]]) -> list[tuple[str, str]]:
+    if general_admin:
+        return offices
+    return [office for office in offices if office[0] == active_tenant_id]
+
+
 def apply_tenant(session: Session, tenant_id: str) -> None:
     session.execute(text("SELECT set_config('app.tenant_id', :tenant_id, true)"), {"tenant_id": tenant_id})
 
@@ -93,6 +105,12 @@ def authenticate(session: Session, token: str, requested_tenant: str | None = No
     apply_tenant(session, tenant_id)
     bind_user(session, username)
     if chosen != tenant_id:
+        home_membership = session.scalar(
+            select(Membership).where(Membership.user_id == username, Membership.tenant_id == tenant_id)
+        )
+        home_roles = list(home_membership.roles or []) if home_membership is not None else []
+        if not switch_allowed(home_roles, tenant_id, chosen):
+            raise DomainError(403, "Ação não permitida", "Usuário sem acesso a este escritório.")
         allowed = session.scalar(
             select(Membership.id).where(Membership.user_id == username, Membership.tenant_id == chosen)
         )
@@ -117,4 +135,5 @@ def authenticate(session: Session, token: str, requested_tenant: str | None = No
         roles=roles,
         display_name=display_name,
         tenant_name=tenant_name,
+        home_tenant_id=tenant_id,
     )
