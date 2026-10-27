@@ -956,24 +956,6 @@ def _ensure_import(session: Session, preparer: Principal, entity_id: str, name: 
     notes.append(f"{name}: lote {batch.id} ficou recebido e não foi revalidado")
 
 
-def _retitle_memos(session: Session, tenant_id: str, bank_account_id: str, trade: str) -> None:
-    replacements = {
-        "Receita de serviço": f"{trade}: recebimento de serviço",
-        "TARIFA": f"{trade}: TARIFA bancária",
-        "DEVOLVIDA": f"{trade}: DEVOLVIDA pelo cliente",
-    }
-    rows = session.scalars(
-        select(BankTransaction).where(
-            BankTransaction.tenant_id == tenant_id,
-            BankTransaction.bank_account_id == bank_account_id,
-        )
-    ).all()
-    for row in rows:
-        updated = replacements.get(row.description)
-        if updated:
-            row.description = updated
-
-
 def _ensure_statement(
     session: Session,
     preparer: Principal,
@@ -991,7 +973,6 @@ def _ensure_statement(
         )
     )
     if found is not None:
-        _retitle_memos(session, preparer.tenant_id, bank_account_id, name)
         return
     _statement(session, preparer, entity_id, bank_account_id, entry_date, revenue, name)
     cases = list(
@@ -1011,7 +992,6 @@ def _ensure_statement(
             approved = True
         elif case.status == "open" and "DEVOLVIDA" in memo:
             ignore_case(session, approver, case.id, "Amostra: devolução que não entra no razão.")
-    _retitle_memos(session, preparer.tenant_id, bank_account_id, name)
 
 
 def main(argv: list[str] | None = None) -> None:
