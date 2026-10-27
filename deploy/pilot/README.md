@@ -128,13 +128,13 @@ heroku run --no-tty --exit-code --app NOME-API -- python -m contabil.pilot_sampl
 
 Ele deixa cinco empresas fictícias, cada uma com um caso diferente:
 
-- Padaria Aurora: lançamentos publicados, um estorno, um rascunho, um pendente e um aprovado ainda não publicado. O checklist fica bloqueado.
-- Studio Norte: competência do mês anterior fechada, com snapshot, e um pedido de reabertura feito por outra pessoa.
-- Comercial Vale Azul: livros publicados e conta bancária.
-- Ateliê Brisa: plano, períodos e lançamentos publicados em alguns meses do ano, para o balancete ter saldo.
-- Transportes Rio Claro: rascunho e lançamento pendente no mês corrente.
+- Padaria Aurora: lançamentos publicados da padaria, um estorno, um rascunho, um pendente e um aprovado ainda não publicado. O checklist fica bloqueado.
+- Studio Norte: competência do mês anterior fechada, com snapshot, e um pedido de reabertura feito por outra pessoa. Os outros meses abertos têm o movimento do estúdio.
+- Comercial Vale Azul: livros da loja e conta bancária.
+- Ateliê Brisa: plano, períodos e encomendas publicadas em alguns meses do ano.
+- Transportes Rio Claro: fretes publicados, mais um rascunho e um lançamento pendente no mês corrente.
 
-Com o bucket configurado, cada empresa ganha recibo, nota, contrato, um lote de diário em simulação e um extrato OFX. A Padaria Aurora também fica com um pedido de recibo já confirmado em outubro de 2026. O Ateliê Brisa fica com um pedido de contrato aberto nessa competência, e o fechamento de outubro permanece bloqueado até confirmar ou cancelar. Sem o bucket, o comando imprime `extrato=skipped` e não grava arquivo; o pedido aberto do Ateliê ainda é criado.
+O movimento copiado igual em todas as empresas é estornado quando o período ainda está aberto, e no lugar entra o lançamento do ramo. Com o bucket configurado, cada empresa ganha recibo, nota, contrato, um arquivo com o nome do ramo, um lote de diário em simulação e um extrato OFX. A Padaria Aurora também fica com um pedido de recibo já confirmado em outubro de 2026. O Ateliê Brisa fica com um pedido de contrato aberto nessa competência, e o fechamento de outubro permanece bloqueado até confirmar ou cancelar. Sem o bucket, o comando imprime `extrato=skipped` e não grava arquivo; o pedido aberto do Ateliê ainda é criado.
 
 ## Conferência
 

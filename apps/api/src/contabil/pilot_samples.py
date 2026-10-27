@@ -41,6 +41,103 @@ from contabil.tenancy.service import create_legal_entity
 PREPARER_ID = "pilot-sample-preparer"
 APPROVER_ID = "pilot-sample-approver"
 
+# base e passo mensal, em decimal. O valor do mês é base + passo * mês.
+_ACTIVITY_SCALE: dict[str, dict[str, tuple[Decimal, Decimal]]] = {
+    "andamento": {"bank": (Decimal("900.00"), Decimal("230.00")), "cash": (Decimal("120.00"), Decimal("74.00")), "expense": (Decimal("200.00"), Decimal("54.00"))},
+    "fechada": {"bank": (Decimal("400.00"), Decimal("50.00")), "cash": (Decimal("40.00"), Decimal("11.00")), "expense": (Decimal("180.00"), Decimal("22.00"))},
+    "banco": {"bank": (Decimal("2000.00"), Decimal("440.00")), "cash": (Decimal("300.00"), Decimal("35.00")), "expense": (Decimal("1500.00"), Decimal("260.00"))},
+    "vazia": {"bank": (Decimal("600.00"), Decimal("120.00")), "cash": (Decimal("80.00"), Decimal("14.00")), "expense": (Decimal("250.00"), Decimal("39.00"))},
+    "rascunhos": {"bank": (Decimal("700.00"), Decimal("140.00")), "cash": (Decimal("50.00"), Decimal("8.00")), "expense": (Decimal("400.00"), Decimal("58.00"))},
+}
+
+_ACTIVITY_TEXT: dict[str, dict[str, str]] = {
+    "andamento": {
+        "trade": "Padaria Aurora",
+        "bank": "Venda de pão e café no balcão",
+        "bank_line": "Receita do balcão",
+        "cash": "Venda de salgado no caixa",
+        "cash_line": "Receita do caixa",
+        "expense": "Compra de farinha e fermento",
+        "expense_line": "Moinho",
+        "payment": "Pagamento ao moinho",
+        "payment_line": "Saída do banco da padaria",
+        "capital": "Capital inicial da padaria",
+        "capital_line": "Capital social da padaria",
+        "capital_amount": "8000.00",
+        "marker_file": "comanda-balcao.txt",
+        "marker_type": "receipt",
+        "marker_body": "Comanda do balcão da Padaria Aurora. Sem valor fiscal.\n",
+    },
+    "fechada": {
+        "trade": "Studio Norte",
+        "bank": "Sessão de estúdio recebida no banco",
+        "bank_line": "Receita do estúdio",
+        "cash": "Ensaio avulso no caixa",
+        "cash_line": "Receita do ensaio",
+        "expense": "Aluguel da sala e equipamentos",
+        "expense_line": "Locador da sala",
+        "payment": "Pagamento do aluguel da sala",
+        "payment_line": "Saída do banco do estúdio",
+        "capital": "Capital inicial do estúdio",
+        "capital_line": "Capital social do estúdio",
+        "capital_amount": "3000.00",
+        "marker_file": "proposta-estudio.txt",
+        "marker_type": "contract",
+        "marker_body": "Proposta de sessão fotográfica do Studio Norte. Sem vigência real.\n",
+    },
+    "banco": {
+        "trade": "Comercial Vale Azul",
+        "bank": "Venda de mercadoria recebida no banco",
+        "bank_line": "Receita da loja",
+        "cash": "Venda de balcão no caixa",
+        "cash_line": "Receita do balcão da loja",
+        "expense": "Compra de mercadoria para revenda",
+        "expense_line": "Fornecedor da loja",
+        "payment": "Pagamento ao fornecedor da loja",
+        "payment_line": "Saída do banco da loja",
+        "capital": "Capital inicial da loja",
+        "capital_line": "Capital social da loja",
+        "capital_amount": "12000.00",
+        "marker_file": "pedido-mercadoria.txt",
+        "marker_type": "invoice",
+        "marker_body": "Pedido de mercadoria da Comercial Vale Azul. Sem efeito fiscal.\n",
+    },
+    "vazia": {
+        "trade": "Ateliê Brisa",
+        "bank": "Encomenda de vestido recebida no banco",
+        "bank_line": "Receita da encomenda",
+        "cash": "Ajuste de roupa no caixa",
+        "cash_line": "Receita do ajuste",
+        "expense": "Compra de tecido e aviamento",
+        "expense_line": "Fornecedor de tecido",
+        "payment": "Pagamento do tecido",
+        "payment_line": "Saída do banco do ateliê",
+        "capital": "Capital inicial do ateliê",
+        "capital_line": "Capital social do ateliê",
+        "capital_amount": "2000.00",
+        "marker_file": "encomenda-vestido.txt",
+        "marker_type": "contract",
+        "marker_body": "Encomenda de vestido do Ateliê Brisa. Sem valor fiscal.\n",
+    },
+    "rascunhos": {
+        "trade": "Transportes Rio Claro",
+        "bank": "Frete recebido no banco",
+        "bank_line": "Receita do frete",
+        "cash": "Frete curto no caixa",
+        "cash_line": "Receita do frete curto",
+        "expense": "Diesel e pedágio do mês",
+        "expense_line": "Posto",
+        "payment": "Pagamento do posto",
+        "payment_line": "Saída do banco da transportadora",
+        "capital": "Capital inicial da transportadora",
+        "capital_line": "Capital social da transportadora",
+        "capital_amount": "4000.00",
+        "marker_file": "conhecimento-frete.txt",
+        "marker_type": "other",
+        "marker_body": "Conhecimento de frete da Transportes Rio Claro. Sem valor fiscal.\n",
+    },
+}
+
 COMPANIES = (
     ("900000000001", "Padaria Aurora Ltda. (teste)", "1500.00", "420.00", "80.00", True, "andamento"),
     ("900000000002", "Studio Norte Serviços Ltda. (teste)", "800.00", "250.00", "40.00", False, "fechada"),
@@ -194,9 +291,9 @@ def _statement(session, preparer: Principal, entity_id: str, bank_account_id: st
         "COMPRESSION:NONE\nOLDFILEUID:NONE\nNEWFILEUID:NONE\n\n<OFX>\n"
         "<BANKTRANLIST>\n"
         f"<DTSTART>{posted}\n<DTEND>{posted}\n"
-        f"<STMTTRN>\n<TRNTYPE>CREDIT\n<DTPOSTED>{posted}\n<TRNAMT>{revenue}\n<FITID>{entity_id}-receita\n<MEMO>Receita de serviço\n</STMTTRN>\n"
-        f"<STMTTRN>\n<TRNTYPE>DEBIT\n<DTPOSTED>{posted}\n<TRNAMT>-12.50\n<FITID>{entity_id}-tarifa\n<MEMO>TARIFA\n</STMTTRN>\n"
-        f"<STMTTRN>\n<TRNTYPE>DEBIT\n<DTPOSTED>{posted}\n<TRNAMT>-20.00\n<FITID>{entity_id}-devolvida\n<MEMO>DEVOLVIDA\n</STMTTRN>\n"
+        f"<STMTTRN>\n<TRNTYPE>CREDIT\n<DTPOSTED>{posted}\n<TRNAMT>{revenue}\n<FITID>{entity_id}-receita\n<MEMO>{name}: recebimento de serviço\n</STMTTRN>\n"
+        f"<STMTTRN>\n<TRNTYPE>DEBIT\n<DTPOSTED>{posted}\n<TRNAMT>-12.50\n<FITID>{entity_id}-tarifa\n<MEMO>{name}: TARIFA bancária\n</STMTTRN>\n"
+        f"<STMTTRN>\n<TRNTYPE>DEBIT\n<DTPOSTED>{posted}\n<TRNAMT>-20.00\n<FITID>{entity_id}-devolvida\n<MEMO>{name}: DEVOLVIDA pelo cliente\n</STMTTRN>\n"
         "</BANKTRANLIST>\n</OFX>\n"
     ).encode("cp1252")
     stored, _status = store_document(
@@ -273,7 +370,7 @@ def _enrich(
     elif story == "banco":
         account_id = _ensure_bank(session, preparer, entity_id, bank, name, masked)
         if statements and account_id:
-            _ensure_statement(session, preparer, approver, entity_id, account_id, entry_date, revenue, name)
+            _ensure_statement(session, preparer, approver, entity_id, account_id, entry_date, revenue, _ACTIVITY_TEXT[story]["trade"])
             _ensure_receipt(session, preparer, entity_id, entry_date, name)
     elif story == "rascunhos":
         _ensure_bank(session, preparer, entity_id, bank, name, masked)
@@ -286,10 +383,10 @@ def _enrich(
                 session, preparer, approver, entity_id, current_period, current_date, "pendente", "pending",
                 f"{entity_id}-5.1.01", f"{entity_id}-2.1.01", "15.00", "Pedágio aguardando aprovação", "Fornecedor",
             )
-    _ensure_activity(session, preparer, approver, entity_id, year, today)
+    _ensure_activity(session, preparer, approver, entity_id, year, today, story, name, notes)
     if statements:
         _ensure_files(
-            session, preparer, approver, entity_id=entity_id, name=name, masked=masked, today=today, notes=notes,
+            session, preparer, approver, entity_id=entity_id, name=name, story=story, masked=masked, today=today, notes=notes,
         )
     if story == "andamento":
         _ensure_sample_request(session, preparer, approver, entity_id, name, notes, confirm=True)
@@ -308,6 +405,56 @@ def _money(amount: Decimal) -> str:
     return f"{amount.quantize(Decimal('0.01')):.2f}"
 
 
+def activity_amount(story: str, kind: str, month: int) -> str:
+    base, step = _ACTIVITY_SCALE[story][kind]
+    return _money(base + Decimal(month) * step)
+
+
+def _cloned_is_cleared(
+    session: Session,
+    preparer: Principal,
+    approver: Principal,
+    entity_id: str,
+    key: str,
+    name: str,
+    notes: list[str],
+) -> bool:
+    source_id = _source_id(entity_id, key)
+    journal = session.scalar(
+        select(JournalEntry).where(
+            JournalEntry.tenant_id == preparer.tenant_id,
+            JournalEntry.legal_entity_id == entity_id,
+            JournalEntry.source_id == source_id,
+        )
+    )
+    if journal is None:
+        return True
+    if journal.status != "published":
+        return False
+    reversal = session.scalar(
+        select(JournalEntry).where(
+            JournalEntry.tenant_id == preparer.tenant_id,
+            JournalEntry.reverses_journal_id == journal.id,
+            JournalEntry.status != "rejected",
+        )
+    )
+    if reversal is not None:
+        return reversal.status == "published"
+    period = session.get(AccountingPeriod, journal.period_id)
+    if period is None or period.status not in {"open", "reopened"}:
+        notes.append(f"{name}: lançamento repetido {key} ficou em período fechado")
+        return False
+    try:
+        created = reverse_journal(session, preparer, journal.id)
+        submit_journal(session, preparer, created["journal_id"])
+        approve_journal(session, approver, created["journal_id"])
+        publish_journal(session, approver, created["journal_id"])
+    except DomainError as exc:
+        notes.append(f"{name}: estorno de {key} não publicado ({exc.detail})")
+        return False
+    return True
+
+
 def _ensure_activity(
     session: Session,
     preparer: Principal,
@@ -315,7 +462,11 @@ def _ensure_activity(
     entity_id: str,
     year: int,
     today: date,
+    story: str,
+    name: str,
+    notes: list[str],
 ) -> None:
+    text = _ACTIVITY_TEXT[story]
     caixa = f"{entity_id}-1.1.01"
     banco = f"{entity_id}-1.1.02"
     fornecedor = f"{entity_id}-2.1.01"
@@ -328,33 +479,38 @@ def _ensure_activity(
         if period is None or period.status not in {"open", "reopened"}:
             continue
         posted = date(year, month, min(12, today.day if month == today.month and year == today.year else 12))
-        scale = Decimal(month)
-        venda_banco = Decimal("200.00") + scale * Decimal("25.00")
-        venda_caixa = Decimal("80.00") + scale * Decimal("10.00")
-        gasto = Decimal("35.00") + scale * Decimal("8.00")
-        _ensure_journal(
-            session, preparer, approver, entity_id, period_id, posted, f"venda-banco-{year}-{month:02d}", "published",
-            banco, receita, _money(venda_banco), "Venda recebida no banco", "Receita de serviços",
-        )
-        _ensure_journal(
-            session, preparer, approver, entity_id, period_id, posted, f"venda-caixa-{year}-{month:02d}", "published",
-            caixa, receita, _money(venda_caixa), "Venda recebida no caixa", "Receita de serviços",
-        )
-        _ensure_journal(
-            session, preparer, approver, entity_id, period_id, posted, f"despesa-{year}-{month:02d}", "published",
-            despesa, fornecedor, _money(gasto), "Despesa de serviço do mês", "Fornecedor a pagar",
-        )
-        _ensure_journal(
-            session, preparer, approver, entity_id, period_id, posted, f"pagamento-{year}-{month:02d}", "published",
-            fornecedor, banco, _money(gasto), "Pagamento ao fornecedor", "Banco",
-        )
+        stamp = f"{year}-{month:02d}"
+        bank_amount = activity_amount(story, "bank", month)
+        cash_amount = activity_amount(story, "cash", month)
+        expense_amount = activity_amount(story, "expense", month)
+        if _cloned_is_cleared(session, preparer, approver, entity_id, f"venda-banco-{stamp}", name, notes):
+            _ensure_journal(
+                session, preparer, approver, entity_id, period_id, posted, f"ramo-venda-banco-{stamp}", "published",
+                banco, receita, bank_amount, text["bank"], text["bank_line"],
+            )
+        if _cloned_is_cleared(session, preparer, approver, entity_id, f"venda-caixa-{stamp}", name, notes):
+            _ensure_journal(
+                session, preparer, approver, entity_id, period_id, posted, f"ramo-venda-caixa-{stamp}", "published",
+                caixa, receita, cash_amount, text["cash"], text["cash_line"],
+            )
+        if _cloned_is_cleared(session, preparer, approver, entity_id, f"despesa-{stamp}", name, notes):
+            _ensure_journal(
+                session, preparer, approver, entity_id, period_id, posted, f"ramo-despesa-{stamp}", "published",
+                despesa, fornecedor, expense_amount, text["expense"], text["expense_line"],
+            )
+        if _cloned_is_cleared(session, preparer, approver, entity_id, f"pagamento-{stamp}", name, notes):
+            _ensure_journal(
+                session, preparer, approver, entity_id, period_id, posted, f"ramo-pagamento-{stamp}", "published",
+                fornecedor, banco, expense_amount, text["payment"], text["payment_line"],
+            )
     opening = f"{entity_id}-{year}-02"
     opening_period = session.get(AccountingPeriod, opening)
     if opening_period is not None and opening_period.status in {"open", "reopened"}:
-        _ensure_journal(
-            session, preparer, approver, entity_id, opening, date(year, 2, 2), "capital-inicial", "published",
-            banco, capital, "1000.00", "Integralização de capital", "Capital social",
-        )
+        if _cloned_is_cleared(session, preparer, approver, entity_id, "capital-inicial", name, notes):
+            _ensure_journal(
+                session, preparer, approver, entity_id, opening, date(year, 2, 2), "ramo-capital", "published",
+                banco, capital, text["capital_amount"], text["capital"], text["capital_line"],
+            )
 
 
 def _period_exists(session: Session, period_id: str) -> bool:
@@ -544,6 +700,7 @@ def _ensure_files(
     *,
     entity_id: str,
     name: str,
+    story: str,
     masked: str,
     today: date,
     notes: list[str],
@@ -581,9 +738,23 @@ def _ensure_files(
         notes=notes,
     )
     _ensure_journal_import(session, preparer, entity_id, name, posted, notes)
+    text = _ACTIVITY_TEXT[story]
+    _store_sample_file(
+        session,
+        preparer,
+        entity_id=entity_id,
+        name=name,
+        source_ref=f"amostra-marca-{entity_id}",
+        file_name=text["marker_file"],
+        media_type="text/plain",
+        document_type=text["marker_type"],
+        competence=competence,
+        content=text["marker_body"].encode(),
+        notes=notes,
+    )
     if account_id:
         try:
-            _ensure_statement(session, preparer, approver, entity_id, account_id, posted, amount, name)
+            _ensure_statement(session, preparer, approver, entity_id, account_id, posted, amount, text["trade"])
         except DomainError as exc:
             notes.append(f"{name}: extrato não concluído ({exc.detail})")
 
@@ -785,6 +956,24 @@ def _ensure_import(session: Session, preparer: Principal, entity_id: str, name: 
     notes.append(f"{name}: lote {batch.id} ficou recebido e não foi revalidado")
 
 
+def _retitle_memos(session: Session, tenant_id: str, bank_account_id: str, trade: str) -> None:
+    replacements = {
+        "Receita de serviço": f"{trade}: recebimento de serviço",
+        "TARIFA": f"{trade}: TARIFA bancária",
+        "DEVOLVIDA": f"{trade}: DEVOLVIDA pelo cliente",
+    }
+    rows = session.scalars(
+        select(BankTransaction).where(
+            BankTransaction.tenant_id == tenant_id,
+            BankTransaction.bank_account_id == bank_account_id,
+        )
+    ).all()
+    for row in rows:
+        updated = replacements.get(row.description)
+        if updated:
+            row.description = updated
+
+
 def _ensure_statement(
     session: Session,
     preparer: Principal,
@@ -802,6 +991,7 @@ def _ensure_statement(
         )
     )
     if found is not None:
+        _retitle_memos(session, preparer.tenant_id, bank_account_id, name)
         return
     _statement(session, preparer, entity_id, bank_account_id, entry_date, revenue, name)
     cases = list(
@@ -821,6 +1011,7 @@ def _ensure_statement(
             approved = True
         elif case.status == "open" and "DEVOLVIDA" in memo:
             ignore_case(session, approver, case.id, "Amostra: devolução que não entra no razão.")
+    _retitle_memos(session, preparer.tenant_id, bank_account_id, name)
 
 
 def main(argv: list[str] | None = None) -> None:
