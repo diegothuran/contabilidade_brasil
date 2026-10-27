@@ -32,13 +32,12 @@ type Summary = {
 const DIRECTION: Record<string, string> = { inflow: "Entrada", outflow: "Saída" };
 
 export function ReconciliationPage() {
-  const { entityId, me } = useSession();
+  const { entityId, me, periodId, setPeriodId } = useSession();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [params] = useSearchParams();
   const linkedCaseId = params.get("case");
   const [bankAccountId, setBankAccountId] = useState("");
-  const [periodId, setPeriodId] = useState("");
   const [status, setStatus] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [statementId, setStatementId] = useState<string | null>(null);
@@ -87,17 +86,6 @@ export function ReconciliationPage() {
   }, [linked.data]);
 
   useEffect(() => {
-    if (periodId || !cases.data?.items.length || !periods.data) {
-      return;
-    }
-    const date = cases.data.items[0].bank_transaction.date;
-    const found = periods.data.items.find((period) => period.start_date <= date && date <= period.end_date);
-    if (found) {
-      setPeriodId(found.period_id);
-    }
-  }, [cases.data, periodId, periods.data]);
-
-  useEffect(() => {
     if (statement.data && statement.data.status !== "received") {
       setStatementId(null);
       void queryClient.invalidateQueries({ queryKey: ["cases", selectedBank] });
@@ -139,7 +127,7 @@ export function ReconciliationPage() {
       <div className="row">
         <label>
           Conta banco
-          <select data-testid="bank-account-select" value={selectedBank} onChange={(event) => { setBankAccountId(event.target.value); setPeriodId(""); }}>
+          <select data-testid="bank-account-select" value={selectedBank} onChange={(event) => setBankAccountId(event.target.value)}>
             {(banks.data?.items ?? []).map((item) => (
               <option key={item.bank_account_id} value={item.bank_account_id}>
                 {item.name} · {item.account_number_masked}

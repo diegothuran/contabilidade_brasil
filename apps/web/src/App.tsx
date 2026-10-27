@@ -7,6 +7,19 @@ import "./rastro/rastro.css";
 import { Entity, Me, SessionProvider } from "./session";
 
 const ENTITY_KEY = "contabil.entity";
+const PERIOD_KEY = "contabil.periods";
+
+function readPeriods(): Record<string, string> {
+  try {
+    const parsed = JSON.parse(sessionStorage.getItem(PERIOD_KEY) ?? "{}") as unknown;
+    if (!parsed || typeof parsed !== "object") {
+      return {};
+    }
+    return Object.fromEntries(Object.entries(parsed).filter((entry): entry is [string, string] => typeof entry[1] === "string"));
+  } catch {
+    return {};
+  }
+}
 
 export function App() {
   const [ready, setReady] = useState(false);
@@ -78,6 +91,7 @@ function Shell() {
   const me = useQuery({ queryKey: ["me"], queryFn: () => api<Me>("/v1/me") });
   const entities = useQuery({ queryKey: ["entities"], queryFn: () => api<{ items: Entity[] }>("/v1/legal-entities") });
   const [entityId, setEntityId] = useState(() => sessionStorage.getItem(ENTITY_KEY) ?? "");
+  const [periodsByEntity, setPeriodsByEntity] = useState<Record<string, string>>(readPeriods);
 
   useEffect(() => {
     const items = entities.data?.items ?? [];
@@ -108,9 +122,20 @@ function Shell() {
   if (items.length > 0 && !selectedId) {
     return <p className="muted">Carregando escritório…</p>;
   }
+  const periodId = selectedId ? periodsByEntity[selectedId] ?? "" : "";
+  function setPeriodId(next: string) {
+    if (!selectedId) {
+      return;
+    }
+    setPeriodsByEntity((current) => {
+      const updated = { ...current, [selectedId]: next };
+      sessionStorage.setItem(PERIOD_KEY, JSON.stringify(updated));
+      return updated;
+    });
+  }
 
   return (
-    <SessionProvider value={{ me: me.data, entities: items, entityId: selectedId, setEntityId }}>
+    <SessionProvider value={{ me: me.data, entities: items, entityId: selectedId, setEntityId, periodId, setPeriodId }}>
       <RastroShell />
     </SessionProvider>
   );

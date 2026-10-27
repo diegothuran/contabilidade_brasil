@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { chooseCompany } from "./company";
 
 async function login(page: import("@playwright/test").Page, username: string) {
   await page.goto("/");
@@ -37,7 +38,7 @@ test("envia um OFX e o aprovador concilia o caso sugerido", async ({ page }) => 
   ].join("\n");
 
   await login(page, "preparer");
-  await page.getByTestId("entity-select").selectOption({ label: "Empresa Alfa" });
+  await chooseCompany(page, "Empresa Alfa");
   await page.getByRole("link", { name: "Novo lançamento" }).click();
   await page.getByTestId("period-select").selectOption({ label: "le_alfa-2026-01" });
   await page.getByTestId("entry-date").fill("2026-01-15");
@@ -55,7 +56,7 @@ test("envia um OFX e o aprovador concilia o caso sugerido", async ({ page }) => 
   await expect(page.getByTestId("login-button")).toBeVisible();
 
   await login(page, "approver");
-  await page.getByTestId("entity-select").selectOption({ label: "Empresa Alfa" });
+  await chooseCompany(page, "Empresa Alfa");
   await page.getByRole("link", { name: memo }).click();
   await page.getByTestId("approve-journal").click();
   await page.getByTestId("publish-journal").click();
@@ -64,7 +65,7 @@ test("envia um OFX e o aprovador concilia o caso sugerido", async ({ page }) => 
   await expect(page.getByTestId("login-button")).toBeVisible();
 
   await login(page, "preparer");
-  await page.getByTestId("entity-select").selectOption({ label: "Empresa Alfa" });
+  await chooseCompany(page, "Empresa Alfa");
   await page.getByRole("link", { name: "Bancos" }).click();
   if ((await page.getByRole("cell", { name: "Caixa e2e" }).count()) === 0) {
     await page.getByTestId("bank-ledger-account").selectOption({ label: "1.1.01 Caixa" });
@@ -89,7 +90,7 @@ test("envia um OFX e o aprovador concilia o caso sugerido", async ({ page }) => 
   await expect(page.getByTestId("login-button")).toBeVisible();
 
   await login(page, "approver");
-  await page.getByTestId("entity-select").selectOption({ label: "Empresa Alfa" });
+  await chooseCompany(page, "Empresa Alfa");
   await page.getByRole("link", { name: "Conciliação" }).click();
   await page.getByTestId("bank-account-select").selectOption({ label: "Caixa e2e · 4321" });
   const suggested = page.getByTestId("reconciliation-case").filter({ hasText: memo });

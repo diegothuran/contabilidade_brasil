@@ -1,6 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
+import { api } from "../api";
+import { can, useSession } from "../session";
 import {
   getCloseRun,
   getAiReviews,
@@ -13,7 +15,7 @@ import {
   getTodaySummary,
   type AdapterSource,
 } from "./adapters";
-import { useSession } from "../session";
+import { CompanySearch } from "./CompanySearch";
 
 type PeriodItem = {
   period_id: string;
@@ -21,14 +23,6 @@ type PeriodItem = {
   month: number;
   status: string;
 };
-
-function formatCnpj(value: string): string {
-  const digits = value.replace(/\D/g, "");
-  if (digits.length !== 14) {
-    return value || "Sem CNPJ";
-  }
-  return `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5, 8)}/${digits.slice(8, 12)}-${digits.slice(12)}`;
-}
 
 const PERIOD_STATUS: Record<string, string> = {
   open: "Aberto",
@@ -64,53 +58,58 @@ function itemCount(payload: unknown): number | null {
   return Array.isArray(items) ? items.length : null;
 }
 
+function preferredPeriod(items: PeriodItem[]): string {
+  const sorted = [...items].sort((left, right) => left.fiscal_year - right.fiscal_year || left.month - right.month);
+  const open = [...sorted].reverse().find((item) => item.status === "open" || item.status === "reopened");
+  return (open ?? sorted.at(-1))?.period_id ?? "";
+}
+
+function periodTone(status: string): string {
+  if (status === "closed") {
+    return "success";
+  }
+  if (status === "open") {
+    return "info";
+  }
+  if (status === "reopened" || status === "closing") {
+    return "attention";
+  }
+  return "neutral";
+}
+
 export function LiveContextBar() {
-  const { entities, entityId, setEntityId } = useSession();
-  const [periodId, setPeriodId] = useState("");
+  const { me, entities, entityId, setEntityId, periodId, setPeriodId } = useSession();
   const periods = useQuery({
-    queryKey: ["rastro-periods", entityId],
+    queryKey: ["periods", entityId],
     enabled: Boolean(entityId),
-    queryFn: () => getCloseRun(entityId),
+    queryFn: () => api<{ items: PeriodItem[] }>(`/v1/legal-entities/${entityId}/periods`),
   });
-  const items = periods.data?.mode === "live" && periods.data.payload && typeof periods.data.payload === "object"
-    ? ((periods.data.payload as { items?: PeriodItem[] }).items ?? [])
-    : [];
-  const selected = entities.find((entity) => entity.legal_entity_id === entityId);
+  const items = periods.data?.items ?? [];
 
   useEffect(() => {
+    if (!entityId || periods.isLoading) {
+      return;
+    }
     if (items.length === 0) {
-      setPeriodId("");
+      if (periodId) {
+        setPeriodId("");
+      }
       return;
     }
     if (!items.some((item) => item.period_id === periodId)) {
-      const latest = [...items].sort((left, right) => left.fiscal_year - right.fiscal_year || left.month - right.month).at(-1);
-      setPeriodId(latest?.period_id ?? "");
+      setPeriodId(preferredPeriod(items));
     }
-  }, [items, periodId]);
+  }, [entityId, items, periodId, periods.isLoading, setPeriodId]);
 
   const current = items.find((item) => item.period_id === periodId);
 
   return (
     <section className="context-bar" aria-label="Contexto operacional">
       <div className="context-label"><span className="context-dot" />Contexto de trabalho</div>
-      <label className="context-select">
-        <span>Cliente / CNPJ</span>
-        <select
-          data-testid="entity-select"
-          value={entityId}
-          disabled={entities.length === 0}
-          onChange={(event) => setEntityId(event.target.value)}
-        >
-          {entities.length === 0 ? <option value="">Nenhuma empresa cadastrada</option> : null}
-          {entities.map((entity) => (
-            <option key={entity.legal_entity_id} value={entity.legal_entity_id}>{entity.name}</option>
-          ))}
-        </select>
-      </label>
-      <span className="context-cnpj">{formatCnpj(selected?.cnpj ?? "")}</span>
+      <CompanySearch entities={entities} entityId={entityId} setEntityId={setEntityId} isAdmin={can(me.roles, "admin")} />
       <label className="context-select context-select--period">
         <span>Competência</span>
-        <select value={periodId} disabled={items.length === 0} onChange={(event) => setPeriodId(event.target.value)}>
+        <select data-testid="context-period" value={periodId} disabled={items.length === 0} onChange={(event) => setPeriodId(event.target.value)}>
           {items.length === 0 ? <option value="">Sem competência</option> : null}
           {items.map((item) => (
             <option key={item.period_id} value={item.period_id}>
@@ -119,8 +118,10 @@ export function LiveContextBar() {
           ))}
         </select>
       </label>
-      <span className="context-meta">{selected ? selected.currency : "Sem empresa"}</span>
-      <span className="status-badge status-badge--attention"><i aria-hidden="true" />{current ? (PERIOD_STATUS[current.status] ?? current.status) : "Sem período"}</span>
+      <span className={`status-badge status-badge--${current ? periodTone(current.status) : "neutral"}`}>
+        <i aria-hidden="true" />
+        {current ? (PERIOD_STATUS[current.status] ?? current.status) : "Sem período"}
+      </span>
     </section>
   );
 }

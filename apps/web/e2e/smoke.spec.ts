@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { chooseCompany } from "./company";
 
 function cnpjFromBase(base12: string): string {
   const digit = (numbers: string) => {
@@ -25,7 +26,7 @@ async function login(page: import("@playwright/test").Page, username: string) {
 test("cria, aprova e publica um lançamento", async ({ page }) => {
   const description = `E2E ${Date.now()}`;
   await login(page, "preparer");
-  await page.getByTestId("entity-select").selectOption({ label: "Empresa Alfa" });
+  await chooseCompany(page, "Empresa Alfa");
   await page.getByRole("link", { name: "Novo lançamento" }).click();
   await page.getByTestId("journal-description").fill(description);
   await page.getByTestId("line-account-0").selectOption({ label: "5.1.01 Despesas de serviços" });
@@ -39,7 +40,7 @@ test("cria, aprova e publica um lançamento", async ({ page }) => {
   await expect(page.getByTestId("login-button")).toBeVisible();
 
   await login(page, "approver");
-  await page.getByTestId("entity-select").selectOption({ label: "Empresa Alfa" });
+  await chooseCompany(page, "Empresa Alfa");
   await page.getByRole("link", { name: description }).click();
   await page.getByTestId("approve-journal").click();
   await page.getByTestId("publish-journal").click();
@@ -61,5 +62,5 @@ test("admin cadastra uma empresa", async ({ page }) => {
   await page.getByTestId("company-year").fill("2026");
   await page.getByTestId("save-company").click();
   await expect(page.getByRole("heading", { name: "Plano de contas" })).toBeVisible();
-  await expect(page.getByTestId("entity-select")).toContainText(name);
+  await expect(page.getByTestId("current-company")).toContainText(name);
 });

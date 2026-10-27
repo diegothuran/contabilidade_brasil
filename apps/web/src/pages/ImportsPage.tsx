@@ -48,11 +48,10 @@ function needsPeriod(kind: string): boolean {
 }
 
 export function ImportsPage() {
-  const { entityId, me } = useSession();
+  const { entityId, me, periodId, setPeriodId } = useSession();
   const navigate = useNavigate();
   const [kind, setKind] = useState<(typeof KINDS)[number][0]>("journal");
   const [sourceSystem, setSourceSystem] = useState("");
-  const [periodId, setPeriodId] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const periods = useQuery({
     queryKey: ["periods", entityId],
@@ -63,7 +62,7 @@ export function ImportsPage() {
     queryFn: () => api<{ items: Batch[] }>(`/v1/import-batches?legal_entity_id=${entityId}`),
   });
   const openPeriods = (periods.data?.items ?? []).filter((period) => period.status === "open" || period.status === "reopened");
-  const activePeriod = periodId || openPeriods[0]?.period_id || "";
+  const activePeriod = openPeriods.some((period) => period.period_id === periodId) ? periodId : "";
   const create = useMutation({
     mutationFn: async () => {
       if (!file) {

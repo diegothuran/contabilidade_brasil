@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { chooseCompany } from "./company";
 
 async function login(page: import("@playwright/test").Page, username: string) {
   await page.goto("/");
@@ -21,7 +22,7 @@ test("simula um lote e o aprovador publica o relatório", async ({ page }) => {
   ].join("\n");
 
   await login(page, "preparer");
-  await page.getByTestId("entity-select").selectOption({ label: "Empresa Alfa" });
+  await chooseCompany(page, "Empresa Alfa");
   await page.getByRole("link", { name: "Importação" }).click();
   await page.getByTestId("import-source").fill(source);
   await page.getByTestId("import-period").selectOption({ label: "2026-01" });
@@ -36,7 +37,7 @@ test("simula um lote e o aprovador publica o relatório", async ({ page }) => {
   await expect(page.getByTestId("login-button")).toBeVisible();
 
   await login(page, "approver");
-  await page.getByTestId("entity-select").selectOption({ label: "Empresa Alfa" });
+  await chooseCompany(page, "Empresa Alfa");
   await page.getByRole("link", { name: "Importação" }).click();
   await page.getByRole("link", { name: source }).click();
   await page.getByTestId("publish-batch").click();

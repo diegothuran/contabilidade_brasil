@@ -19,6 +19,8 @@ export type SessionValue = {
   entities: Entity[];
   entityId: string;
   setEntityId: (entityId: string) => void;
+  periodId: string;
+  setPeriodId: (periodId: string) => void;
 };
 
 const SessionContext = createContext<SessionValue | null>(null);

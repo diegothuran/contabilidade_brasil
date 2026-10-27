@@ -12,7 +12,7 @@ type DraftLine = { accountId: string; side: "debit" | "credit"; amount: string; 
 const emptyLine = (side: "debit" | "credit"): DraftLine => ({ accountId: "", side, amount: "", description: "Linha" });
 
 export function JournalFormPage() {
-  const { entityId } = useSession();
+  const { entityId, periodId, setPeriodId } = useSession();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const accounts = useQuery({
@@ -25,13 +25,12 @@ export function JournalFormPage() {
   });
   const openPeriods = (periods.data?.items ?? []).filter((period) => period.status === "open" || period.status === "reopened");
   const postable = (accounts.data?.items ?? []).filter((account) => account.postable && account.active);
-  const [periodId, setPeriodId] = useState("");
   const [entryDate, setEntryDate] = useState("");
   const [description, setDescription] = useState("");
   const [lines, setLines] = useState<DraftLine[]>([emptyLine("debit"), emptyLine("credit")]);
 
-  const selectedPeriod = openPeriods.find((period) => period.period_id === periodId) ?? openPeriods[0];
-  const activePeriodId = periodId || selectedPeriod?.period_id || "";
+  const activePeriodId = openPeriods.some((period) => period.period_id === periodId) ? periodId : "";
+  const selectedPeriod = openPeriods.find((period) => period.period_id === activePeriodId);
   const activeDate = entryDate || selectedPeriod?.start_date || "";
   const debit = addAmounts(lines.filter((line) => line.side === "debit").map((line) => line.amount));
   const credit = addAmounts(lines.filter((line) => line.side === "credit").map((line) => line.amount));

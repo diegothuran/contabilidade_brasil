@@ -1,4 +1,4 @@
-# SPEC — Contrato de interface v0.4.0
+# SPEC — Contrato de interface v0.4.1
 
 > Fonte de verdade da experiência do front-end. Atualizações de comportamento, estado, linguagem visual ou estrutura precisam atualizar este arquivo antes do código.
 
@@ -58,7 +58,7 @@ O produto ajuda escritórios de contabilidade a **fechar e entregar com evidênc
 
 ## 5. Contexto global obrigatório
 
-A barra de contexto deve exibir, nesta ordem: `Escritório > Cliente/CNPJ > Competência > Regime/UF > Estado do fechamento`. No aplicativo, o escritório fica na barra lateral e a barra de contexto lista as empresas e as competências do escritório. Regime e UF só entram quando o cadastro os tiver. Trocas de empresa ou competência não podem ser silenciosas quando há ação selecionada ou aprovação pendente. A caminhada sintética usa dados fictícios e não comunica efeitos reais.
+A barra de contexto deve exibir, nesta ordem: `Escritório > Cliente/CNPJ > Competência > Regime/UF > Estado do fechamento`. No aplicativo, o escritório fica na barra lateral. A empresa escolhida fica marcada no topo, com razão social e CNPJ, ao lado de uma busca que permanece visível. A busca responde enquanto a pessoa digita, por nome ou CNPJ, inclusive por aproximação, e ignora maiúsculas, acentos e pontuação. A competência é a mesma do balancete, do lançamento novo, da importação e da conciliação. Regime e UF só entram quando o cadastro os tiver. Trocas de empresa ou competência não podem ser silenciosas quando há ação selecionada ou aprovação pendente. A caminhada sintética usa dados fictícios e não comunica efeitos reais.
 
 ## 6. Regras de interação
 
@@ -115,10 +115,11 @@ A sala fica em `/app/rastro` e é a primeira tela depois do login. Ela é a úni
 | Administração | O admin convida uma pessoa. A senha temporária vai por e-mail e não aparece na tela. Quem não é admin vê que só o admin convida. |
 | Demonstração | Caminhada sintética da Orbe, só com `VITE_RASTRO_DEMO` diferente de `false`. |
 
-A barra de contexto é o seletor da empresa e da competência do escritório. A caminhada sintética tem o próprio seletor e não altera a empresa do sistema. As rotas `/app/journals`, `/app/accounts` e vizinhas permanecem e renderizam na mesma casca.
+A barra de contexto marca a empresa escolhida e mantém a busca ao lado. A competência dessa empresa vale para o balancete, o lançamento novo, a importação e a conciliação. A caminhada sintética tem o próprio seletor e não altera a empresa do sistema. As rotas `/app/journals`, `/app/accounts` e vizinhas permanecem e renderizam na mesma casca.
 
 ## 13. Changelog
 
+- `0.4.1` — A empresa escolhida fica marcada no topo e a busca por nome ou CNPJ permanece visível.
 - `0.4.0` — Fechamentos percorre o checklist, grava o snapshot e baixa o pacote.
 - `0.3.1` — Administração convida para o escritório; a senha temporária sai por e-mail.
 - `0.3.0` — uma casca só; o contexto passa a ser a empresa do escritório; a Orbe fica na demonstração.

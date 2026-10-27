@@ -9,14 +9,13 @@ type BalanceRow = { account_id: string; code: string; name: string; debit: strin
 type DrillLine = { journal_id: string; line_id: string; entry_date: string; side: string; amount: string; description: string; journal_status: string };
 
 export function TrialBalancePage() {
-  const { entityId } = useSession();
+  const { entityId, periodId, setPeriodId } = useSession();
   const periods = useQuery({
     queryKey: ["periods", entityId],
     queryFn: () => api<{ items: Period[] }>(`/v1/legal-entities/${entityId}/periods`),
   });
-  const [periodId, setPeriodId] = useState("");
   const [accountId, setAccountId] = useState("");
-  const activePeriod = periodId || periods.data?.items[0]?.period_id || "";
+  const activePeriod = (periods.data?.items ?? []).some((period) => period.period_id === periodId) ? periodId : "";
   const balance = useQuery({
     queryKey: ["trial", entityId, activePeriod],
     enabled: Boolean(activePeriod),

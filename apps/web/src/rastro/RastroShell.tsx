@@ -16,6 +16,7 @@ import { PeriodsPage } from "../pages/PeriodsPage";
 import { ReconciliationPage as LedgerReconciliationPage } from "../pages/ReconciliationPage";
 import { TrialBalancePage } from "../pages/TrialBalancePage";
 import { useSession } from "../session";
+import { focusCompanySearch } from "./CompanySearch";
 import { LiveContextBar } from "./LiveSurface";
 import { OfficeHome, PlannedPage, RoutinesPage } from "./OfficeHome";
 import "./rastro.css";
@@ -319,7 +320,7 @@ export function RastroShell() {
             <strong>{route.label}</strong>
           </div>
           <div className="topbar-actions">
-            <button className="command-button" type="button" onClick={() => notify("Busca global", "A busca preservará cliente, competência, objeto e erro quando integrada à API.")}>Buscar <kbd>⌘ K</kbd></button>
+            <button className="command-button" type="button" onClick={focusCompanySearch}>Buscar <kbd>⌘ K</kbd></button>
             <button className="notice-button" type="button" onClick={() => notify("Notificações", "Há 4 itens atribuídos a você nesta competência.")}>3<span className="sr-only"> notificações</span></button>
           </div>
         </header>
