@@ -31,6 +31,7 @@ from contabil.tables import (
     JournalEntry,
     LegalEntity,
     SourceDocument,
+    DocumentRequest,
     ReconciliationCase,
     ReopenRequest,
     Tenant,
@@ -290,6 +291,10 @@ def _enrich(
         _ensure_files(
             session, preparer, approver, entity_id=entity_id, name=name, masked=masked, today=today, notes=notes,
         )
+    if story == "andamento":
+        _ensure_sample_request(session, preparer, approver, entity_id, name, notes, confirm=True)
+    elif story == "vazia":
+        _ensure_sample_request(session, preparer, approver, entity_id, name, notes, confirm=False)
 
 
 def _activity_months(year: int, today: date) -> list[int]:
@@ -664,6 +669,70 @@ def _ensure_receipt(session: Session, preparer: Principal, entity_id: str, entry
         source_ref=f"amostra-recibo-{entity_id}",
         source_type="upload",
     )
+
+
+def _ensure_sample_request(
+    session: Session,
+    preparer: Principal,
+    approver: Principal,
+    entity_id: str,
+    name: str,
+    notes: list[str],
+    *,
+    confirm: bool,
+) -> None:
+    from contabil.document_requests.service import confirm_request, create_request, receive_content
+    from contabil.platform.constants import POSTING_PERIOD_STATUSES
+
+    period_id = f"{entity_id}-2026-10"
+    period = session.get(AccountingPeriod, period_id)
+    title = "Amostra: recibo de outubro" if confirm else "Amostra: contrato de outubro"
+    if period is None or period.status not in POSTING_PERIOD_STATUSES:
+        notes.append(f"{name}: pedido de outubro não gravado (período indisponível)")
+        return
+    existing = session.scalar(
+        select(DocumentRequest).where(
+            DocumentRequest.tenant_id == preparer.tenant_id,
+            DocumentRequest.legal_entity_id == entity_id,
+            DocumentRequest.period_id == period_id,
+            DocumentRequest.title == title,
+        )
+    )
+    if confirm and not storage_configured() and (existing is None or existing.status == "open"):
+        notes.append(f"{name}: pedido confirmado não gravado (sem armazenamento)")
+        return
+    try:
+        if existing is None:
+            created = create_request(
+                session,
+                preparer,
+                legal_entity_id=entity_id,
+                period_id=period_id,
+                document_type="receipt" if confirm else "contract",
+                title=title,
+                due_on=date(2026, 10, 31),
+            )
+            request_id = created["document_request_id"]
+            status = created["status"]
+        else:
+            request_id = existing.id
+            status = existing.status
+        if not confirm or status in {"confirmed", "cancelled"}:
+            return
+        if status == "open":
+            received = receive_content(
+                session,
+                preparer,
+                request_id,
+                file_name=f"pedido-recibo-{entity_id}.txt",
+                media_type="text/plain",
+                content=f"Recibo de amostra de {name}. Sem valor fiscal.\n".encode(),
+            )
+            status = received["status"]
+        if status == "received":
+            confirm_request(session, approver, request_id)
+    except DomainError as exc:
+        notes.append(f"{name}: pedido de outubro não gravado ({exc.detail})")
 
 
 def _ensure_import(session: Session, preparer: Principal, entity_id: str, name: str, notes: list[str]) -> None:

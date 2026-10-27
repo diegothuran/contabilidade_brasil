@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-CHECKLIST_VERSION = "2026.10-1"
+CHECKLIST_VERSION = "2026.10-2"
 CLOSE_SCHEMA_VERSION = "1.1.0"
 # Same pending set as reconciliation.service: open, suggested and reversed stay in the match queue.
 PENDING_RECONCILIATION = frozenset({"open", "suggested", "reversed"})
@@ -85,7 +85,7 @@ ITEMS: tuple[ItemSpec, ...] = (
         "Balancete equilibrado",
         True,
         "balance",
-        "/app/trial-balance",
+        "/app/rastro/balancete",
         "ITG 2000 (R1), itens 6 e 15",
     ),
     ItemSpec(
@@ -94,7 +94,7 @@ ITEMS: tuple[ItemSpec, ...] = (
         "Revisão do balancete",
         True,
         "manual",
-        "/app/trial-balance",
+        "/app/rastro/balancete",
         "ITG 2000 (R1), item 12",
     ),
     ItemSpec(
@@ -106,6 +106,16 @@ ITEMS: tuple[ItemSpec, ...] = (
         "/app/rastro/biblioteca",
         "Código Civil, art. 1.194; CTN, art. 195, parágrafo único",
         "documents",
+    ),
+    ItemSpec(
+        "document_requests_open",
+        "documents",
+        "Pedidos de documento em aberto",
+        True,
+        "count",
+        "/app/rastro/pendencias",
+        "Código Civil, art. 1.194",
+        "document_requests_open",
     ),
 )
 

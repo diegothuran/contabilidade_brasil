@@ -134,7 +134,7 @@ Ele deixa cinco empresas fictícias, cada uma com um caso diferente:
 - Ateliê Brisa: plano, períodos e lançamentos publicados em alguns meses do ano, para o balancete ter saldo.
 - Transportes Rio Claro: rascunho e lançamento pendente no mês corrente.
 
-Com o bucket configurado, cada empresa ganha recibo, nota, contrato, um lote de diário em simulação e um extrato OFX. Sem o bucket, o comando imprime `extrato=skipped` e não grava arquivo.
+Com o bucket configurado, cada empresa ganha recibo, nota, contrato, um lote de diário em simulação e um extrato OFX. A Padaria Aurora também fica com um pedido de recibo já confirmado em outubro de 2026. O Ateliê Brisa fica com um pedido de contrato aberto nessa competência, e o fechamento de outubro permanece bloqueado até confirmar ou cancelar. Sem o bucket, o comando imprime `extrato=skipped` e não grava arquivo; o pedido aberto do Ateliê ainda é criado.
 
 ## Conferência
 

@@ -474,6 +474,27 @@ class CloseRunDecision(Base):
     decided_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
 
 
+class DocumentRequest(Base):
+    __tablename__ = "document_requests"
+
+    id: Mapped[str] = mapped_column(String(160), primary_key=True)
+    tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.id"))
+    legal_entity_id: Mapped[str] = mapped_column(ForeignKey("legal_entities.id"))
+    period_id: Mapped[str] = mapped_column(ForeignKey("accounting_periods.id"))
+    document_type: Mapped[str] = mapped_column(String(40))
+    title: Mapped[str] = mapped_column(String(200))
+    due_on: Mapped[date] = mapped_column(Date)
+    status: Mapped[str] = mapped_column(String(20))
+    document_id: Mapped[str | None] = mapped_column(ForeignKey("source_documents.id"), nullable=True)
+    requested_by: Mapped[str] = mapped_column(String(160))
+    received_by: Mapped[str | None] = mapped_column(String(160), nullable=True)
+    confirmed_by: Mapped[str | None] = mapped_column(String(160), nullable=True)
+    cancelled_by: Mapped[str | None] = mapped_column(String(160), nullable=True)
+    cancel_reason: Mapped[str | None] = mapped_column(String(2000), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+
 class CloseSnapshot(Base):
     __tablename__ = "close_snapshots"
     __table_args__ = (UniqueConstraint("close_run_id", name="uq_close_snapshots_run"),)

@@ -15,6 +15,8 @@
     { "path": "/app/rastro", "title": "Rastro — Hoje" },
     { "path": "/app/rastro/fechamentos", "title": "Rastro — Fechamentos" },
     { "path": "/app/rastro/fechamentos/:period", "title": "Rastro — Fechamento da competência" },
+    { "path": "/app/rastro/pendencias", "title": "Rastro — Pendências" },
+    { "path": "/app/rastro/balancete", "title": "Rastro — Balancete" },
     { "path": "/app/rastro/conciliacao", "title": "Rastro — Conciliação" },
     { "path": "/app/rastro/migracoes", "title": "Rastro — Migrações" },
     { "path": "/app/rastro/ledger", "title": "Rastro — Ledger" },

@@ -23,6 +23,7 @@ TABLES = (
     "external_refs",
     "operations",
     "import_batches",
+    "document_requests",
     "source_documents",
     "outbox_events",
     "idempotency_keys",

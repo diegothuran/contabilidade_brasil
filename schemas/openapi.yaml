@@ -113,6 +113,100 @@ paths:
       responses:
         '200': { description: Conteúdo original }
         '404': { description: Documento de outro escritório ou inexistente }
+  /v1/document-requests:
+    post:
+      summary: Abre um pedido de documento na competência
+      operationId: createDocumentRequest
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [legal_entity_id, period_id, document_type, title, due_on]
+              properties:
+                legal_entity_id: { type: string }
+                period_id: { type: string }
+                document_type: { type: string }
+                title: { type: string, maxLength: 200 }
+                due_on: { type: string, format: date }
+      responses:
+        '201': { description: Pedido aberto, content: { application/json: { schema: { $ref: '#/components/schemas/DocumentRequest' } } } }
+        '409': { description: Período fechado }
+    get:
+      summary: Lista pedidos da empresa na competência
+      operationId: listDocumentRequests
+      parameters:
+        - in: query
+          name: legal_entity_id
+          required: true
+          schema: { type: string }
+        - in: query
+          name: period_id
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: Pedidos }
+  /v1/document-requests/{request_id}/content:
+    post:
+      summary: Grava o arquivo original e marca o pedido como recebido
+      operationId: receiveDocumentRequest
+      parameters:
+        - in: path
+          name: request_id
+          required: true
+          schema: { type: string }
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file: { type: string, format: binary }
+      responses:
+        '200': { description: Arquivo ligado ao pedido, content: { application/json: { schema: { $ref: '#/components/schemas/DocumentRequest' } } } }
+        '409': { description: Estado ou período não aceita o arquivo }
+  /v1/document-requests/{request_id}/confirm:
+    post:
+      summary: Confirma o pedido depois que o arquivo chegou
+      operationId: confirmDocumentRequest
+      parameters:
+        - in: path
+          name: request_id
+          required: true
+          schema: { type: string }
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '200': { description: Pedido confirmado, content: { application/json: { schema: { $ref: '#/components/schemas/DocumentRequest' } } } }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { description: Arquivo ausente ou estado inválido }
+  /v1/document-requests/{request_id}/cancel:
+    post:
+      summary: Cancela o pedido com motivo
+      operationId: cancelDocumentRequest
+      parameters:
+        - in: path
+          name: request_id
+          required: true
+          schema: { type: string }
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason: { type: string, minLength: 10, maxLength: 2000 }
+      responses:
+        '200': { description: Pedido cancelado, content: { application/json: { schema: { $ref: '#/components/schemas/DocumentRequest' } } } }
+        '400': { description: Motivo curto }
   /v1/import-batches:
     post:
       summary: Inicia lote de importação em dry-run
@@ -778,6 +872,7 @@ components:
     JournalEntry: { type: object, description: Validado por schemas/journal-entry.schema.json, additionalProperties: true }
     ImportBatch: { type: object, description: Validado por schemas/import-batch.schema.json, additionalProperties: true }
     SourceDocument: { type: object, description: Validado por schemas/source-document.schema.json, additionalProperties: true }
+    DocumentRequest: { type: object, description: Validado por schemas/document-request.schema.json, additionalProperties: true }
     ReconciliationCase: { type: object, description: Validado por schemas/reconciliation-case.schema.json, additionalProperties: true }
     CloseRun: { type: object, description: Validado por schemas/close-run.schema.json, additionalProperties: true }
     RegulatoryObligation: { type: object, description: Validado por schemas/regulatory-obligation.schema.json, additionalProperties: true }

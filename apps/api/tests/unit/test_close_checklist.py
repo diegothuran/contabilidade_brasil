@@ -12,6 +12,7 @@ def _counts(**overrides: object) -> dict:
         "import_batches_open": 0,
         "reconciliation_pending": 0,
         "documents": 0,
+        "document_requests_open": 0,
         "trial_debit": "0",
         "trial_credit": "0",
     }
@@ -53,6 +54,17 @@ def test_short_reason_is_rejected() -> None:
 def test_unbalanced_trial_balance_blocks() -> None:
     items = evaluate(_counts(trial_debit="10", trial_credit="8"), {})
     assert _item(items, "trial_balance")["status"] == "blocked"
+
+
+def test_open_document_requests_block_close() -> None:
+    items = evaluate(_counts(document_requests_open=2), {})
+    item = _item(items, "document_requests_open")
+    assert item["status"] == "blocked"
+    assert item["blocking"] is True
+    assert item["href"] == "/app/rastro/pendencias"
+    assert "document_requests_open" in {pending["item_id"] for pending in blocking_pending(items)}
+    clear = evaluate(_counts(), {})
+    assert _item(clear, "document_requests_open")["status"] == "completed"
 
 
 def test_snapshot_hash_ignores_key_order() -> None:

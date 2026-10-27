@@ -22,7 +22,7 @@ Implementar contas a pagar/receber, OFX/CSV, casos de conciliação, candidatos 
 
 **Pronto quando:** uma competência completa pode fechar com pendências visíveis e auditoria exportável.
 
-O corte C1 está na fundação local. Um extrato CSV ou OFX reimportado não duplica transação. Cada transação nova vira um caso com candidatos do razão, score e explicação, e só um aprovador cria o vínculo. A conta banco mostra o que ainda está pendente. O corte de fechamento grava checklist, snapshot e pacote sob demanda ([ADR 020](../adr/020-fechamento-com-evidencia.md)). Contas a pagar e receber e match 1:N, N:1 e parcial continuam fora. As perguntas estão no caderno de descoberta.
+O corte C1 está na fundação local. Um extrato CSV ou OFX reimportado não duplica transação. Cada transação nova vira um caso com candidatos do razão, score e explicação, e só um aprovador cria o vínculo. A conta banco mostra o que ainda está pendente. O corte de fechamento grava checklist, snapshot e pacote sob demanda ([ADR 020](../adr/020-fechamento-com-evidencia.md)). O primeiro corte do portal pede um documento na competência, guarda o arquivo e bloqueia o fechamento enquanto o pedido está aberto ou só recebido ([ADR 021](../adr/021-pedido-de-documento.md)). Contas a pagar e receber, match 1:N, N:1 e parcial, login de cliente e comentário continuam fora. As perguntas estão no caderno de descoberta.
 
 ## Fase D — portal e API
 

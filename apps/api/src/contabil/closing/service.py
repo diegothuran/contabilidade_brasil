@@ -36,6 +36,7 @@ from contabil.tables import (
     CloseRun,
     CloseRunDecision,
     CloseSnapshot,
+    DocumentRequest,
     ImportBatch,
     JournalEntry,
     JournalLine,
@@ -262,6 +263,7 @@ def _finish(session: Session, principal: Principal, run: CloseRun, period: Accou
             "Há itens bloqueantes pendentes.",
             errors=[{"item_id": item["item_id"], "title": item["title"], "detail": item["detail"]} for item in pending],
         )
+    run.checklist_version = CHECKLIST_VERSION
     closed_at = datetime.now(timezone.utc).replace(microsecond=0)
     head = session.scalar(
         select(AuditEvent.event_hash)
@@ -391,6 +393,15 @@ def _gather(session: Session, principal: Principal, period: AccountingPeriod) ->
             )
         ).all()
     )
+    open_requests = session.scalar(
+        select(func.count())
+        .select_from(DocumentRequest)
+        .where(
+            DocumentRequest.tenant_id == principal.tenant_id,
+            DocumentRequest.period_id == period.id,
+            DocumentRequest.status.in_(("open", "received")),
+        )
+    )
     return {
         "counts": {
             "journals_pending_approval": statuses.get("pending_approval", 0),
@@ -399,6 +410,7 @@ def _gather(session: Session, principal: Principal, period: AccountingPeriod) ->
             "import_batches_open": sum(1 for batch in batches if batch.status not in {"published", "rolled_back"}),
             "reconciliation_pending": reconciliation["pending_count"],
             "documents": len(documents),
+            "document_requests_open": int(open_requests or 0),
             "trial_debit": balance["debit_total"],
             "trial_credit": balance["credit_total"],
         },
@@ -463,6 +475,7 @@ def _to_dict(session: Session, principal: Principal, run: CloseRun, period: Acco
         gathered = _gather(session, principal, period)
         checklist = evaluate(gathered["counts"], _decision_map(session, run))
     sha = run.snapshot_sha256
+    version = CHECKLIST_VERSION if run.status == "open" else run.checklist_version
     return {
         "schema_version": CLOSE_SCHEMA_VERSION,
         "close_run_id": run.id,
@@ -471,7 +484,7 @@ def _to_dict(session: Session, principal: Principal, run: CloseRun, period: Acco
         "period_id": run.period_id,
         "status": run.status,
         "run_number": run.run_number,
-        "checklist_version": run.checklist_version,
+        "checklist_version": version,
         "checklist": checklist,
         "snapshot_ref": sha,
         "snapshot_sha256": sha,

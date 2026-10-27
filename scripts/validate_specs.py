@@ -38,6 +38,7 @@ def main() -> None:
         ("reconciliation-case.schema.json", "reconciliation-case.example.json"),
         ("close-run.schema.json", "close-run.example.json"),
         ("source-document.schema.json", "source-document.example.json"),
+        ("document-request.schema.json", "document-request.example.json"),
         ("regulatory-obligation.schema.json", "regulatory-obligation.example.json"),
         ("audit-event.schema.json", "audit-event.example.json"),
     ]
@@ -69,6 +70,12 @@ def main() -> None:
             raise SystemExit("closed close_run contains blocking incomplete checklist items")
         if not close_run["snapshot_ref"] or not close_run["evidence_package_ref"]:
             raise SystemExit("closed close_run must have snapshot and evidence package")
+
+    request = load_json(EXAMPLES / "document-request.example.json")
+    if request["status"] == "confirmed" and not (request["document_id"] and request["confirmed_by"]):
+        raise SystemExit("confirmed document request requires document_id and confirmed_by")
+    if request["status"] == "cancelled" and not request["cancel_reason"]:
+        raise SystemExit("cancelled document request requires cancel_reason")
 
     obligation = load_json(EXAMPLES / "regulatory-obligation.example.json")
     if obligation["status"] == "accepted" and not any(t["status"] == "accepted" for t in obligation["transmissions"]):

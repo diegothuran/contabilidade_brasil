@@ -26,6 +26,12 @@ O CSV desta fase é UTF-8, com cabeçalho obrigatório. O separador é `;` quand
 
 Erros por linha: `MISSING_COLUMN`, `INVALID_AMOUNT`, `ACCOUNT_NOT_FOUND`, `ACCOUNT_NOT_POSTABLE`, `PERIOD_MISMATCH`, `JOURNAL_UNBALANCED`, `DUPLICATE_EXTERNAL_ID_IN_FILE`, `PARENT_NOT_FOUND`, `ALREADY_IMPORTED`. `ALREADY_IMPORTED` não conta como linha inválida. O saldo de abertura que não fecha sozinho usa `BATCH_UNBALANCED` e o lote falha. O modelo de cada tipo sai de `GET /v1/import-batches/templates/{kind}`.
 
+## DocumentRequest
+
+Um pedido pede um arquivo para uma empresa e uma competência aberta ou reaberta. O estado começa em `open`. O envio grava o original com hash e passa o pedido para `received`. A confirmação, feita por quem aprova, passa para `confirmed` e exige o arquivo. O cancelamento exige motivo de pelo menos 10 caracteres e passa para `cancelled`.
+
+`open` e `received` bloqueiam o fechamento da competência. `confirmed` e `cancelled` não bloqueiam. O checklist que conta esses pedidos é `2026.10-2`.
+
 ## Extrato bancário
 
 O CSV deste corte usa o cabeçalho `date;description;amount;external_id`. O separador é `;` quando ele aparece na primeira linha e `,` nos demais casos. `amount` é decimal com ponto e sinal: negativo é saída. `external_id` pode vir vazio. A data aceita `AAAA-MM-DD` ou `DD/MM/AAAA`.
@@ -75,6 +81,7 @@ SourceDocument -> ImportBatch ou SubledgerDocument
 SubledgerDocument -> JournalEntry -> JournalLine
 BankTransaction -> ReconciliationCase -> aprovação -> JournalEntry
 CloseRun -> checklist -> snapshot no Postgres; pacote gerado no download
+DocumentRequest -> SourceDocument
 RegulatoryObligation -> arquivos -> Transmission -> Protocol/Receipt
 AuditEvent -> todos os efeitos sensíveis
 ```

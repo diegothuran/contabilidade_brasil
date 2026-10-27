@@ -12,7 +12,7 @@ O [ADR 016](016-frontend-separado.md) já tinha colocado as duas superfícies no
 
 Depois do login há uma casca só: a sala descrita em [docs/rastro/SPEC.md](../rastro/SPEC.md).
 
-- A barra lateral é o menu do produto: Hoje, Fechamentos, Conciliação, Migrações, Dados e ledger, Revisões de IA, Obrigações e entregas, Evidências, Integrações, Rotinas do razão e Administração.
+- A barra lateral é o menu do produto: Hoje, Fechamentos, Pendências, Balancete, Conciliação, Migrações, Dados e ledger, Revisões de IA, Obrigações e entregas, Evidências, Integrações, Rotinas do razão e Administração.
 - A barra de contexto lista as empresas do escritório e as competências dessa empresa. Trocar a empresa troca o `legal_entity_id` usado pelas rotinas. O seletor da Orbe fica só na rota de demonstração.
 - Fechamentos, conciliação, migrações, lançamentos, evidências, balancete, plano, bancos e auditoria abrem dentro dessa casca. Onde ainda não há contrato — revisões de IA, obrigações, conectores e administração — a mesma casca diz isso, sem inventar estado.
 - A caminhada sintética da Orbe continua em `/app/rastro/demonstracao` enquanto `VITE_RASTRO_DEMO` não for `false`. Ela não é o contexto de trabalho e não grava lançamento.

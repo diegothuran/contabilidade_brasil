@@ -23,6 +23,7 @@ def test_all_contract_fixtures_validate() -> None:
         ("reconciliation-case.schema.json", "reconciliation-case.example.json"),
         ("close-run.schema.json", "close-run.example.json"),
         ("source-document.schema.json", "source-document.example.json"),
+        ("document-request.schema.json", "document-request.example.json"),
         ("regulatory-obligation.schema.json", "regulatory-obligation.example.json"),
         ("audit-event.schema.json", "audit-event.example.json"),
     ]

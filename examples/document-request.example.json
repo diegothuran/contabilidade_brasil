@@ -1,0 +1,18 @@
+{
+  "schema_version": "1.0.0",
+  "document_request_id": "dreq-0001",
+  "tenant_id": "office-001",
+  "legal_entity_id": "company-001",
+  "period_id": "company-001-2026-10",
+  "document_type": "receipt",
+  "title": "Recibo de aluguel",
+  "due_on": "2026-10-31",
+  "status": "confirmed",
+  "document_id": "document-0001",
+  "requested_by": "user-001",
+  "received_by": "user-001",
+  "confirmed_by": "user-002",
+  "cancelled_by": null,
+  "cancel_reason": null,
+  "created_at": "2026-10-12T15:00:00Z"
+}

@@ -72,6 +72,17 @@ export async function uploadDocument(file: File, fields: Record<string, string>)
   return (await readPayload(response)) as { document_id: string };
 }
 
+export async function uploadRequestFile(requestId: string, file: File): Promise<void> {
+  const body = new FormData();
+  body.set("file", file);
+  const response = await fetch(`${apiUrl}/v1/document-requests/${requestId}/content`, {
+    method: "POST",
+    headers: await authorizedHeaders(),
+    body,
+  });
+  await readPayload(response);
+}
+
 export async function downloadDocument(documentId: string, fileName: string): Promise<void> {
   const response = await fetch(`${apiUrl}/v1/documents/${documentId}/content`, {
     headers: { Authorization: `Bearer ${await accessToken()}` },

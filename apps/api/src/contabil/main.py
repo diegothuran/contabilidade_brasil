@@ -17,6 +17,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from contabil.audit.router import router as audit_router
 from contabil.closing.router import router as closing_router
+from contabil.document_requests.router import router as document_requests_router
 from contabil.documents.router import router as documents_router
 from contabil.imports.router import router as imports_router
 from contabil.ledger.router import router as ledger_router
@@ -161,6 +162,7 @@ def create_app() -> FastAPI:
     app.include_router(closing_router, prefix="/v1")
     app.include_router(ledger_router, prefix="/v1")
     app.include_router(documents_router, prefix="/v1")
+    app.include_router(document_requests_router, prefix="/v1")
     app.include_router(imports_router, prefix="/v1")
     app.include_router(reconciliation_router, prefix="/v1")
     app.include_router(audit_router, prefix="/v1")

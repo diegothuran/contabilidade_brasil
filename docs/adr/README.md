@@ -22,3 +22,4 @@
 | [018](018-uma-casca-visual.md) | A interface tem uma casca só. O contexto é a empresa do escritório. |
 | [019](019-convite-de-usuario.md) | Só o admin convida. O Cognito envia a senha por e-mail. |
 | [020](020-fechamento-com-evidencia.md) | Fechar exige checklist. O snapshot é imutável e o pacote sai no download. |
+| [021](021-pedido-de-documento.md) | Pedido de documento em aberto ou recebido bloqueia o fechamento. |
