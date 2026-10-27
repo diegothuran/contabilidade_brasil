@@ -595,6 +595,10 @@ def _ensure_journal_import(
     from contabil.imports.service import create_batch, validate_batch
 
     source = f"amostra-diario-{entity_id}"
+    period_id = f"{entity_id}-{posted.year}-{posted.month:02d}"
+    if not _period_exists(session, period_id):
+        notes.append(f"{name}: lote de diário sem período {posted.year}-{posted.month:02d}")
+        return
     batch = session.scalar(
         select(ImportBatch).where(ImportBatch.tenant_id == preparer.tenant_id, ImportBatch.source_system == source)
     )
@@ -630,6 +634,7 @@ def _ensure_journal_import(
                 legal_entity_id=entity_id,
                 source_system=source,
                 mode="dry_run",
+                period_id=period_id,
                 files=[FileIn(document_id=stored["document_id"], kind="journal")],
             ),
             source,
