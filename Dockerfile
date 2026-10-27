@@ -20,6 +20,8 @@ COPY schemas /schemas
 COPY configs /configs
 
 RUN pip install --no-cache-dir ".[dev]" \
+    && sed -i 's/\r$//' /app/bin/migrate.sh \
+    && chmod +x /app/bin/migrate.sh \
     && chown -R contabil:contabil /app
 
 USER contabil

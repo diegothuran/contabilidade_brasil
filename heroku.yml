@@ -4,6 +4,4 @@ build:
 release:
   image: web
   command:
-    - python
-    - -m
-    - contabil.migrate
+    - /app/bin/migrate.sh
