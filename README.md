@@ -160,7 +160,7 @@ flowchart LR
 
 O piloto custa cerca de US$ 19 por mês e guarda o dado nos Estados Unidos. Por isso só aceita dado fictício ([ADR 015](docs/adr/015-piloto-barato-heroku.md)). A ida para AWS São Paulo está descrita no [ADR 014](docs/adr/014-deploy-piloto-aws-sa-east-1.md), para quando o escritório depender do sistema no dia a dia.
 
-O roteiro completo do piloto está em [deploy/pilot/README.md](deploy/pilot/README.md): apps, Cognito, configuração, bootstrap do escritório, usuário de teste, primeira empresa e o comando das três empresas de teste.
+O roteiro completo do piloto está em [deploy/pilot/README.md](deploy/pilot/README.md): apps, Cognito, configuração, bootstrap do escritório, usuário de teste, primeira empresa e o comando das empresas de teste.
 
 ## Estrutura
 

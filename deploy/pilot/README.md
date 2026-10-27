@@ -120,13 +120,21 @@ O admin entra na sala, abre **Rotinas do razão** e depois **Nova empresa**. A b
 
 ## Empresas de teste
 
-Este comando não é o seed de demonstração. Pode ser repetido: empresa que já existe, pelo CNPJ, é pulada.
+Este comando não é o seed de demonstração. Pode ser repetido: o que já existe é preservado.
 
 ```bash
 heroku run --no-tty --exit-code --app NOME-API -- python -m contabil.pilot_samples --tenant-id escritorio
 ```
 
-Ele cria três empresas fictícias, com lançamentos publicados no mês anterior e uma conta bancária. O extrato OFX só entra se `OBJECT_STORAGE_BUCKET` e `OBJECT_STORAGE_ACCESS_KEY` estiverem definidos. Sem isso, o comando imprime `extrato=skipped` e documentos, importação e conciliação por arquivo continuam indisponíveis até o bucket da seção Arquivos existir.
+Ele deixa cinco empresas fictícias, cada uma com um caso diferente:
+
+- Padaria Aurora: lançamentos publicados, um estorno, um rascunho, um pendente e um aprovado ainda não publicado. O checklist fica bloqueado.
+- Studio Norte: competência do mês anterior fechada, com snapshot, e um pedido de reabertura feito por outra pessoa.
+- Comercial Vale Azul: livros publicados e conta bancária.
+- Ateliê Brisa: só o plano e os períodos, para ver as telas vazias.
+- Transportes Rio Claro: rascunho e lançamento pendente no mês corrente.
+
+O extrato, o recibo e o lote de importação só entram se `OBJECT_STORAGE_BUCKET` e `OBJECT_STORAGE_ACCESS_KEY` estiverem definidos. Sem isso, o comando imprime `extrato=skipped`. Documentos, migração e conciliação por arquivo continuam indisponíveis até o bucket da seção Arquivos existir.
 
 ## Conferência
 

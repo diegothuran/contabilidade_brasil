@@ -18,14 +18,14 @@ def test_pilot_samples_are_idempotent_and_skip_statements_without_storage(monkey
     first = load_samples("tenant_demo")
     second = load_samples("tenant_demo")
     assert first["statements"] == "skipped"
-    assert len(first["created"]) == 3
+    assert len(first["created"]) == 5
     assert second["created"] == []
-    assert len(second["skipped"]) == 3
+    assert len(second["skipped"]) == 5
     session = session_factory(admin=True)()
     try:
         apply_tenant(session, "tenant_demo")
         names = session.scalars(select(LegalEntity.name).where(LegalEntity.tenant_id == "tenant_demo", LegalEntity.name.contains("(teste)"))).all()
-        assert len(names) == 3
+        assert len(names) == 5
         for company in first["created"]:
             debit = session.scalar(
                 select(func.coalesce(func.sum(JournalLine.amount), 0))
@@ -46,6 +46,9 @@ def test_pilot_samples_are_idempotent_and_skip_statements_without_storage(monkey
                 )
             )
             assert Decimal(debit) == Decimal(credit)
-            assert Decimal(debit) > 0
+            if company["published"] == 0:
+                assert Decimal(debit) == 0
+            else:
+                assert Decimal(debit) > 0
     finally:
         session.close()
