@@ -1,18 +1,18 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ApiError, api } from "../api";
 import { addAmounts, parseAmount } from "../money";
 import { useSession } from "../session";
 
 type Account = { account_id: string; code: string; name: string; postable: boolean; active: boolean };
-type Period = { period_id: string; start_date: string; status: string };
+type Period = { period_id: string; fiscal_year: number; month: number; start_date: string; status: string };
 type DraftLine = { accountId: string; side: "debit" | "credit"; amount: string; description: string };
 
 const emptyLine = (side: "debit" | "credit"): DraftLine => ({ accountId: "", side, amount: "", description: "Linha" });
 
 export function JournalFormPage() {
-  const { entityId, periodId, setPeriodId } = useSession();
+  const { entityId, periodId } = useSession();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const accounts = useQuery({
@@ -26,11 +26,16 @@ export function JournalFormPage() {
   const openPeriods = (periods.data?.items ?? []).filter((period) => period.status === "open" || period.status === "reopened");
   const postable = (accounts.data?.items ?? []).filter((account) => account.postable && account.active);
   const [entryDate, setEntryDate] = useState("");
+  useEffect(() => {
+    setEntryDate("");
+  }, [periodId]);
   const [description, setDescription] = useState("");
   const [lines, setLines] = useState<DraftLine[]>([emptyLine("debit"), emptyLine("credit")]);
 
+  const currentPeriod = (periods.data?.items ?? []).find((period) => period.period_id === periodId);
   const activePeriodId = openPeriods.some((period) => period.period_id === periodId) ? periodId : "";
   const selectedPeriod = openPeriods.find((period) => period.period_id === activePeriodId);
+  const periodLabel = currentPeriod ? `${String(currentPeriod.month).padStart(2, "0")}/${currentPeriod.fiscal_year}` : "";
   const activeDate = entryDate || selectedPeriod?.start_date || "";
   const debit = addAmounts(lines.filter((line) => line.side === "debit").map((line) => line.amount));
   const credit = addAmounts(lines.filter((line) => line.side === "credit").map((line) => line.amount));
@@ -76,15 +81,8 @@ export function JournalFormPage() {
   return (
     <section>
       <h1>Novo lançamento</h1>
+      {currentPeriod && !activePeriodId ? <p className="muted">A competência {periodLabel} está fechada. Escolha um mês aberto no topo.</p> : null}
       <div className="row">
-        <label>
-          Período
-          <select data-testid="period-select" value={activePeriodId} onChange={(event) => { setPeriodId(event.target.value); setEntryDate(""); }}>
-            {openPeriods.map((period) => (
-              <option key={period.period_id} value={period.period_id}>{period.period_id}</option>
-            ))}
-          </select>
-        </label>
         <label>
           Data
           <input data-testid="entry-date" type="date" value={activeDate} onChange={(event) => setEntryDate(event.target.value)} />

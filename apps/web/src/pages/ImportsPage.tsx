@@ -48,7 +48,7 @@ function needsPeriod(kind: string): boolean {
 }
 
 export function ImportsPage() {
-  const { entityId, me, periodId, setPeriodId } = useSession();
+  const { entityId, me, periodId } = useSession();
   const navigate = useNavigate();
   const [kind, setKind] = useState<(typeof KINDS)[number][0]>("journal");
   const [sourceSystem, setSourceSystem] = useState("");
@@ -117,18 +117,7 @@ export function ImportsPage() {
             Sistema de origem
             <input data-testid="import-source" value={sourceSystem} onChange={(event) => setSourceSystem(event.target.value)} />
           </label>
-          {needsPeriod(kind) ? (
-            <label>
-              Período
-              <select data-testid="import-period" value={activePeriod} onChange={(event) => setPeriodId(event.target.value)}>
-                {openPeriods.map((period) => (
-                  <option key={period.period_id} value={period.period_id}>
-                    {period.fiscal_year}-{String(period.month).padStart(2, "0")}
-                  </option>
-                ))}
-              </select>
-            </label>
-          ) : null}
+          {needsPeriod(kind) && !activePeriod ? <p className="muted">A competência da barra está fechada. Escolha um mês aberto no topo.</p> : null}
           <label>
             Arquivo CSV
             <input data-testid="import-file" type="file" accept=".csv,text/csv" onChange={(event) => setFile(event.target.files?.[0] ?? null)} />

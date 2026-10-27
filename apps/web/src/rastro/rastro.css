@@ -89,13 +89,13 @@
 .rastro .icon-button:hover, .rastro .notice-button:hover { border-color: var(--line-dark); background: var(--surface-muted); }
 .rastro .menu-button { display: none; }
 
-.rastro .context-bar { display: flex; align-items: center; min-height: 52px; gap: 14px; padding: 7px 34px; border-bottom: 1px solid var(--line); background: #fbfdff; }
+.rastro .context-bar { display: flex; align-items: center; flex-wrap: wrap; min-height: 52px; gap: 10px 14px; padding: 7px 34px; border-bottom: 1px solid var(--line); background: #fbfdff; }
 .rastro .context-label { display: flex; align-items: center; flex: 0 0 auto; gap: 6px; color: var(--ink-700); font-size: .71rem; font-weight: 700; }
 .rastro .context-dot { display: block; width: 7px; height: 7px; border-radius: 50%; background: var(--blue-rastro); box-shadow: 0 0 0 3px var(--blue-soft); }
 .rastro .context-select { display: grid; min-width: 218px; gap: 1px; }
 .rastro .context-select span { color: var(--ink-500); font-size: .59rem; font-weight: 650; letter-spacing: .055em; text-transform: uppercase; }
 .rastro .context-select select { width: 100%; padding: 0 17px 0 0; border: 0; outline: 0; background: transparent; color: var(--ink-900); font-size: .76rem; font-weight: 650; }
-.rastro .context-select--period { min-width: 76px; }
+.rastro .context-select--period { min-width: 88px; flex: 0 0 auto; }
 .rastro .context-cnpj, .rastro .context-meta { padding-left: 13px; border-left: 1px solid var(--line); color: var(--ink-600); font-size: .69rem; white-space: nowrap; }
 .rastro .context-link { margin-left: auto; border: 0; background: transparent; color: var(--blue-rastro); font-size: .7rem; font-weight: 650; }
 .rastro .company-current { display: flex; align-items: center; gap: 8px; min-width: 0; max-width: 320px; padding: 4px 10px 4px 4px; border: 1px solid #b7d0e2; border-radius: 8px; background: #f0f7fc; }
@@ -103,7 +103,7 @@
 .rastro .company-current span:last-child { display: grid; min-width: 0; }
 .rastro .company-current strong { overflow: hidden; color: var(--ink-900); font-size: .74rem; text-overflow: ellipsis; white-space: nowrap; }
 .rastro .company-current small { color: var(--ink-600); font-size: .64rem; }
-.rastro .company-search { position: relative; flex: 1 1 220px; min-width: 180px; max-width: 360px; }
+.rastro .company-search { position: relative; flex: 1 1 180px; min-width: 0; max-width: 360px; }
 .rastro .company-search input { width: 100%; height: 34px; padding: 0 10px; border: 1px solid var(--line-dark); border-radius: 7px; background: #fff; color: var(--ink-900); font-size: .74rem; }
 .rastro .company-search input:focus { border-color: var(--blue-rastro); outline: 3px solid rgba(31, 92, 134, .18); }
 .rastro .company-results { position: absolute; z-index: 30; top: calc(100% + 4px); left: 0; right: 0; display: grid; max-height: 280px; overflow: auto; padding: 4px; border: 1px solid var(--line); border-radius: 8px; background: #fff; box-shadow: var(--shadow-md); }

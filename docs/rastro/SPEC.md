@@ -1,4 +1,4 @@
-# SPEC — Contrato de interface v0.4.1
+# SPEC — Contrato de interface v0.4.2
 
 > Fonte de verdade da experiência do front-end. Atualizações de comportamento, estado, linguagem visual ou estrutura precisam atualizar este arquivo antes do código.
 
@@ -58,7 +58,7 @@ O produto ajuda escritórios de contabilidade a **fechar e entregar com evidênc
 
 ## 5. Contexto global obrigatório
 
-A barra de contexto deve exibir, nesta ordem: `Escritório > Cliente/CNPJ > Competência > Regime/UF > Estado do fechamento`. No aplicativo, o escritório fica na barra lateral. A empresa escolhida fica marcada no topo, com razão social e CNPJ, ao lado de uma busca que permanece visível. A busca responde enquanto a pessoa digita, por nome ou CNPJ, inclusive por aproximação, e ignora maiúsculas, acentos e pontuação. A competência é a mesma do balancete, do lançamento novo, da importação e da conciliação. Regime e UF só entram quando o cadastro os tiver. Trocas de empresa ou competência não podem ser silenciosas quando há ação selecionada ou aprovação pendente. A caminhada sintética usa dados fictícios e não comunica efeitos reais.
+A barra de contexto deve exibir, nesta ordem: `Escritório > Cliente/CNPJ > Competência > Regime/UF > Estado do fechamento`. No aplicativo, o escritório fica na barra lateral. A empresa escolhida fica marcada no topo, com razão social e CNPJ, ao lado de uma busca que permanece visível. A busca responde enquanto a pessoa digita, por nome ou CNPJ, inclusive por aproximação, e ignora maiúsculas, acentos e pontuação. A competência aparece uma vez, na barra, como mês e ano. O balancete, o lançamento novo, a importação e a conciliação usam essa competência e não repetem o seletor. Regime e UF só entram quando o cadastro os tiver. Trocas de empresa ou competência não podem ser silenciosas quando há ação selecionada ou aprovação pendente. A caminhada sintética usa dados fictícios e não comunica efeitos reais.
 
 ## 6. Regras de interação
 
@@ -119,6 +119,7 @@ A barra de contexto marca a empresa escolhida e mantém a busca ao lado. A compe
 
 ## 13. Changelog
 
+- `0.4.2` — A competência fica só na barra, em mês e ano. As telas não repetem o identificador do período.
 - `0.4.1` — A empresa escolhida fica marcada no topo e a busca por nome ou CNPJ permanece visível.
 - `0.4.0` — Fechamentos percorre o checklist, grava o snapshot e baixa o pacote.
 - `0.3.1` — Administração convida para o escritório; a senha temporária sai por e-mail.

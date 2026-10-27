@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { chooseCompany } from "./company";
+import { chooseCompany, choosePeriod } from "./company";
 
 async function login(page: import("@playwright/test").Page, username: string) {
   await page.goto("/");
@@ -40,7 +40,7 @@ test("envia um OFX e o aprovador concilia o caso sugerido", async ({ page }) => 
   await login(page, "preparer");
   await chooseCompany(page, "Empresa Alfa");
   await page.getByRole("link", { name: "Novo lançamento" }).click();
-  await page.getByTestId("period-select").selectOption({ label: "le_alfa-2026-01" });
+  await choosePeriod(page, "01/2026");
   await page.getByTestId("entry-date").fill("2026-01-15");
   await page.getByTestId("journal-description").fill(memo);
   await page.getByTestId("line-account-0").selectOption({ label: "1.1.01 Caixa" });

@@ -6,7 +6,6 @@ import { STATUS_LABEL, can, useSession } from "../session";
 
 type Account = { account_id: string; code: string; name: string; postable: boolean; active: boolean };
 type BankAccount = { bank_account_id: string; account_id: string; name: string; account_number_masked: string };
-type Period = { period_id: string; start_date: string; end_date: string; fiscal_year: number; month: number };
 type Statement = { statement_id: string; status: string; error_message: string | null; transactions_new: number; transactions_duplicate: number };
 type Candidate = { candidate_id: string; score: number; explanation: string[] };
 type Case = {
@@ -32,7 +31,7 @@ type Summary = {
 const DIRECTION: Record<string, string> = { inflow: "Entrada", outflow: "Saída" };
 
 export function ReconciliationPage() {
-  const { entityId, me, periodId, setPeriodId } = useSession();
+  const { entityId, me, periodId } = useSession();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [params] = useSearchParams();
@@ -46,10 +45,6 @@ export function ReconciliationPage() {
   const banks = useQuery({
     queryKey: ["bank-accounts", entityId],
     queryFn: () => api<{ items: BankAccount[] }>(`/v1/bank-accounts?legal_entity_id=${entityId}`),
-  });
-  const periods = useQuery({
-    queryKey: ["periods", entityId],
-    queryFn: () => api<{ items: Period[] }>(`/v1/legal-entities/${entityId}/periods`),
   });
   const accounts = useQuery({
     queryKey: ["accounts", entityId],
@@ -131,17 +126,6 @@ export function ReconciliationPage() {
             {(banks.data?.items ?? []).map((item) => (
               <option key={item.bank_account_id} value={item.bank_account_id}>
                 {item.name} · {item.account_number_masked}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          Período
-          <select value={periodId} onChange={(event) => setPeriodId(event.target.value)}>
-            <option value="">Selecione</option>
-            {(periods.data?.items ?? []).map((period) => (
-              <option key={period.period_id} value={period.period_id}>
-                {period.fiscal_year}-{String(period.month).padStart(2, "0")}
               </option>
             ))}
           </select>

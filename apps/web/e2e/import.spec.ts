@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { chooseCompany } from "./company";
+import { chooseCompany, choosePeriod } from "./company";
 
 async function login(page: import("@playwright/test").Page, username: string) {
   await page.goto("/");
@@ -25,7 +25,7 @@ test("simula um lote e o aprovador publica o relatório", async ({ page }) => {
   await chooseCompany(page, "Empresa Alfa");
   await page.getByRole("link", { name: "Importação" }).click();
   await page.getByTestId("import-source").fill(source);
-  await page.getByTestId("import-period").selectOption({ label: "2026-01" });
+  await choosePeriod(page, "01/2026");
   await page.getByTestId("import-file").setInputFiles({
     name: "lote.csv",
     mimeType: "text/csv",

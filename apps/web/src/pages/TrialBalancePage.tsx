@@ -1,43 +1,32 @@
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../api";
 import { useSession } from "../session";
 
-type Period = { period_id: string; status: string };
 type BalanceRow = { account_id: string; code: string; name: string; debit: string; credit: string; balance: string };
 type DrillLine = { journal_id: string; line_id: string; entry_date: string; side: string; amount: string; description: string; journal_status: string };
 
 export function TrialBalancePage() {
-  const { entityId, periodId, setPeriodId } = useSession();
-  const periods = useQuery({
-    queryKey: ["periods", entityId],
-    queryFn: () => api<{ items: Period[] }>(`/v1/legal-entities/${entityId}/periods`),
-  });
+  const { entityId, periodId } = useSession();
   const [accountId, setAccountId] = useState("");
-  const activePeriod = (periods.data?.items ?? []).some((period) => period.period_id === periodId) ? periodId : "";
+  useEffect(() => {
+    setAccountId("");
+  }, [periodId]);
   const balance = useQuery({
-    queryKey: ["trial", entityId, activePeriod],
-    enabled: Boolean(activePeriod),
-    queryFn: () => api<{ rows: BalanceRow[]; debit_total: string; credit_total: string }>(`/v1/legal-entities/${entityId}/trial-balance?period_id=${activePeriod}`),
+    queryKey: ["trial", entityId, periodId],
+    enabled: Boolean(periodId),
+    queryFn: () => api<{ rows: BalanceRow[]; debit_total: string; credit_total: string }>(`/v1/legal-entities/${entityId}/trial-balance?period_id=${periodId}`),
   });
   const drill = useQuery({
-    queryKey: ["drill", accountId, activePeriod],
-    enabled: Boolean(accountId && activePeriod),
-    queryFn: () => api<{ lines: DrillLine[] }>(`/v1/accounts/${accountId}/lines?period_id=${activePeriod}`),
+    queryKey: ["drill", accountId, periodId],
+    enabled: Boolean(accountId && periodId),
+    queryFn: () => api<{ lines: DrillLine[] }>(`/v1/accounts/${accountId}/lines?period_id=${periodId}`),
   });
 
   return (
     <section>
       <h1>Balancete</h1>
-      <label>
-        Período
-        <select value={activePeriod} onChange={(event) => { setPeriodId(event.target.value); setAccountId(""); }}>
-          {(periods.data?.items ?? []).map((period) => (
-            <option key={period.period_id} value={period.period_id}>{period.period_id}</option>
-          ))}
-        </select>
-      </label>
       <table>
         <thead><tr><th>Conta</th><th>Débito</th><th>Crédito</th><th>Saldo</th></tr></thead>
         <tbody>
