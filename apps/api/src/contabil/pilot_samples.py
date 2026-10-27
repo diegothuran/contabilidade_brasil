@@ -30,6 +30,7 @@ from contabil.tables import (
     ImportBatch,
     JournalEntry,
     LegalEntity,
+    SourceDocument,
     ReconciliationCase,
     ReopenRequest,
     Tenant,
@@ -285,6 +286,10 @@ def _enrich(
                 f"{entity_id}-5.1.01", f"{entity_id}-2.1.01", "15.00", "Pedágio aguardando aprovação", "Fornecedor",
             )
     _ensure_activity(session, preparer, approver, entity_id, year, today)
+    if statements:
+        _ensure_files(
+            session, preparer, approver, entity_id=entity_id, name=name, masked=masked, today=today, notes=notes,
+        )
 
 
 def _activity_months(year: int, today: date) -> list[int]:
@@ -485,6 +490,159 @@ def _close_and_request_reopen(
     )
     if pending is None:
         request_reopen(session, preparer, period_id, "Amostra para outra pessoa aprovar a reabertura.")
+
+
+def _has_document(session: Session, tenant_id: str, source_ref: str) -> bool:
+    found = session.scalar(
+        select(SourceDocument.id).where(SourceDocument.tenant_id == tenant_id, SourceDocument.source_ref == source_ref)
+    )
+    return found is not None
+
+
+def _store_sample_file(
+    session: Session,
+    preparer: Principal,
+    *,
+    entity_id: str,
+    name: str,
+    source_ref: str,
+    file_name: str,
+    media_type: str,
+    document_type: str,
+    competence: str | None,
+    content: bytes,
+    notes: list[str],
+) -> None:
+    if _has_document(session, preparer.tenant_id, source_ref):
+        return
+    try:
+        store_document(
+            session,
+            preparer,
+            file_name=file_name,
+            media_type=media_type,
+            content=content,
+            document_type=document_type,
+            legal_entity_id=entity_id,
+            competence=competence,
+            source_ref=source_ref,
+            source_type="upload",
+        )
+    except DomainError as exc:
+        notes.append(f"{name}: arquivo {file_name} não gravado ({exc.detail})")
+
+
+def _ensure_files(
+    session: Session,
+    preparer: Principal,
+    approver: Principal,
+    *,
+    entity_id: str,
+    name: str,
+    masked: str,
+    today: date,
+    notes: list[str],
+) -> None:
+    bank = f"{entity_id}-1.1.02"
+    competence = f"{today.year}-{today.month:02d}"
+    posted = date(today.year, today.month, min(12, today.day))
+    amount = _money(Decimal("200.00") + Decimal(today.month) * Decimal("25.00"))
+    account_id = _ensure_bank(session, preparer, entity_id, bank, name, masked)
+    _ensure_receipt(session, preparer, entity_id, posted, name)
+    _store_sample_file(
+        session,
+        preparer,
+        entity_id=entity_id,
+        name=name,
+        source_ref=f"amostra-nota-{entity_id}",
+        file_name=f"nota-{entity_id}.txt",
+        media_type="text/plain",
+        document_type="journal_support",
+        competence=competence,
+        content=f"Nota fictícia de {name} em {competence}. Valor de referência {amount}. Sem efeito fiscal.\n".encode(),
+        notes=notes,
+    )
+    _store_sample_file(
+        session,
+        preparer,
+        entity_id=entity_id,
+        name=name,
+        source_ref=f"amostra-contrato-{entity_id}",
+        file_name=f"contrato-{entity_id}.txt",
+        media_type="text/plain",
+        document_type="contract",
+        competence=None,
+        content=f"Contrato fictício de prestação de serviço de {name}. Documento de teste, sem vigência real.\n".encode(),
+        notes=notes,
+    )
+    _ensure_journal_import(session, preparer, entity_id, name, posted, notes)
+    if account_id:
+        try:
+            _ensure_statement(session, preparer, approver, entity_id, account_id, posted, amount, name)
+        except DomainError as exc:
+            notes.append(f"{name}: extrato não concluído ({exc.detail})")
+
+
+def _ensure_journal_import(
+    session: Session,
+    preparer: Principal,
+    entity_id: str,
+    name: str,
+    posted: date,
+    notes: list[str],
+) -> None:
+    from contabil.imports.router import BatchCreate, FileIn
+    from contabil.imports.service import create_batch, validate_batch
+
+    source = f"amostra-diario-{entity_id}"
+    batch = session.scalar(
+        select(ImportBatch).where(ImportBatch.tenant_id == preparer.tenant_id, ImportBatch.source_system == source)
+    )
+    if batch is not None and batch.status != "received":
+        return
+    if batch is not None:
+        notes.append(f"{name}: lote de diário ficou recebido e não foi revalidado")
+        return
+    day = posted.isoformat()
+    csv = (
+        "external_journal_id;entry_date;description;account_code;side;amount;line_description;cost_center_code\n"
+        f"amostra-j-{entity_id};{day};Amostra de diário;1.1.02;debit;15.00;Banco;\n"
+        f"amostra-j-{entity_id};{day};Amostra de diário;4.1.01;credit;15.00;Receita de serviços;\n"
+        f"amostra-j-{entity_id}-invalida;{day};Linha sem conta;;debit;1.00;Conta ausente;\n"
+    ).encode()
+    try:
+        stored, _status = store_document(
+            session,
+            preparer,
+            file_name=f"diario-{entity_id}.csv",
+            media_type="text/csv",
+            content=csv,
+            document_type="other",
+            legal_entity_id=entity_id,
+            competence=posted.strftime("%Y-%m"),
+            source_ref=source,
+            source_type="import",
+        )
+        operation = create_batch(
+            session,
+            preparer,
+            BatchCreate(
+                legal_entity_id=entity_id,
+                source_system=source,
+                mode="dry_run",
+                files=[FileIn(document_id=stored["document_id"], kind="journal")],
+            ),
+            source,
+        )
+        created = session.scalar(
+            select(ImportBatch).where(ImportBatch.tenant_id == preparer.tenant_id, ImportBatch.idempotency_key == source)
+        )
+        if created is None:
+            notes.append(f"{name}: lote de diário não foi criado")
+            return
+        validate_batch(session, preparer.tenant_id, {"batch_id": created.id, "operation_id": operation["operation_id"]})
+    except DomainError as exc:
+        notes.append(f"{name}: lote de diário não gravado ({exc.detail})")
 
 
 def _ensure_receipt(session: Session, preparer: Principal, entity_id: str, entry_date: date, name: str) -> None:

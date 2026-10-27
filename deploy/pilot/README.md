@@ -134,7 +134,7 @@ Ele deixa cinco empresas fictícias, cada uma com um caso diferente:
 - Ateliê Brisa: plano, períodos e lançamentos publicados em alguns meses do ano, para o balancete ter saldo.
 - Transportes Rio Claro: rascunho e lançamento pendente no mês corrente.
 
-O extrato, o recibo e o lote de importação só entram se `OBJECT_STORAGE_BUCKET` e `OBJECT_STORAGE_ACCESS_KEY` estiverem definidos. Sem isso, o comando imprime `extrato=skipped`. Documentos, migração e conciliação por arquivo continuam indisponíveis até o bucket da seção Arquivos existir.
+Com o bucket configurado, cada empresa ganha recibo, nota, contrato, um lote de diário em simulação e um extrato OFX. Sem o bucket, o comando imprime `extrato=skipped` e não grava arquivo.
 
 ## Conferência
 
