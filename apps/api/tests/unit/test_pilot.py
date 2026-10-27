@@ -71,6 +71,17 @@ def test_run_loop_returns_when_stopped() -> None:
     run_loop(stop)
 
 
+def test_chosen_tenant_keeps_the_home_office_when_the_header_is_empty() -> None:
+    from contabil.platform.auth import chosen_tenant
+    from contabil.platform.errors import DomainError
+
+    assert chosen_tenant("escritorio", None) == "escritorio"
+    assert chosen_tenant("escritorio", "  ") == "escritorio"
+    assert chosen_tenant("escritorio", "litoral") == "litoral"
+    with pytest.raises(DomainError):
+        chosen_tenant("escritorio", "../outro")
+
+
 def test_bootstrap_rejects_unknown_role() -> None:
     with pytest.raises(ValueError, match="Papéis aceitos"):
         bootstrap("tenant", "Nome", "user", "Pessoa", ["owner"])

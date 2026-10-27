@@ -1,10 +1,17 @@
 import { createContext, useContext } from "react";
 
+export type Office = {
+  tenant_id: string;
+  tenant_name: string;
+};
+
 export type Me = {
   user_id: string;
   display_name: string;
+  tenant_id: string;
   tenant_name: string;
   roles: string[];
+  offices?: Office[];
 };
 
 export type Entity = {

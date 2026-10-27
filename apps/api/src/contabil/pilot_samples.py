@@ -32,9 +32,11 @@ from contabil.tables import (
     LegalEntity,
     SourceDocument,
     DocumentRequest,
+    Membership,
     ReconciliationCase,
     ReopenRequest,
     Tenant,
+    AppUser,
 )
 from contabil.tenancy.service import create_legal_entity
 
@@ -48,6 +50,11 @@ _ACTIVITY_SCALE: dict[str, dict[str, tuple[Decimal, Decimal]]] = {
     "banco": {"bank": (Decimal("2000.00"), Decimal("440.00")), "cash": (Decimal("300.00"), Decimal("35.00")), "expense": (Decimal("1500.00"), Decimal("260.00"))},
     "vazia": {"bank": (Decimal("600.00"), Decimal("120.00")), "cash": (Decimal("80.00"), Decimal("14.00")), "expense": (Decimal("250.00"), Decimal("39.00"))},
     "rascunhos": {"bank": (Decimal("700.00"), Decimal("140.00")), "cash": (Decimal("50.00"), Decimal("8.00")), "expense": (Decimal("400.00"), Decimal("58.00"))},
+    "pousada": {"bank": (Decimal("1600.00"), Decimal("95.00")), "cash": (Decimal("200.00"), Decimal("18.00")), "expense": (Decimal("500.00"), Decimal("42.00"))},
+    "oficina": {"bank": (Decimal("250.00"), Decimal("35.00")), "cash": (Decimal("30.00"), Decimal("9.00")), "expense": (Decimal("140.00"), Decimal("16.00"))},
+    "mercado": {"bank": (Decimal("2800.00"), Decimal("310.00")), "cash": (Decimal("400.00"), Decimal("45.00")), "expense": (Decimal("1900.00"), Decimal("220.00"))},
+    "clinica": {"bank": (Decimal("450.00"), Decimal("70.00")), "cash": (Decimal("60.00"), Decimal("12.00")), "expense": (Decimal("220.00"), Decimal("28.00"))},
+    "grafica": {"bank": (Decimal("900.00"), Decimal("55.00")), "cash": (Decimal("70.00"), Decimal("10.00")), "expense": (Decimal("320.00"), Decimal("33.00"))},
 }
 
 _ACTIVITY_TEXT: dict[str, dict[str, str]] = {
@@ -136,6 +143,109 @@ _ACTIVITY_TEXT: dict[str, dict[str, str]] = {
         "marker_type": "other",
         "marker_body": "Conhecimento de frete da Transportes Rio Claro. Sem valor fiscal.\n",
     },
+    "pousada": {
+        "trade": "Pousada Maré Alta",
+        "bank": "Diária recebida no banco",
+        "bank_line": "Receita de hospedagem",
+        "cash": "Diária recebida no caixa",
+        "cash_line": "Receita do balcão da pousada",
+        "expense": "Café da manhã e lavanderia",
+        "expense_line": "Fornecedor da pousada",
+        "payment": "Pagamento da lavanderia",
+        "payment_line": "Saída do banco da pousada",
+        "capital": "Capital inicial da pousada",
+        "capital_line": "Capital social da pousada",
+        "capital_amount": "6000.00",
+        "marker_file": "diaria-pousada.txt",
+        "marker_type": "receipt",
+        "marker_body": "Diária da Pousada Maré Alta. Sem valor fiscal.\n",
+        "draft": "Diária ainda em rascunho",
+        "draft_line": "Hospedagem",
+        "draft_amount": "180.00",
+        "pending": "Café da manhã aguardando aprovação",
+        "pending_line": "Fornecedor da pousada",
+        "pending_amount": "95.00",
+        "approved": "Lavanderia aguardando publicação",
+        "approved_line": "Fornecedor da pousada",
+        "approved_amount": "140.00",
+        "current": "Hospedagem do mês corrente",
+        "current_line": "Diárias",
+        "current_amount": "260.00",
+    },
+    "oficina": {
+        "trade": "Oficina Serra Dourada",
+        "bank": "Serviço de oficina recebido no banco",
+        "bank_line": "Receita da oficina",
+        "cash": "Troca de óleo no caixa",
+        "cash_line": "Receita do caixa da oficina",
+        "expense": "Peças e lubrificante",
+        "expense_line": "Fornecedor de peças",
+        "payment": "Pagamento das peças",
+        "payment_line": "Saída do banco da oficina",
+        "capital": "Capital inicial da oficina",
+        "capital_line": "Capital social da oficina",
+        "capital_amount": "2500.00",
+        "marker_file": "ordem-servico-oficina.txt",
+        "marker_type": "contract",
+        "marker_body": "Ordem de serviço da Oficina Serra Dourada. Sem vigência real.\n",
+    },
+    "mercado": {
+        "trade": "Mercado Bom Preço",
+        "bank": "Venda do mercado recebida no banco",
+        "bank_line": "Receita do mercado",
+        "cash": "Venda de hortifruti no caixa",
+        "cash_line": "Receita do caixa do mercado",
+        "expense": "Compra de mercadoria do mercado",
+        "expense_line": "Fornecedor do mercado",
+        "payment": "Pagamento ao fornecedor do mercado",
+        "payment_line": "Saída do banco do mercado",
+        "capital": "Capital inicial do mercado",
+        "capital_line": "Capital social do mercado",
+        "capital_amount": "9000.00",
+        "marker_file": "cupom-mercado.txt",
+        "marker_type": "invoice",
+        "marker_body": "Cupom fictício do Mercado Bom Preço. Sem efeito fiscal.\n",
+    },
+    "clinica": {
+        "trade": "Clínica Verde Vale",
+        "bank": "Consulta recebida no banco",
+        "bank_line": "Receita da consulta",
+        "cash": "Consulta recebida no caixa",
+        "cash_line": "Receita do caixa da clínica",
+        "expense": "Material de consultório",
+        "expense_line": "Fornecedor da clínica",
+        "payment": "Pagamento do material",
+        "payment_line": "Saída do banco da clínica",
+        "capital": "Capital inicial da clínica",
+        "capital_line": "Capital social da clínica",
+        "capital_amount": "4500.00",
+        "marker_file": "ficha-clinica.txt",
+        "marker_type": "contract",
+        "marker_body": "Ficha de atendimento da Clínica Verde Vale. Sem valor fiscal.\n",
+    },
+    "grafica": {
+        "trade": "Gráfica Norte Sul",
+        "bank": "Impressão recebida no banco",
+        "bank_line": "Receita da gráfica",
+        "cash": "Cartão de visita no caixa",
+        "cash_line": "Receita do caixa da gráfica",
+        "expense": "Papel e tinta do mês",
+        "expense_line": "Fornecedor da gráfica",
+        "payment": "Pagamento do papel",
+        "payment_line": "Saída do banco da gráfica",
+        "capital": "Capital inicial da gráfica",
+        "capital_line": "Capital social da gráfica",
+        "capital_amount": "3500.00",
+        "marker_file": "ordem-grafica.txt",
+        "marker_type": "other",
+        "marker_body": "Ordem de impressão da Gráfica Norte Sul. Sem valor fiscal.\n",
+        "draft": "Impressão de cartaz em rascunho",
+        "draft_line": "Serviço gráfico",
+        "draft_amount": "40.00",
+        "pending": "Papel aguardando aprovação",
+        "pending_line": "Fornecedor da gráfica",
+        "pending_amount": "28.00",
+    },
 }
 
 COMPANIES = (
@@ -146,12 +256,77 @@ COMPANIES = (
     ("900000000005", "Transportes Rio Claro Ltda. (teste)", "0", "0", "0", False, "rascunhos"),
 )
 
+LITORAL_COMPANIES = (
+    ("910000000001", "Pousada Maré Alta Ltda. (teste)", "6000.00", "900.00", "220.00", True, "pousada"),
+    ("910000000002", "Oficina Serra Dourada Ltda. (teste)", "2500.00", "480.00", "160.00", False, "oficina"),
+    ("910000000003", "Mercado Bom Preço Ltda. (teste)", "9000.00", "1800.00", "700.00", False, "mercado"),
+    ("910000000004", "Clínica Verde Vale Ltda. (teste)", "0", "0", "0", False, "clinica"),
+    ("910000000005", "Gráfica Norte Sul Ltda. (teste)", "0", "0", "0", False, "grafica"),
+)
+
+CATALOGS = {"carteira": COMPANIES, "litoral": LITORAL_COMPANIES}
+OFFICE_NAMES = {"litoral": "Escritório Litoral (teste)"}
+
+_STORY_BEHAVIOR = {
+    "pousada": "andamento",
+    "oficina": "fechada",
+    "mercado": "banco",
+    "clinica": "vazia",
+    "grafica": "rascunhos",
+}
+
 
 def storage_configured() -> bool:
     return bool(os.environ.get("OBJECT_STORAGE_BUCKET", "").strip() and os.environ.get("OBJECT_STORAGE_ACCESS_KEY", "").strip())
 
 
-def load_samples(tenant_id: str) -> dict:
+def _behavior(story: str) -> str:
+    return _STORY_BEHAVIOR.get(story, story)
+
+
+def _phrase(story: str, key: str, default: str) -> str:
+    value = _ACTIVITY_TEXT[story].get(key)
+    return value if isinstance(value, str) and value else default
+
+
+def ensure_office(tenant_id: str, tenant_name: str) -> None:
+    session = session_factory(admin=True)()
+    try:
+        if session.get(Tenant, tenant_id) is None:
+            session.add(Tenant(id=tenant_id, name=tenant_name))
+            session.commit()
+    except Exception:
+        session.rollback()
+        raise
+    finally:
+        session.close()
+
+
+def copy_admins(source_tenant: str, target_tenant: str, target_name: str) -> list[str]:
+    session = session_factory(admin=True)()
+    try:
+        apply_tenant(session, source_tenant)
+        rows = session.execute(
+            select(Membership.user_id, Membership.roles, AppUser.display_name)
+            .join(AppUser, AppUser.id == Membership.user_id)
+            .where(Membership.tenant_id == source_tenant)
+        ).all()
+    finally:
+        session.close()
+    copied: list[str] = []
+    for user_id, roles, display_name in rows:
+        role_list = [role for role in (roles or []) if role in {"preparer", "approver", "admin", "viewer"}]
+        if "admin" not in role_list or user_id in {PREPARER_ID, APPROVER_ID}:
+            continue
+        bootstrap(target_tenant, target_name, user_id, display_name, role_list)
+        copied.append(user_id)
+    return copied
+
+
+def load_samples(tenant_id: str, catalog: str = "carteira") -> dict:
+    companies = CATALOGS.get(catalog)
+    if companies is None:
+        raise ValueError(f"Catálogo {catalog} não existe.")
     session = session_factory(admin=True)()
     try:
         apply_tenant(session, tenant_id)
@@ -170,13 +345,13 @@ def load_samples(tenant_id: str) -> dict:
         skipped: list[str] = []
         notes: list[str] = []
         statements = "imported" if storage_configured() else "skipped"
-        for index, (base, name, capital, revenue, expense, reverse, story) in enumerate(COMPANIES, start=1):
+        for index, (base, name, capital, revenue, expense, reverse, story) in enumerate(companies, start=1):
             apply_tenant(session, tenant_id)
             digits = cnpj_digits(base)
             existing = session.scalar(select(LegalEntity).where(LegalEntity.tenant_id == tenant_id, LegalEntity.cnpj == digits))
             published = 0
             if existing is None:
-                if story in {"vazia", "rascunhos"}:
+                if _behavior(story) in {"vazia", "rascunhos"}:
                     company = create_legal_entity(session, preparer, name=name, cnpj=digits, fiscal_year=year)
                     entity_id = company["legal_entity_id"]
                 else:
@@ -340,57 +515,64 @@ def _enrich(
     bank = f"{entity_id}-1.1.02"
     current_period = f"{entity_id}-{today.year}-{today.month:02d}"
     current_date = date(today.year, today.month, min(15, today.day))
-    if story == "andamento":
+    behavior = _behavior(story)
+    if behavior == "andamento":
         center_id = _ensure_center(session, preparer.tenant_id, entity_id)
         _ensure_journal(
             session, preparer, approver, entity_id, period_id, entry_date, "rascunho", "draft",
-            f"{entity_id}-5.1.01", f"{entity_id}-2.1.01", "30.00", "Aluguel em rascunho", "Fornecedor",
+            f"{entity_id}-5.1.01", f"{entity_id}-2.1.01", _phrase(story, "draft_amount", "30.00"),
+            _phrase(story, "draft", "Aluguel em rascunho"), _phrase(story, "draft_line", "Fornecedor"),
             cost_center_id=center_id,
         )
         _ensure_journal(
             session, preparer, approver, entity_id, period_id, entry_date, "pendente", "pending",
-            f"{entity_id}-5.1.01", f"{entity_id}-2.1.01", "55.00", "Compra aguardando aprovação", "Fornecedor",
+            f"{entity_id}-5.1.01", f"{entity_id}-2.1.01", _phrase(story, "pending_amount", "55.00"),
+            _phrase(story, "pending", "Compra aguardando aprovação"), _phrase(story, "pending_line", "Fornecedor"),
         )
         _ensure_journal(
             session, preparer, approver, entity_id, period_id, entry_date, "aprovado", "approved",
-            f"{entity_id}-5.1.01", f"{entity_id}-2.1.01", "70.00", "Honorários aguardando publicação", "Fornecedor",
+            f"{entity_id}-5.1.01", f"{entity_id}-2.1.01", _phrase(story, "approved_amount", "70.00"),
+            _phrase(story, "approved", "Honorários aguardando publicação"), _phrase(story, "approved_line", "Fornecedor"),
         )
         if _period_exists(session, current_period):
             _ensure_journal(
                 session, preparer, approver, entity_id, current_period, current_date, "corrente", "published",
-                bank, f"{entity_id}-4.1.01", "100.00", "Venda do mês corrente", "Receita de serviços",
+                bank, f"{entity_id}-4.1.01", _phrase(story, "current_amount", "100.00"),
+                _phrase(story, "current", "Venda do mês corrente"), _phrase(story, "current_line", "Receita de serviços"),
             )
         _ensure_bank(session, preparer, entity_id, bank, name, masked)
         if statements:
             _ensure_import(session, preparer, entity_id, name, notes)
             _ensure_receipt(session, preparer, entity_id, entry_date, name)
-    elif story == "fechada":
+    elif behavior == "fechada":
         _ensure_bank(session, preparer, entity_id, bank, name, masked)
         _close_and_request_reopen(session, preparer, approver, period_id, notes, name)
-    elif story == "banco":
+    elif behavior == "banco":
         account_id = _ensure_bank(session, preparer, entity_id, bank, name, masked)
         if statements and account_id:
             _ensure_statement(session, preparer, approver, entity_id, account_id, entry_date, revenue, _ACTIVITY_TEXT[story]["trade"])
             _ensure_receipt(session, preparer, entity_id, entry_date, name)
-    elif story == "rascunhos":
+    elif behavior == "rascunhos":
         _ensure_bank(session, preparer, entity_id, bank, name, masked)
         if _period_exists(session, current_period):
             _ensure_journal(
                 session, preparer, approver, entity_id, current_period, current_date, "rascunho", "draft",
-                f"{entity_id}-5.1.01", f"{entity_id}-2.1.01", "25.00", "Frete em rascunho", "Fornecedor",
+                f"{entity_id}-5.1.01", f"{entity_id}-2.1.01", _phrase(story, "draft_amount", "25.00"),
+                _phrase(story, "draft", "Frete em rascunho"), _phrase(story, "draft_line", "Fornecedor"),
             )
             _ensure_journal(
                 session, preparer, approver, entity_id, current_period, current_date, "pendente", "pending",
-                f"{entity_id}-5.1.01", f"{entity_id}-2.1.01", "15.00", "Pedágio aguardando aprovação", "Fornecedor",
+                f"{entity_id}-5.1.01", f"{entity_id}-2.1.01", _phrase(story, "pending_amount", "15.00"),
+                _phrase(story, "pending", "Pedágio aguardando aprovação"), _phrase(story, "pending_line", "Fornecedor"),
             )
     _ensure_activity(session, preparer, approver, entity_id, year, today, story, name, notes)
     if statements:
         _ensure_files(
             session, preparer, approver, entity_id=entity_id, name=name, story=story, masked=masked, today=today, notes=notes,
         )
-    if story == "andamento":
+    if behavior == "andamento":
         _ensure_sample_request(session, preparer, approver, entity_id, name, notes, confirm=True)
-    elif story == "vazia":
+    elif behavior == "vazia":
         _ensure_sample_request(session, preparer, approver, entity_id, name, notes, confirm=False)
 
 
@@ -997,9 +1179,17 @@ def _ensure_statement(
 def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(description="Cria empresas fictícias de teste no escritório informado.")
     parser.add_argument("--tenant-id", required=True)
+    parser.add_argument("--catalog", default="carteira", choices=sorted(CATALOGS))
+    parser.add_argument("--copy-admins-from", default="")
     args = parser.parse_args(argv)
     try:
-        result = load_samples(args.tenant_id)
+        office_name = OFFICE_NAMES.get(args.catalog)
+        if office_name and args.tenant_id == args.catalog:
+            ensure_office(args.tenant_id, office_name)
+        if args.copy_admins_from:
+            copied = copy_admins(args.copy_admins_from, args.tenant_id, office_name or args.tenant_id)
+            print(f"admins={len(copied)}")
+        result = load_samples(args.tenant_id, args.catalog)
     except ValueError as exc:
         raise SystemExit(str(exc)) from exc
     for item in result["created"]:

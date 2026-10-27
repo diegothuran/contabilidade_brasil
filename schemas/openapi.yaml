@@ -638,7 +638,8 @@ paths:
         '503': { description: Diretório de usuários não configurado }
   /v1/me:
     get:
-      summary: Identidade, escritório e papéis do token
+      summary: Identidade, papéis e escritórios da pessoa
+      description: O escritório ativo é o do token. O header X-Tenant-Id escolhe outro escritório somente quando a pessoa já tem membership nele.
       operationId: getMe
       responses:
         '200': { description: Sessão }

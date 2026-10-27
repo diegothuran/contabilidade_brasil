@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from "react";
 import { NavLink, Route, Routes, useLocation, useNavigate, useParams } from "react-router-dom";
+import { TENANT_KEY } from "../api";
 import { userManager } from "../auth";
 import { AccountsPage } from "../pages/AccountsPage";
 import { AdministrationPage } from "../pages/AdministrationPage";
@@ -260,7 +261,25 @@ export function RastroShell() {
 
         <div className="office-summary">
           <span className="eyebrow">Escritório</span>
-          <strong>{session.me.tenant_name}</strong>
+          {(session.me.offices ?? []).length > 1 ? (
+            <select
+              className="office-switch"
+              aria-label="Escritório"
+              value={session.me.tenant_id}
+              onChange={(event) => {
+                sessionStorage.setItem(TENANT_KEY, event.target.value);
+                sessionStorage.removeItem("contabil.entity");
+                sessionStorage.removeItem("contabil.periods.v2");
+                window.location.assign("/app/rastro");
+              }}
+            >
+              {session.me.offices?.map((office) => (
+                <option key={office.tenant_id} value={office.tenant_id}>{office.tenant_name}</option>
+              ))}
+            </select>
+          ) : (
+            <strong>{session.me.tenant_name}</strong>
+          )}
           <span>{demonstration ? "Demonstração sintética" : "Conectado ao sistema"}</span>
         </div>
 

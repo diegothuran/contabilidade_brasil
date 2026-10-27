@@ -104,7 +104,7 @@ def create_app() -> FastAPI:
         CORSMiddleware,
         allow_origins=origins,
         allow_methods=["GET", "POST", "OPTIONS"],
-        allow_headers=["Authorization", "Content-Type", "Idempotency-Key", "X-Correlation-Id"],
+        allow_headers=["Authorization", "Content-Type", "Idempotency-Key", "X-Correlation-Id", "X-Tenant-Id"],
         expose_headers=["X-Correlation-Id"],
     )
     app.add_middleware(CorrelationMiddleware)

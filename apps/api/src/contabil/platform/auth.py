@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import re
 from datetime import datetime, timezone
 
 import jwt
@@ -15,10 +16,24 @@ from contabil.tables import AppUser, Membership, Tenant
 
 logger = logging.getLogger(__name__)
 _jwk_client: PyJWKClient | None = None
+_TENANT_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]{0,78}$")
+
+
+def chosen_tenant(home: str, requested: str | None) -> str:
+    value = (requested or "").strip()
+    if not value or value == home:
+        return home
+    if _TENANT_ID.fullmatch(value) is None:
+        raise DomainError(403, "Ação não permitida", "Usuário sem acesso a este escritório.")
+    return value
 
 
 def apply_tenant(session: Session, tenant_id: str) -> None:
     session.execute(text("SELECT set_config('app.tenant_id', :tenant_id, true)"), {"tenant_id": tenant_id})
+
+
+def bind_user(session: Session, user_id: str) -> None:
+    session.execute(text("SELECT set_config('app.user_id', :user_id, true)"), {"user_id": user_id})
 
 
 def format_utc(value: datetime) -> str:
@@ -61,7 +76,7 @@ def _claim(payload: dict, name: str) -> object:
     return value
 
 
-def authenticate(session: Session, token: str) -> Principal:
+def authenticate(session: Session, token: str, requested_tenant: str | None = None) -> Principal:
     payload = decode_token(token)
     settings = get_settings()
     username = _claim(payload, settings.oidc_username_claim)
@@ -74,12 +89,21 @@ def authenticate(session: Session, token: str) -> Principal:
     if not isinstance(tenant_id, str) or not tenant_id:
         logger.warning("token sem a claim %s", settings.oidc_tenant_claim)
         raise DomainError(401, "Não autenticado", "O token não identifica o escritório.")
+    chosen = chosen_tenant(tenant_id, requested_tenant)
     apply_tenant(session, tenant_id)
+    bind_user(session, username)
+    if chosen != tenant_id:
+        allowed = session.scalar(
+            select(Membership.id).where(Membership.user_id == username, Membership.tenant_id == chosen)
+        )
+        if allowed is None:
+            raise DomainError(403, "Ação não permitida", "Usuário sem acesso a este escritório.")
+        apply_tenant(session, chosen)
     row = session.execute(
         select(Membership, AppUser.display_name, Tenant.name)
         .join(AppUser, AppUser.id == Membership.user_id)
         .join(Tenant, Tenant.id == Membership.tenant_id)
-        .where(Membership.user_id == username, Membership.tenant_id == tenant_id)
+        .where(Membership.user_id == username, Membership.tenant_id == chosen)
     ).one_or_none()
     if row is None:
         raise DomainError(403, "Ação não permitida", "Usuário sem acesso a este escritório.")
@@ -89,7 +113,7 @@ def authenticate(session: Session, token: str) -> Principal:
         raise DomainError(403, "Ação não permitida", "Usuário sem papel neste escritório.")
     return Principal(
         user_id=username,
-        tenant_id=tenant_id,
+        tenant_id=chosen,
         roles=roles,
         display_name=display_name,
         tenant_name=tenant_name,

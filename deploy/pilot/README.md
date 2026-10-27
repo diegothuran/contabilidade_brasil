@@ -136,6 +136,15 @@ Ele deixa cinco empresas fictícias, cada uma com um caso diferente:
 
 O movimento copiado igual em todas as empresas é estornado quando o período ainda está aberto, e no lugar entra o lançamento do ramo. Com o bucket configurado, cada empresa ganha recibo, nota, contrato, um arquivo com o nome do ramo, um lote de diário em simulação e um extrato OFX. A Padaria Aurora também fica com um pedido de recibo já confirmado em outubro de 2026. O Ateliê Brisa fica com um pedido de contrato aberto nessa competência, e o fechamento de outubro permanece bloqueado até confirmar ou cancelar. Sem o bucket, o comando imprime `extrato=skipped` e não grava arquivo; o pedido aberto do Ateliê ainda é criado.
 
+O segundo escritório fictício é o Litoral. O comando cria o escritório, copia os administradores do escritório de origem e carrega outra carteira: Pousada Maré Alta, Oficina Serra Dourada, Mercado Bom Preço, Clínica Verde Vale e Gráfica Norte Sul.
+
+```bash
+heroku run --no-tty --exit-code --app NOME-API -- python -m contabil.pilot_samples --tenant-id litoral --catalog litoral --copy-admins-from escritorio
+```
+
+Quem ficou administrador nos dois vê o seletor na barra lateral. A troca não muda o atributo do login; ela só vale enquanto a sessão do navegador guarda o escritório escolhido.
+
+
 ## Conferência
 
 - `GET /readyz` da API responde `ready`.

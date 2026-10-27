@@ -8,7 +8,8 @@ from contabil.identity.directory import UserDirectory, get_user_directory
 from contabil.platform.deps import Ctx, get_context
 from contabil.platform.idempotency import persist, replay_guard
 from contabil.platform.principal import ensure_role
-from contabil.tables import LegalEntity
+from contabil.platform.auth import bind_user
+from contabil.tables import LegalEntity, Membership, Tenant
 from contabil.tenancy.service import create_legal_entity, entity_dict, invite_user, list_users
 
 router = APIRouter()
@@ -59,12 +60,20 @@ def post_user(
 
 @router.get("/me")
 def me(ctx: Ctx = Depends(get_context)) -> dict:
+    bind_user(ctx.session, ctx.principal.user_id)
+    offices = ctx.session.execute(
+        select(Tenant.id, Tenant.name)
+        .join(Membership, Membership.tenant_id == Tenant.id)
+        .where(Membership.user_id == ctx.principal.user_id)
+        .order_by(Tenant.name)
+    ).all()
     return {
         "user_id": ctx.principal.user_id,
         "display_name": ctx.principal.display_name,
         "tenant_id": ctx.principal.tenant_id,
         "tenant_name": ctx.principal.tenant_name,
         "roles": sorted(ctx.principal.roles),
+        "offices": [{"tenant_id": tenant_id, "tenant_name": name} for tenant_id, name in offices],
     }
 
 

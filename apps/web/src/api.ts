@@ -1,6 +1,12 @@
 import { accessToken } from "./auth";
 
 const apiUrl = import.meta.env.VITE_API_URL ?? "";
+export const TENANT_KEY = "contabil.tenant";
+
+function tenantHeaders(): Record<string, string> {
+  const tenantId = sessionStorage.getItem(TENANT_KEY);
+  return tenantId ? { "X-Tenant-Id": tenantId } : {};
+}
 
 export class ApiError extends Error {
   status: number;
@@ -17,6 +23,7 @@ export async function api<T>(path: string, options: { method?: string; body?: un
   const headers: Record<string, string> = {
     Authorization: `Bearer ${await accessToken()}`,
     "X-Correlation-Id": crypto.randomUUID(),
+    ...tenantHeaders(),
   };
   let body: string | undefined;
   if (options.body !== undefined) {
@@ -44,6 +51,7 @@ async function authorizedHeaders(): Promise<Record<string, string>> {
     Authorization: `Bearer ${await accessToken()}`,
     "X-Correlation-Id": crypto.randomUUID(),
     "Idempotency-Key": crypto.randomUUID(),
+    ...tenantHeaders(),
   };
 }
 
@@ -85,7 +93,7 @@ export async function uploadRequestFile(requestId: string, file: File): Promise<
 
 export async function downloadDocument(documentId: string, fileName: string): Promise<void> {
   const response = await fetch(`${apiUrl}/v1/documents/${documentId}/content`, {
-    headers: { Authorization: `Bearer ${await accessToken()}` },
+    headers: { Authorization: `Bearer ${await accessToken()}`, ...tenantHeaders() },
   });
   if (!response.ok) {
     await readPayload(response);

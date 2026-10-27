@@ -61,6 +61,7 @@
 .rastro .sidebar-close { display: none; margin-left: auto; }
 .rastro .office-summary { display: grid; gap: 4px; margin: 19px 8px 21px; }
 .rastro .office-summary strong { color: #eaf4fb; font-size: .79rem; line-height: 1.35; }
+.rastro .office-switch { width: 100%; margin-top: 2px; padding: 4px 6px; border: 1px solid rgba(210, 227, 240, .24); border-radius: 6px; background: #1c3346; color: #eaf4fb; font: inherit; font-size: .79rem; }
 .rastro .office-summary span:not(.eyebrow) { color: #91aabd; font-size: .72rem; }
 .rastro .office-summary .eyebrow { color: #6f8da3; }
 .rastro .main-nav { display: grid; gap: 17px; overflow-y: auto; padding: 2px 0 12px; }
