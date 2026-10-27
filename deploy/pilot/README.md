@@ -30,7 +30,7 @@ heroku ps:type web=basic --app NOME-WEB
 
 ## Publicar
 
-A API sai pelo [heroku.yml](../../heroku.yml) da raiz. O release roda `python -m contabil.migrate`.
+A API sai pelo [heroku.yml](../../heroku.yml) da raiz. O release roda `python -m contabil.migrate`. A imagem inclui `curl` porque, sem ele, a Heroku encerra o release sem executar a migração.
 
 ```bash
 git push heroku main
