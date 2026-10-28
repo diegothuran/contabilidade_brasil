@@ -35,7 +35,7 @@ from contabil.tables import (
     Operation,
     SourceDocument,
 )
-from contabil.tenancy.service import page_limit, require_entity
+from contabil.tenancy.service import require_entity
 
 ACCEPTED_KINDS = frozenset({"chart_of_accounts", "opening_balance", "journal"})
 ACCOUNT_TYPES = frozenset({"asset", "liability", "equity", "revenue", "expense"})

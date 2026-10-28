@@ -12,6 +12,7 @@ from contabil.identity.mailer import get_mailer, notice_text
 from contabil.platform.auth import apply_tenant
 from contabil.platform.ids import new_id
 from contabil.platform.outbox import enqueue
+from contabil.platform.principal import Principal
 from contabil.platform.settings import get_settings
 from contabil.tables import DocumentRequest, Membership, NotificationLog, Tenant
 
