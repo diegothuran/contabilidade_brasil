@@ -1,6 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { ApiError, api, downloadPortalDocument, uploadPortalFile, uploadPortalSubmission } from "../api";
+import { userManager } from "../auth";
+import { formatCnpj } from "../format";
 import { RequestThread } from "./RequestThread";
 import { Me } from "../session";
 
@@ -99,16 +101,19 @@ export function PortalPage({ me }: { me: Me }) {
           <div>
             <span className="eyebrow">{me.tenant_name}</span>
             <h1>{me.legal_entity_name ?? "Sua empresa"}</h1>
-            <p>{me.legal_entity_cnpj ? `CNPJ ${me.legal_entity_cnpj}` : "Pedidos desta empresa."}</p>
+            <p>{me.legal_entity_cnpj ? `CNPJ ${formatCnpj(me.legal_entity_cnpj)}` : "Pedidos desta empresa."}</p>
           </div>
-          <label>
-            <input
-              type="checkbox"
-              checked={preference.data?.notify_client ?? true}
-              onChange={(event) => savePreference.mutate(event.target.checked)}
-            />
-            Receber avisos por e-mail
-          </label>
+          <div className="page-header__action">
+            <label>
+              <input
+                type="checkbox"
+                checked={preference.data?.notify_client ?? true}
+                onChange={(event) => savePreference.mutate(event.target.checked)}
+              />
+              Receber avisos por e-mail
+            </label>
+            <button type="button" onClick={() => void userManager.signoutRedirect()}>Sair</button>
+          </div>
         </section>
         {summary ? (
           <section className="metric-strip" aria-label="Resumo dos pedidos">

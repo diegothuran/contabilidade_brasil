@@ -3,7 +3,7 @@ from __future__ import annotations
 from decimal import Decimal
 
 from contabil.platform.auth import format_utc
-from contabil.platform.money import format_amount, format_signed
+from contabil.platform.money import format_amount
 from contabil.tables import JournalEntry, JournalLine
 
 

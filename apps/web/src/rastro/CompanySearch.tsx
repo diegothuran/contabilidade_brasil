@@ -1,20 +1,13 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { rankCompanies } from "./companyMatch";
+import { formatCnpj } from "../format";
 import type { Entity } from "../session";
 
 const FOCUS_EVENT = "rastro-focus-company-search";
 
 export function focusCompanySearch(): void {
   window.dispatchEvent(new Event(FOCUS_EVENT));
-}
-
-function formatCnpj(value: string): string {
-  const digits = value.replace(/\D/g, "");
-  if (digits.length !== 14) {
-    return value || "Sem CNPJ";
-  }
-  return `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5, 8)}/${digits.slice(8, 12)}-${digits.slice(12)}`;
 }
 
 function initials(name: string): string {
