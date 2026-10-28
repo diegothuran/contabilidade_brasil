@@ -9,6 +9,7 @@ from contabil.audit.service import append_event
 from contabil.documents.service import DOCUMENT_TYPES, get_document, store_document
 from contabil.periods.service import require_period
 from contabil.platform.auth import apply_tenant, format_utc
+from contabil.platform.clock import brasilia_today
 from contabil.platform.constants import POSTING_PERIOD_STATUSES, SCHEMA_VERSION
 from contabil.platform.errors import DomainError
 from contabil.platform.ids import new_id
@@ -176,7 +177,7 @@ def create_request(
         target_ref=row.id,
         metadata={"action": "document_request_opened", "period_id": period.id, "document_type": document_type},
     )
-    enqueue_notice(session, principal.tenant_id, row.id, "created", date.today())
+    enqueue_notice(session, principal.tenant_id, row.id, "created", brasilia_today())
     return request_dict(row)
 
 
@@ -333,7 +334,7 @@ def list_client_requests(
     return {
         "items": items,
         "next_cursor": next_cursor,
-        "summary": portal_summary([(item_status, due_on) for item_status, due_on in counted], date.today()),
+        "summary": portal_summary([(item_status, due_on) for item_status, due_on in counted], brasilia_today()),
     }
 
 
@@ -530,7 +531,7 @@ def return_request(session: Session, principal: Principal, request_id: str, reas
         reason=cleaned,
         metadata={"action": "document_request_returned"},
     )
-    enqueue_notice(session, principal.tenant_id, row.id, "returned", date.today())
+    enqueue_notice(session, principal.tenant_id, row.id, "returned", brasilia_today())
     return request_dict(row)
 
 
