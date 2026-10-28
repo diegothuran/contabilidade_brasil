@@ -235,6 +235,8 @@ python3 -m pytest tests/contract -q
 openapi-spec-validator schemas/openapi.yaml
 ```
 
+O [CI](.github/workflows/ci.yml) roda os mesmos comandos em todo PR e a cada push na `main`. O job `api-static` cobre os testes unitários, o pyflakes, os validadores de specs e links, o OpenAPI e os testes de contrato. O job `web` roda o lint e o build da interface. O job `integration` sobe a API no compose e roda o `pytest` dentro do container; se algum teste for pulado, o job falha.
+
 ## Como usar com o contador
 
 Comece pelo [caderno de descoberta](docs/accountant-discovery-workbook.md). Ele transforma a experiência do contador em decisões testáveis: como o escritório fecha hoje, onde ocorrem retrabalho e risco, quais arquivos realmente chegam, quais obrigações são prioritárias e que evidência precisa ser preservada.
