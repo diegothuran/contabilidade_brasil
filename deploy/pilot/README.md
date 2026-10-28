@@ -87,7 +87,7 @@ Não defina `STATIC_DIR`, `SEED_DEMO` nem `OBJECT_STORAGE_CREATE_BUCKETS`. O app
 
 ## Primeiro escritório
 
-O `--user-id` é o `cognito:username` (em geral o e-mail ou o `sub`, o que o token trouxer nesse claim).
+O `--user-id` é o `cognito:username` (em geral o e-mail ou o `sub`, o que o token trouxer nesse claim). O bootstrap e o convite gravam esse nome em minúsculas, como o user pool do piloto devolve no token.
 
 ```bash
 heroku run --app NOME-API python -m contabil.bootstrap \

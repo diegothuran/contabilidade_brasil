@@ -240,7 +240,7 @@ paths:
                 period_id: { type: string }
                 kind: { type: string, enum: [operational_v1] }
       responses:
-        '202': { description: Exportação aceita, com export_id, operation_id e correlation_id }
+        '202': { description: "Exportação aceita, com export_id, operation_id e correlation_id" }
         '403': { description: Papel insuficiente }
   /v1/exports/{export_id}:
     get:
@@ -254,7 +254,7 @@ paths:
       responses:
         '200': { description: Pacote JSON, content: { application/json: { schema: { $ref: '#/components/schemas/OperationalExport' } } } }
         '404': { description: Exportação de outro escritório ou inexistente }
-        '409': { description: Ainda em fila, gerando ou falhou }
+        '409': { description: "Ainda em fila, gerando ou falhou" }
   /v1/document-requests/{request_id}/content:
     post:
       summary: Grava o arquivo original e marca o pedido como recebido
@@ -718,7 +718,7 @@ paths:
           name: limit
           schema: { type: integer, minimum: 1, maximum: 100, default: 50 }
       responses:
-        '200': { description: Operações, com operation_id, status, correlation_id, kind e target_ref }
+        '200': { description: "Operações, com operation_id, status, correlation_id, kind e target_ref" }
         '403': { description: Acesso de cliente }
   /v1/operations/{operation_id}:
     get:
@@ -752,7 +752,11 @@ paths:
               additionalProperties: false
               required: [username, display_name, email, roles]
               properties:
-                username: { type: string, minLength: 1, maxLength: 64 }
+                username:
+                  type: string
+                  minLength: 1
+                  maxLength: 64
+                  description: Gravado em minúsculas, como o Cognito devolve no token.
                 display_name: { type: string, minLength: 1, maxLength: 200 }
                 email: { type: string, minLength: 3, maxLength: 200 }
                 roles:
@@ -762,7 +766,7 @@ paths:
                   items: { type: string, enum: [preparer, approver, admin, viewer, client] }
                 legal_entity_id: { type: string, description: Obrigatório quando o papel é client. }
       responses:
-        '201': { description: Convite registrado. Para um cliente que já existe ligado à mesma empresa, só cria o login, sem duplicar o acesso. }
+        '201': { description: "Convite registrado. Para um cliente que já existe ligado à mesma empresa, só cria o login, sem duplicar o acesso." }
         '400': { description: Dados do convite inválidos }
         '403': { description: Papel insuficiente }
         '409': { description: Usuário já existe neste ou noutro escritório com outro acesso }

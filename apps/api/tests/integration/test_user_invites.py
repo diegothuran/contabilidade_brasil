@@ -33,11 +33,12 @@ def test_admin_invites_and_lists_without_email(client, tokens, world, app):
             client,
             tokens["admin"],
             "/v1/users",
-            {"username": "ana", "display_name": "Ana Costa", "email": "ana@example.com", "roles": ["preparer", "viewer"]},
+            {"username": "Ana", "display_name": "Ana Costa", "email": "ana@example.com", "roles": ["preparer", "viewer"]},
         )
         assert created.status_code == 201, created.text
         body = created.json()
         assert body["user_id"] == "ana"
+        assert directory.users == {"ana": "tenant_demo"}
         assert "email" not in body
         listed = client.get("/v1/users", headers={"Authorization": f"Bearer {tokens['admin']}"})
         assert listed.status_code == 200

@@ -113,6 +113,35 @@ def test_other_office_does_not_write_membership() -> None:
     assert session.added == []
 
 
+class _Stop(Exception):
+    pass
+
+
+class _NameRecorder:
+    def __init__(self) -> None:
+        self.names: list[str] = []
+
+    def create_user(self, username: str, email: str, display_name: str, tenant_id: str) -> None:
+        del email, display_name, tenant_id
+        self.names.append(username)
+        raise _Stop
+
+
+def test_username_is_stored_in_lowercase_like_cognito() -> None:
+    directory = _NameRecorder()
+    with pytest.raises(_Stop):
+        invite_user(
+            _Recorder(),  # type: ignore[arg-type]
+            _principal(),
+            directory,
+            username=" Diego ",
+            display_name="Diego",
+            email="diego@example.com",
+            roles=["viewer"],
+        )
+    assert directory.names == ["diego"]
+
+
 def test_cognito_keeps_a_user_from_another_office() -> None:
     directory = CognitoDirectory(_Cognito(existing_tenant="outro"), "pool")
     with pytest.raises(DomainError) as caught:
