@@ -203,6 +203,9 @@ flowchart TB
 - **Sessão admin também obedece à RLS.** Com `FORCE`, nem o dono da tabela vê linha sem `apply_tenant`. Script de suporte que lista "nada" quase sempre esqueceu o tenant.
 - **`bootstrap()` abre outra sessão.** O que ainda não foi commitado na sessão chamadora não é visível para ele.
 - **O nome de usuário é gravado em minúsculas.** O Cognito do piloto não diferencia maiúsculas e devolve `cognito:username` em minúsculas ([ADR 019](adr/019-convite-de-usuario.md)).
+- **"Hoje" é a data de Brasília.** O servidor roda em UTC; entre 21h e meia-noite, `date.today()` já é o dia seguinte. Prazo, lembrete e resumo do portal usam `platform.clock.brasilia_today()`.
+- **O contrato do pedido não traz os arquivos.** `files` só aparece no detalhe (`GET /v1/document-requests/{request_id}` e `GET /v1/portal/document-requests/{request_id}`). Criar, listar, confirmar, devolver e cancelar devolvem o pedido sem a lista.
+- **Aviso sem SES configurado falha calado.** O pedido segue e o log diz `notice skipped`. Antes de uma rodada, confira `MAIL_FROM` e as chaves na API.
 - **O Heroku guarda só as últimas 1500 linhas de log.** Para investigar um erro, peça a ação de novo com `heroku logs --tail` aberto. O `X-Correlation-Id` da resposta liga a tela à linha do log.
 - **`heroku run` no Windows quebra comando de várias linhas.** Mande o script pela entrada padrão: `heroku run --no-tty --app NOME -- python - < script.py`.
 - **No OpenAPI, descrição com vírgula dentro de `{ ... }` vai entre aspas.**
