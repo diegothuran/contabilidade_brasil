@@ -15,6 +15,7 @@ from contabil.exports.service import run_operational_export
 from contabil.identity.notices import deliver_notice, sweep_reminders
 from contabil.reconciliation.service import import_statement, resolve_case_from_journal
 from contabil.platform.auth import apply_tenant
+from contabil.platform.clock import brasilia_today
 from contabil.platform.db import session_factory
 from contabil.tables import Operation, Tenant
 
@@ -147,7 +148,7 @@ def run_loop(stop: threading.Event) -> None:
             count = relay_once(session)
             now = time.time()
             if now - last_remind > 3600:
-                sweep_reminders(session, datetime.now(timezone.utc).date())
+                sweep_reminders(session, brasilia_today())
                 last_remind = now
             if now - last_verify > 30:
                 verify_tenants(session)

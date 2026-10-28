@@ -3,23 +3,24 @@ from __future__ import annotations
 import argparse
 import sys
 from dataclasses import dataclass
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, datetime
 from statistics import median
 
 from sqlalchemy import any_, literal, select
 
 from contabil.platform.auth import apply_tenant, format_utc
+from contabil.platform.clock import BRASILIA as _BRASILIA, brasilia_today
 from contabil.platform.db import session_factory
-from contabil.tables import AccountingPeriod, AuditEvent, DocumentRequest, LegalEntity, Membership
+from contabil.tables import AccountingPeriod, AuditEvent, ClientSubmission, DocumentRequest, LegalEntity, Membership
 
-# Brasília não tem horário de verão desde 2019; o prazo é lido nesse fuso.
-_BRASILIA = timezone(timedelta(hours=-3))
 _ACTIONS = {
     "document_request_opened": "opened_at",
     "document_request_received": "received_at",
     "document_request_confirmed": "closed_at",
     "document_request_cancelled": "closed_at",
 }
+_RETURNED = "document_request_returned"
+_COMMENTED = "document_request_commented"
 COLUMNS = (
     "empresa",
     "pedido",
@@ -32,7 +33,11 @@ COLUMNS = (
     "encerrado_em",
     "dias_ate_receber",
     "dias_ate_confirmar",
+    "dias_ate_aceitar",
     "no_prazo",
+    "devolucoes",
+    "comentarios_cliente",
+    "comentarios_escritorio",
 )
 
 
@@ -55,13 +60,25 @@ def _days(start: datetime | None, end: datetime | None) -> float | None:
 
 def request_cycles(requests, events, client_users: set[str], today: date) -> list[dict]:
     moments: dict[str, dict[str, datetime]] = {}
+    counts: dict[str, dict[str, int]] = {}
     for event in sorted(events, key=lambda item: item.occurred_at):
-        field = _ACTIONS.get((event.details or {}).get("action"))
+        action = (event.details or {}).get("action")
+        field = _ACTIONS.get(action)
         if field is not None:
             moments.setdefault(event.target_ref, {}).setdefault(field, event.occurred_at)
+        # A autoria do comentário vem do ator do evento; o texto não é lido.
+        if action == _RETURNED:
+            key = "devolucoes"
+        elif action == _COMMENTED:
+            key = "comentarios_cliente" if event.actor_ref in client_users else "comentarios_escritorio"
+        else:
+            continue
+        tally = counts.setdefault(event.target_ref, {})
+        tally[key] = tally.get(key, 0) + 1
     cycles = []
     for request in requests:
         seen = moments.get(request.id, {})
+        tally = counts.get(request.id, {})
         opened = seen.get("opened_at")
         received = seen.get("received_at")
         closed = seen.get("closed_at")
@@ -88,24 +105,35 @@ def request_cycles(requests, events, client_users: set[str], today: date) -> lis
                 "encerrado_em": closed,
                 "dias_ate_receber": _days(opened, received),
                 "dias_ate_confirmar": _days(received, closed) if request.status == "confirmed" else None,
+                "dias_ate_aceitar": _days(opened, closed) if request.status == "confirmed" else None,
                 "no_prazo": on_time,
+                "devolucoes": tally.get("devolucoes", 0),
+                "comentarios_cliente": tally.get("comentarios_cliente", 0),
+                "comentarios_escritorio": tally.get("comentarios_escritorio", 0),
             }
         )
     return cycles
 
 
-def summarize(cycles: list[dict]) -> dict:
+def summarize(cycles: list[dict], submissions: list[str] | None = None) -> dict:
     received = [item for item in cycles if item["recebido_em"] is not None]
     to_receive = [item["dias_ate_receber"] for item in received if item["dias_ate_receber"] is not None]
     to_confirm = [item["dias_ate_confirmar"] for item in cycles if item["dias_ate_confirmar"] is not None]
+    to_accept = [item["dias_ate_aceitar"] for item in cycles if item["dias_ate_aceitar"] is not None]
+    statuses = submissions or []
     return {
         "pedidos": len(cycles),
         "enviados_pelo_cliente": sum(1 for item in received if item["enviado_por"] == "cliente"),
         "recebidos_no_prazo": f"{sum(1 for item in received if item['no_prazo'])}/{len(received)}",
         "mediana_dias_ate_receber": median(to_receive) if to_receive else None,
         "mediana_dias_ate_confirmar": median(to_confirm) if to_confirm else None,
+        "mediana_dias_ate_aceitar": median(to_accept) if to_accept else None,
         "abertos": sum(1 for item in cycles if item["estado"] in {"open", "received"}),
         "abertos_vencidos": sum(1 for item in cycles if item["estado"] == "open" and item["no_prazo"] is False),
+        "pedidos_com_devolucao": sum(1 for item in cycles if item["devolucoes"]),
+        "pedidos_com_conversa": sum(1 for item in cycles if item["comentarios_cliente"] or item["comentarios_escritorio"]),
+        "envios_sem_pedido": len(statuses),
+        "envios_sem_pedido_classificados": sum(1 for status in statuses if status == "classified"),
     }
 
 
@@ -121,7 +149,7 @@ def _cell(value) -> str:
     return str(value).replace(";", ",")
 
 
-def load_cycles(tenant_id: str, since: date | None = None) -> list[dict]:
+def load_cycles(tenant_id: str, since: date | None = None) -> tuple[list[dict], list[str]]:
     session = session_factory(admin=True)()
     try:
         apply_tenant(session, tenant_id)
@@ -132,8 +160,9 @@ def load_cycles(tenant_id: str, since: date | None = None) -> list[dict]:
             .where(DocumentRequest.tenant_id == tenant_id)
             .order_by(LegalEntity.name, DocumentRequest.due_on, DocumentRequest.id)
         )
-        if since is not None:
-            stmt = stmt.where(DocumentRequest.created_at >= datetime.combine(since, datetime.min.time(), _BRASILIA))
+        start = datetime.combine(since, datetime.min.time(), _BRASILIA) if since is not None else None
+        if start is not None:
+            stmt = stmt.where(DocumentRequest.created_at >= start)
         rows = session.execute(stmt).all()
         requests = [
             _Request(row.id, row.title, row.due_on, row.status, row.received_by, name, f"{month:02d}/{year}")
@@ -151,7 +180,11 @@ def load_cycles(tenant_id: str, since: date | None = None) -> list[dict]:
                 select(Membership.user_id).where(Membership.tenant_id == tenant_id, literal("client") == any_(Membership.roles))
             ).all()
         )
-        return request_cycles(requests, events, clients, datetime.now(_BRASILIA).date())
+        submissions = select(ClientSubmission.status).where(ClientSubmission.tenant_id == tenant_id)
+        if start is not None:
+            submissions = submissions.where(ClientSubmission.created_at >= start)
+        statuses = list(session.scalars(submissions).all())
+        return request_cycles(requests, events, clients, brasilia_today()), statuses
     finally:
         session.close()
 
@@ -161,11 +194,11 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("--tenant-id", required=True)
     parser.add_argument("--since", type=date.fromisoformat, default=None, help="AAAA-MM-DD; pedidos abertos a partir dessa data.")
     args = parser.parse_args(argv)
-    cycles = load_cycles(args.tenant_id, args.since)
+    cycles, submissions = load_cycles(args.tenant_id, args.since)
     print(";".join(COLUMNS))
     for item in cycles:
         print(";".join(_cell(item[column]) for column in COLUMNS))
-    for key, value in summarize(cycles).items():
+    for key, value in summarize(cycles, submissions).items():
         print(f"resumo {key}={_cell(value)}")
 
 

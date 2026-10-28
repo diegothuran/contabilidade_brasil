@@ -114,15 +114,22 @@ heroku config:set --app NOME-API \
 
 Sem essas variáveis, a tela diz que o diretório de usuários não está configurado. O remetente é o padrão do Cognito, com o limite desse remetente. O bootstrap não altera uma membership que já existe e continua útil para o primeiro admin.
 
-O aviso ao cliente usa o SES na mesma região. Sem `MAIL_FROM`, `SES_ACCESS_KEY` e `SES_SECRET_KEY`, o pedido segue e o aviso fica registrado como não configurado. Em sandbox, cada e-mail de destino precisa estar verificado no SES. `PORTAL_BASE_URL` é o endereço da interface, o único link que o aviso carrega. O banco não guarda o e-mail: ele é lido no Cognito na hora do envio. O cliente desliga o aviso no próprio portal.
+## Aviso ao cliente
+
+O aviso ao cliente usa o SES na mesma região ([ADR 028](../../docs/adr/028-aviso-por-email.md)). Sem `MAIL_FROM`, `SES_ACCESS_KEY` e `SES_SECRET_KEY`, o pedido segue, nenhum e-mail sai e o log da API registra `notice skipped`. Nada avisa na tela, então confira as variáveis antes de uma rodada com clientes. `PORTAL_BASE_URL` é o endereço da interface, o único link que o aviso carrega. O banco não guarda o e-mail: ele é lido no Cognito na hora do envio, com a mesma chave do convite. O cliente desliga o aviso no próprio portal.
+
+Para ligar:
+
+1. No SES em `us-east-2`, verifique o remetente, um endereço ou um domínio.
+2. Enquanto a conta estiver em sandbox, verifique também o e-mail de cada cliente de teste. Endereço não verificado não recebe.
+3. Crie um usuário IAM só com `ses:SendEmail` e `ses:SendRawEmail`, restrito à identidade do remetente, e gere a chave de acesso.
+4. Grave as variáveis na API. Os valores não entram no repositório nem no chat.
 
 ```bash
-heroku config:set --app NOME-API \
-  MAIL_FROM=REMETENTE \
-  SES_ACCESS_KEY=CHAVE \
-  SES_SECRET_KEY=SEGREDO \
-  PORTAL_BASE_URL=URL-DA-INTERFACE
+heroku config:set --app NOME-API   MAIL_FROM=REMETENTE   SES_ACCESS_KEY=CHAVE   SES_SECRET_KEY=SEGREDO   PORTAL_BASE_URL=URL-DA-INTERFACE
 ```
+
+O pedido novo e a devolução saem pelo outbox logo depois. O lembrete de três dias antes e o de depois do vencimento saem no ciclo de hora em hora do worker, na data de Brasília. Cada aviso fica uma vez em `notification_log`; se essa tabela fica vazia depois de um pedido novo para um cliente verificado, o envio falhou.
 
 ## Primeira empresa
 

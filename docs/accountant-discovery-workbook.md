@@ -34,13 +34,13 @@ Listar os documentos e respostas que o cliente precisa entregar. Registrar quem 
 
 A Fase D fecha quando cinco clientes de teste resolvem as pendências com o contador e ele diz se o fluxo dispensa a planilha paralela.
 
-**Preparar.** Carregar as empresas de teste no escritório e convidar em Administração o cliente de cada uma, como no [roteiro do piloto](../deploy/pilot/README.md#empresas-de-teste). Cada empresa fica com um pedido aberto, com prazo e tipo de documento. Os dados são fictícios.
+**Preparar.** Carregar as empresas de teste no escritório e convidar em Administração o cliente de cada uma, como no [roteiro do piloto](../deploy/pilot/README.md#empresas-de-teste). Cada empresa fica com um pedido aberto, com prazo e tipo de documento. Os dados são fictícios. Para o lembrete chegar, o e-mail de cada cliente precisa estar verificado no SES enquanto a conta estiver em sandbox ([aviso ao cliente](../deploy/pilot/README.md#aviso-ao-cliente)).
 
 **Observar.** Durante a rodada, anotar onde o cliente travou, o que foi pedido ou respondido por fora (WhatsApp, e-mail, telefone, planilha) e por quê. Cada contato por fora é um candidato a regra do portal, não uma falha do cliente.
 
-**Medir.** No fim, rodar `python -m contabil.pilot_report --tenant-id ESCRITORIO`. Para cada pedido, ele mostra quem enviou o arquivo (cliente ou escritório), os dias até receber e até confirmar e se chegou no prazo, além de um resumo. Os horários vêm da trilha de auditoria.
+**Medir.** No fim, rodar `python -m contabil.pilot_report --tenant-id ESCRITORIO`. Para cada pedido, ele mostra quem enviou o primeiro arquivo (cliente ou escritório), se chegou no prazo, os dias até receber, até confirmar e da abertura até a confirmação, quantas vezes o arquivo voltou e quantas mensagens cada lado escreveu. O resumo conta também os documentos enviados sem pedido e quantos o escritório classificou. Os horários e as contagens vêm da trilha de auditoria; o texto das mensagens não é lido.
 
-**Decidir.** O fluxo dispensa a planilha quando os cinco pedidos chegam pelo próprio cliente, o escritório confirma sem contato por fora e nenhum pedido precisa ser controlado em outro lugar. O contador pode trocar esse critério; a troca entra aqui. As respostas das perguntas 27 a 32 decidem o próximo corte do portal.
+**Decidir.** O fluxo dispensa a planilha quando os cinco pedidos chegam pelo próprio cliente, o escritório confirma sem contato por fora e nenhum pedido precisa ser controlado em outro lugar. O contador pode trocar esse critério; a troca entra aqui. Como critério de apoio, nenhum arquivo deve voltar mais de uma vez sem uma mensagem no pedido explicando o motivo. As respostas das perguntas 27 a 33 confirmam ou mudam o portal e decidem o próximo corte.
 
 ## Cartões de cenário para validar
 
@@ -113,23 +113,18 @@ A conciliação bancária deste corte também adotou regras para poder ser testa
 
 ## Decisões provisórias do portal
 
-24. O cliente da empresa envia arquivo no próprio pedido, vê o histórico e pode mandar um documento sem pedido. O papel `client` não combina com papel do escritório e não abre a sala. O admin convida o cliente em Administração. Se o cliente já existe para a mesma empresa e ainda não tem login, o convite só cria o login. Confirmar continua com o escritório. Pedido aberto ou com arquivo ainda não confirmado bloqueia o fechamento (`2026.10-2`). Devolução, vários arquivos, conversa, envio sem pedido e aviso por e-mail estão nas respostas provisórias 33 a 37.
+24. O cliente da empresa envia arquivo no próprio pedido, vê o histórico e pode mandar um documento sem pedido. O papel `client` não combina com papel do escritório e não abre a sala. O admin convida o cliente em Administração. Se o cliente já existe para a mesma empresa e ainda não tem login, o convite só cria o login. Confirmar continua com o escritório. Pedido aberto ou com arquivo ainda não confirmado bloqueia o fechamento (`2026.10-2`). Devolução, vários arquivos, conversa, envio sem pedido e aviso por e-mail estão nas perguntas 27 a 33, como validação do que o piloto já faz.
 25. Hoje mostra a fila do escritório ordenada pelo prazo, do mais próximo para o mais distante, e no mesmo prazo o pedido ainda sem arquivo vem primeiro. Abrir o item troca a empresa e a competência na barra. Não há responsável designado no pedido.
 26. A exportação da competência leva o cabeçalho dos lançamentos, sem as linhas, e no máximo 200 itens por lista ([ADR 023](adr/023-exportacao-operacional.md)). Isso basta para levar a competência a outro sistema, ou o escritório precisa das linhas, das contas e de mais volume?
 
 ## Perguntas da rodada da Fase D
 
-27. O pedido precisa de comentário? Se sim, quem escreve para quem (cliente para escritório, escritório para cliente, os dois) e o comentário entra no pacote de fechamento?
-28. O cliente precisa de lembrete? Quando (antes do prazo, no prazo, depois), por qual canal (e-mail, WhatsApp, só na tela) e quem dispara (o sistema ou uma pessoa do escritório)?
-29. Um pedido aceita mais de um arquivo? Se sim, o escritório confirma o pedido inteiro ou cada arquivo, e um arquivo errado volta para o cliente com motivo?
-30. O pedido precisa de responsável designado no escritório, além de quem abriu?
-31. O que acontece com o pedido vencido: continua aberto, muda de estado, avisa alguém ou entra numa fila separada?
+O piloto já tem conversa, vários arquivos, devolução, envio sem pedido e lembrete por e-mail. Isso foi feito como decisão provisória, antes desta rodada ([ADR 026](adr/026-devolucao-e-conversa.md), [ADR 027](adr/027-envio-sem-pedido.md), [ADR 028](adr/028-aviso-por-email.md)). Por isso a maior parte das perguntas abaixo valida o que existe, em vez de perguntar se deveria existir. A resposta pode confirmar, mudar ou retirar a regra; as três ADRs continuam `proposed` até lá.
+
+27. **Conversa.** Hoje cliente e escritório escrevem no pedido enquanto ele está aberto ou recebido, com até 1000 caracteres por mensagem, e a conversa fica fora do pacote de fechamento e da exportação. A conversa basta para dispensar o WhatsApp e o e-mail? Ela é prova e deve entrar no pacote?
+28. **Lembrete.** Hoje o cliente recebe e-mail quando o pedido é aberto ou devolvido, três dias antes do prazo e uma vez depois do vencimento, na data de Brasília. O cliente pode desligar o aviso no portal. A antecedência e a frequência servem? O e-mail basta como canal, e alguém do escritório precisa poder disparar um lembrete à mão?
+29. **Vários arquivos e devolução.** Hoje o pedido aceita até 10 arquivos ativos, e o escritório confirma o pedido inteiro. Só quem aprova devolve, com motivo de pelo menos 10 caracteres, e a devolução vale para todos os arquivos ativos. Dez arquivos bastam? O escritório precisa confirmar ou devolver um arquivo só?
+30. O pedido precisa de responsável designado no escritório, além de quem abriu? Isso ainda não existe.
+31. **Pedido vencido.** Hoje ele continua aberto, gera um aviso por e-mail, conta como vencido no resumo do portal e segue na fila do escritório pela ordem do prazo. Ele precisa mudar de estado, avisar alguém do escritório ou ir para uma fila separada?
 32. O cliente precisa ver o pedido já confirmado ou cancelado, e o motivo do cancelamento? Neste corte, sim: o histórico mostra os dois e o motivo do cancelamento.
-
-## Respostas provisórias do portal ampliado
-
-33. Quem pode devolver um arquivo ao cliente? Nesta fase, só quem aprova, com motivo de pelo menos 10 caracteres ([ADR 026](adr/026-devolucao-e-conversa.md)).
-34. Dez arquivos ativos no mesmo pedido bastam?
-35. A conversa do pedido é prova e deve entrar no pacote de exportação? Neste corte ela fica fora do pacote.
-36. O documento enviado sem pedido vira pendência sozinho, ou o escritório classifica antes? Neste corte o escritório classifica ([ADR 027](adr/027-envio-sem-pedido.md)).
-37. O lembrete por e-mail sai três dias antes do prazo. Essa antecedência serve ao escritório? ([ADR 028](adr/028-aviso-por-email.md))
+33. **Envio sem pedido.** Hoje o documento que o cliente manda sem pedido espera o escritório, que o liga a um pedido novo ou o descarta com motivo. Ele não vira pendência sozinho. Esse fluxo serve, ou o envio deve abrir um pedido automaticamente?
