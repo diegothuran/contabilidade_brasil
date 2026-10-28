@@ -21,6 +21,24 @@
     "confirmed_by": { "type": ["string", "null"], "maxLength": 160 },
     "cancelled_by": { "type": ["string", "null"], "maxLength": 160 },
     "cancel_reason": { "type": ["string", "null"], "maxLength": 2000 },
-    "created_at": { "type": "string", "format": "date-time" }
+    "created_at": { "type": "string", "format": "date-time" },
+    "files": {
+      "type": "array",
+      "maxItems": 20,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["file_id", "document_id", "file_name", "state", "uploaded_by", "uploaded_at", "returned_reason"],
+        "properties": {
+          "file_id": { "type": "string", "maxLength": 160 },
+          "document_id": { "type": "string", "maxLength": 160 },
+          "file_name": { "type": "string", "maxLength": 300 },
+          "state": { "type": "string", "enum": ["active", "returned"] },
+          "uploaded_by": { "type": "string", "maxLength": 160 },
+          "uploaded_at": { "type": "string", "format": "date-time" },
+          "returned_reason": { "type": ["string", "null"], "maxLength": 2000 }
+        }
+      }
+    }
   }
 }

@@ -11,6 +11,7 @@ O login exige o usuário no provedor de identidade e a membership no banco. O to
 Só o papel `admin` convida, por `POST /v1/users`, com idempotency key. O escritório é o do token.
 
 - O corpo traz nome de usuário, nome de exibição, e-mail e ao menos um papel entre `preparer`, `approver`, `admin` e `viewer`.
+- O nome de usuário é gravado em minúsculas, no Cognito e na membership. O user pool do piloto não diferencia maiúsculas e devolve o `cognito:username` em minúsculas; um nome gravado como `Diego` na membership não casava com o `diego` do token, e o login respondia 403. O bootstrap segue a mesma regra.
 - A API cria o usuário no Cognito com `AdminCreateUser`, atributo `custom:tenant_id` do escritório e envio da senha temporária por e-mail. A senha não volta na resposta, na auditoria nem em log.
 - A mesma operação grava `app_users`, se faltar, e a membership. A auditoria registra `user_invited` com os papéis.
 - Se o nome já existe no Cognito com outro escritório, a API responde 409 e não cria membership. Se o escritório é o mesmo e a membership falta, ela é completada.

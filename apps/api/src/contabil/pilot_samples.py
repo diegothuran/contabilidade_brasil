@@ -580,6 +580,7 @@ def _enrich(
         _ensure_open_request(session, preparer, entity_id, name, notes, "Amostra: nota de outubro", "invoice")
     elif behavior == "rascunhos":
         _ensure_open_request(session, preparer, entity_id, name, notes, "Amostra: recibo de frete", "receipt")
+        _ensure_returned_request(session, preparer, approver, entity_id, name, notes)
     _ensure_client(session, preparer, entity_id, story, name)
 
 
@@ -1134,6 +1135,71 @@ def _ensure_open_request(
         )
     except DomainError as exc:
         notes.append(f"{name}: pedido aberto não gravado ({exc.detail})")
+
+
+def _ensure_returned_request(
+    session: Session,
+    preparer: Principal,
+    approver: Principal,
+    entity_id: str,
+    name: str,
+    notes: list[str],
+) -> None:
+    from contabil.document_requests.service import add_comment, create_request, receive_content, return_request
+    from contabil.platform.constants import POSTING_PERIOD_STATUSES
+    from contabil.tables import DocumentRequestComment, DocumentRequestFile
+
+    title = "Amostra: nota devolvida"
+    period_id = f"{entity_id}-2026-10"
+    period = session.get(AccountingPeriod, period_id)
+    if period is None or period.status not in POSTING_PERIOD_STATUSES:
+        return
+    row = session.scalar(
+        select(DocumentRequest).where(
+            DocumentRequest.tenant_id == preparer.tenant_id,
+            DocumentRequest.legal_entity_id == entity_id,
+            DocumentRequest.title == title,
+        )
+    )
+    try:
+        if row is None:
+            created = create_request(
+                session,
+                preparer,
+                legal_entity_id=entity_id,
+                period_id=period_id,
+                document_type="invoice",
+                title=title,
+                due_on=date(2026, 10, 18),
+            )
+            row = session.get(DocumentRequest, created["document_request_id"])
+        if row is None:
+            return
+        returned = session.scalar(
+            select(DocumentRequestFile.id).where(
+                DocumentRequestFile.request_id == row.id,
+                DocumentRequestFile.state == "returned",
+            )
+        )
+        if row.status == "open" and returned is None and row.document_id is None and storage_configured():
+            receive_content(
+                session,
+                preparer,
+                row.id,
+                file_name=f"nota-devolvida-{entity_id}.txt",
+                media_type="text/plain",
+                content=f"Nota de amostra de {name}. Sem valor fiscal.\n".encode(),
+            )
+            row = session.get(DocumentRequest, row.id)
+        if row is not None and row.status == "received":
+            return_request(session, approver, row.id, "A amostra precisa de outro arquivo.")
+            row = session.get(DocumentRequest, row.id)
+        if row is not None and session.scalar(
+            select(DocumentRequestComment.id).where(DocumentRequestComment.request_id == row.id)
+        ) is None:
+            add_comment(session, preparer, row.id, "Envie a nota com o nome do fornecedor.")
+    except DomainError as exc:
+        notes.append(f"{name}: pedido devolvido não gravado ({exc.detail})")
 
 
 def _ensure_client(session: Session, preparer: Principal, entity_id: str, story: str, name: str) -> None:

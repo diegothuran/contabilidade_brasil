@@ -113,7 +113,7 @@ A conciliação bancária deste corte também adotou regras para poder ser testa
 
 ## Decisões provisórias do portal
 
-24. O cliente da empresa envia um arquivo no próprio pedido. O papel `client` não combina com papel do escritório e não abre a sala. O admin convida o cliente em Administração. Se o cliente já existe para a mesma empresa e ainda não tem login, o convite só cria o login. Confirmar continua com o escritório. E-mail, lembrete, comentário e mais de um arquivo no mesmo pedido ficam fora. Pedido aberto ou com arquivo ainda não confirmado bloqueia o fechamento (`2026.10-2`).
+24. O cliente da empresa envia arquivo no próprio pedido, vê o histórico e pode mandar um documento sem pedido. O papel `client` não combina com papel do escritório e não abre a sala. O admin convida o cliente em Administração. Se o cliente já existe para a mesma empresa e ainda não tem login, o convite só cria o login. Confirmar continua com o escritório. Pedido aberto ou com arquivo ainda não confirmado bloqueia o fechamento (`2026.10-2`). Devolução, vários arquivos, conversa, envio sem pedido e aviso por e-mail estão nas respostas provisórias 33 a 37.
 25. Hoje mostra a fila do escritório ordenada pelo prazo, do mais próximo para o mais distante, e no mesmo prazo o pedido ainda sem arquivo vem primeiro. Abrir o item troca a empresa e a competência na barra. Não há responsável designado no pedido.
 26. A exportação da competência leva o cabeçalho dos lançamentos, sem as linhas, e no máximo 200 itens por lista ([ADR 023](adr/023-exportacao-operacional.md)). Isso basta para levar a competência a outro sistema, ou o escritório precisa das linhas, das contas e de mais volume?
 
@@ -124,4 +124,12 @@ A conciliação bancária deste corte também adotou regras para poder ser testa
 29. Um pedido aceita mais de um arquivo? Se sim, o escritório confirma o pedido inteiro ou cada arquivo, e um arquivo errado volta para o cliente com motivo?
 30. O pedido precisa de responsável designado no escritório, além de quem abriu?
 31. O que acontece com o pedido vencido: continua aberto, muda de estado, avisa alguém ou entra numa fila separada?
-32. O cliente precisa ver o pedido já confirmado ou cancelado, e o motivo do cancelamento?
+32. O cliente precisa ver o pedido já confirmado ou cancelado, e o motivo do cancelamento? Neste corte, sim: o histórico mostra os dois e o motivo do cancelamento.
+
+## Respostas provisórias do portal ampliado
+
+33. Quem pode devolver um arquivo ao cliente? Nesta fase, só quem aprova, com motivo de pelo menos 10 caracteres ([ADR 026](adr/026-devolucao-e-conversa.md)).
+34. Dez arquivos ativos no mesmo pedido bastam?
+35. A conversa do pedido é prova e deve entrar no pacote de exportação? Neste corte ela fica fora do pacote.
+36. O documento enviado sem pedido vira pendência sozinho, ou o escritório classifica antes? Neste corte o escritório classifica ([ADR 027](adr/027-envio-sem-pedido.md)).
+37. O lembrete por e-mail sai três dias antes do prazo. Essa antecedência serve ao escritório? ([ADR 028](adr/028-aviso-por-email.md))

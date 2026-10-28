@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import date, datetime
 from decimal import Decimal
 
-from sqlalchemy import Boolean, Date, DateTime, ForeignKey, Integer, Numeric, String, UniqueConstraint
+from sqlalchemy import Boolean, CheckConstraint, Date, DateTime, ForeignKey, Integer, Numeric, String, UniqueConstraint
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -41,6 +41,19 @@ class Membership(Base):
     user_id: Mapped[str] = mapped_column(ForeignKey("app_users.id"))
     roles: Mapped[list[str]] = mapped_column(ARRAY(String(40)))
     legal_entity_id: Mapped[str | None] = mapped_column(ForeignKey("legal_entities.id"), nullable=True)
+    notify_client: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+
+class NotificationLog(Base):
+    __tablename__ = "notification_log"
+    __table_args__ = (UniqueConstraint("request_id", "kind", "notice_date", name="uq_notification_log_once"),)
+
+    id: Mapped[str] = mapped_column(String(160), primary_key=True)
+    tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.id"))
+    request_id: Mapped[str] = mapped_column(ForeignKey("document_requests.id"))
+    kind: Mapped[str] = mapped_column(String(40))
+    notice_date: Mapped[date] = mapped_column(Date)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
 
 
@@ -494,6 +507,49 @@ class DocumentRequest(Base):
     cancel_reason: Mapped[str | None] = mapped_column(String(2000), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+
+class DocumentRequestFile(Base):
+    __tablename__ = "document_request_files"
+    __table_args__ = (CheckConstraint("state IN ('active', 'returned')", name="ck_request_files_state"),)
+
+    id: Mapped[str] = mapped_column(String(160), primary_key=True)
+    tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.id"))
+    request_id: Mapped[str] = mapped_column(ForeignKey("document_requests.id"))
+    document_id: Mapped[str] = mapped_column(ForeignKey("source_documents.id"))
+    uploaded_by: Mapped[str] = mapped_column(String(160))
+    uploaded_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    state: Mapped[str] = mapped_column(String(20))
+    returned_reason: Mapped[str | None] = mapped_column(String(2000), nullable=True)
+
+
+class DocumentRequestComment(Base):
+    __tablename__ = "document_request_comments"
+    __table_args__ = (CheckConstraint("author_kind IN ('office', 'client')", name="ck_request_comments_kind"),)
+
+    id: Mapped[str] = mapped_column(String(160), primary_key=True)
+    tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.id"))
+    request_id: Mapped[str] = mapped_column(ForeignKey("document_requests.id"))
+    author_ref: Mapped[str] = mapped_column(String(160))
+    author_kind: Mapped[str] = mapped_column(String(20))
+    body: Mapped[str] = mapped_column(String(1000))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+
+class ClientSubmission(Base):
+    __tablename__ = "client_submissions"
+    __table_args__ = (CheckConstraint("status IN ('new', 'classified', 'discarded')", name="ck_client_submissions_status"),)
+
+    id: Mapped[str] = mapped_column(String(160), primary_key=True)
+    tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.id"))
+    legal_entity_id: Mapped[str] = mapped_column(ForeignKey("legal_entities.id"))
+    document_id: Mapped[str] = mapped_column(ForeignKey("source_documents.id"))
+    note: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    submitted_by: Mapped[str] = mapped_column(String(160))
+    status: Mapped[str] = mapped_column(String(20))
+    classified_request_id: Mapped[str | None] = mapped_column(ForeignKey("document_requests.id"), nullable=True)
+    discard_reason: Mapped[str | None] = mapped_column(String(2000), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
 
 
 class CloseSnapshot(Base):

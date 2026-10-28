@@ -1,4 +1,4 @@
-# SPEC — Contrato de interface v0.5.0
+# SPEC — Contrato de interface v0.6.3
 
 > Fonte de verdade da experiência do front-end. Atualizações de comportamento, estado, linguagem visual ou estrutura precisam atualizar este arquivo antes do código.
 
@@ -94,7 +94,7 @@ Usar somente organizações e empresas fictícias, sem CPF, certificados, docume
 
 ## 11. Decisões abertas
 
-Nome definitivo e identidade; estados/municípios do piloto; obrigações iniciais; política de retenção; materialidade; conectores; métricas de sucesso; SLA/RPO/RTO; requisitos jurídicos de protocolo/assinatura; comentário, e-mail e lembrete no pedido; webhook.
+Nome definitivo e identidade; estados/municípios do piloto; obrigações iniciais; política de retenção; materialidade; conectores; métricas de sucesso; SLA/RPO/RTO; requisitos jurídicos de protocolo/assinatura; quem devolve o arquivo, se dez arquivos bastam, se a conversa entra no pacote, se o envio sem pedido vira pendência sozinho e qual a antecedência do lembrete.
 
 ## 12. Montagem no aplicativo
 
@@ -102,9 +102,9 @@ A sala fica em `/app/rastro` e é a primeira tela depois do login. Ela é a úni
 
 | Menu | O que abre |
 | --- | --- |
-| Hoje | Pendências que bloqueiam o fechamento no escritório, com empresa, prazo e o próximo passo, e os lançamentos recentes da empresa selecionada. |
+| Hoje | Pendências que bloqueiam o fechamento no escritório, com empresa, prazo e o próximo passo, e os lançamentos recentes da empresa selecionada. Mostra a contagem de documentos enviados pelo cliente sem pedido. |
 | Fechamentos | Checklist da competência, fechamento, hash do snapshot e download do pacote. Reabertura continua na lista. |
-| Pendências | Pedidos da competência da barra, ou a fila do escritório. O arquivo entra nas evidências e a confirmação tira o bloqueio do fechamento. Abrir um item da fila troca a empresa e a competência na barra. |
+| Pendências | Pedidos da competência da barra, a fila do escritório ou os documentos enviados pelo cliente sem pedido. O arquivo entra nas evidências e a confirmação tira o bloqueio do fechamento. Abrir um item da fila troca a empresa e a competência na barra. O pedido recebido pode ser devolvido ao cliente, com motivo. A conversa fica no pedido. Classificar um envio cria um pedido já recebido na competência da barra. |
 | Balancete | Saldos da competência da barra. O cartão em Rotinas do razão e a rota antiga continuam. |
 | Conciliação | Casos de conciliação. |
 | Migrações | Lotes de importação. |
@@ -123,12 +123,16 @@ A barra de contexto marca a empresa escolhida e mantém a busca ao lado. A compe
 
 O cliente não entra na sala do escritório. A casca mostra o nome do escritório e a razão social e o CNPJ da empresa do login. Não há seletor de escritório, de empresa nem de competência, e não há menu de razão, fechamento, conciliação ou administração.
 
-O vocabulário da tela é pedido, prazo, estado e arquivo. Os estados aparecem em texto: pedido aberto, arquivo recebido. Pedido confirmado ou cancelado não fica nesta lista. A ação é enviar um arquivo. Confirmar e cancelar não aparecem. O cliente pode baixar só o arquivo daquele pedido.
+O vocabulário da tela é pedido, prazo, estado e arquivo. O topo mostra abertos, recebidos, vencidos e o próximo prazo. Há duas listas: em aberto (pedido aberto e arquivo recebido) e histórico (pedido confirmado e pedido cancelado). O cancelado mostra o motivo. Cada pedido mostra o mês de referência. O cliente abre o pedido e vê os arquivos. O devolvido aparece riscado, com o motivo, e não some. No pedido aberto ou com arquivo recebido, o cliente envia outro arquivo, até dez ativos, e escreve uma mensagem. A conversa mostra Cliente ou Escritório. Confirmar, cancelar e devolver não aparecem. O download usa o nome original do arquivo. O cliente também envia um documento sem pedido, com uma nota. Esse envio não bloqueia o fechamento. O cliente liga ou desliga os avisos por e-mail. O aviso traz o título, o prazo e o link. Não mostra CNPJ, nome de arquivo nem a conversa.
 
 Nada nesta tela fala em journal, balancete, papéis do escritório, exportação ou outro cliente.
 
 ## 14. Changelog
 
+- `0.6.3` — O cliente liga ou desliga o aviso por e-mail. O texto leva título, prazo e link.
+- `0.6.2` — O cliente envia um documento sem pedido. O escritório classifica ou descarta. Hoje mostra a contagem.
+- `0.6.1` — O escritório devolve o arquivo com motivo. O pedido aceita até dez arquivos ativos e uma conversa.
+- `0.6.0` — O portal do cliente mostra o resumo, o mês de referência e o histórico, com o motivo do cancelamento. O download usa o nome original do arquivo.
 - `0.5.0` — O cliente da empresa vê só os próprios pedidos, envia o arquivo e não abre a sala do escritório. O convite completa o login de um cliente que já existe para a mesma empresa.
 - `0.4.9` — A lista de operações fica na API. Evidências não ganha essa lista.
 - `0.4.8` — Evidências gera a exportação da competência e mostra em fila, gerando, pronto ou falhou.

@@ -26,6 +26,7 @@ from contabil.master_data.router import router as master_data_router
 from contabil.periods.router import router as periods_router
 from contabil.portal.router import router as portal_router
 from contabil.reconciliation.router import router as reconciliation_router
+from contabil.submissions.router import router as submissions_router
 from contabil.platform.correlation import correlation_id
 from contabil.platform.db import get_engine
 from contabil.platform.deps import require_office
@@ -106,7 +107,7 @@ def create_app() -> FastAPI:
     app.add_middleware(
         CORSMiddleware,
         allow_origins=origins,
-        allow_methods=["GET", "POST", "OPTIONS"],
+        allow_methods=["GET", "POST", "PATCH", "OPTIONS"],
         allow_headers=["Authorization", "Content-Type", "Idempotency-Key", "X-Correlation-Id", "X-Tenant-Id"],
         expose_headers=["X-Correlation-Id"],
     )
@@ -167,6 +168,7 @@ def create_app() -> FastAPI:
     app.include_router(ledger_router, prefix="/v1", dependencies=office)
     app.include_router(documents_router, prefix="/v1", dependencies=office)
     app.include_router(document_requests_router, prefix="/v1", dependencies=office)
+    app.include_router(submissions_router, prefix="/v1", dependencies=office)
     app.include_router(imports_router, prefix="/v1", dependencies=office)
     app.include_router(exports_router, prefix="/v1", dependencies=office)
     app.include_router(reconciliation_router, prefix="/v1", dependencies=office)

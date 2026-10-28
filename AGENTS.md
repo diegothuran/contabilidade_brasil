@@ -2,7 +2,7 @@
 
 ## Ordem de leitura
 
-Leia `README.md`, `docs/benchmark-synthesis.md`, `docs/domain-model.md`, `docs/architecture.md`, o caderno do contador, os cinco anchors em `docs/specs/` e as ADRs antes de alterar qualquer contrato. Antes de mexer na interface, leia também `docs/rastro/SPEC.md`, que é a fonte de verdade da tela.
+Leia `README.md`, `docs/benchmark-synthesis.md`, `docs/domain-model.md`, `docs/architecture.md`, o caderno do contador, os cinco anchors em `docs/specs/` e as ADRs antes de alterar qualquer contrato. Antes de mexer na interface, leia também `docs/rastro/SPEC.md`, que é a fonte de verdade da tela. Para achar onde uma regra vive no código, use `docs/mapa-do-codigo.md`: módulos, rotas, tabelas, estados, invariantes e armadilhas conhecidas. Quem muda módulo, estado ou evento do outbox atualiza esse mapa no mesmo commit.
 
 ## Regras de domínio
 
@@ -38,4 +38,4 @@ Uma alteração está pronta quando atualiza a spec correspondente, mantém o co
 
 Se a tela precisa entender a mudança (estado, papel, rota, texto, contexto ou campo novo), o mesmo commit atualiza as decisões de projeto: `docs/rastro/SPEC.md` com entrada no changelog, a ADR afetada, o `README.md`, o caderno do contador, `schemas/openapi.yaml` e `deploy/pilot/README.md`.
 
-Antes de concluir, rode os testes unitários em `apps/api` (`pytest tests/unit`), `npm run typecheck` e `npm run lint` em `apps/web`, `python scripts/validate_specs.py` e `python scripts/check_internal_links.py`. Os testes de integração precisam do compose no ar; quando não rodarem, diga isso.
+Antes de concluir, rode os testes unitários em `apps/api` (`pytest tests/unit`), `npm run typecheck` e `npm run lint` em `apps/web`, `python scripts/validate_specs.py`, `python scripts/check_internal_links.py` e `openapi-spec-validator schemas/openapi.yaml`. No OpenAPI, descrição com vírgula dentro de `{ ... }` vai entre aspas; sem aspas, o YAML lê o resto como chave e o validador recusa o arquivo. Os testes de integração precisam do compose no ar; quando não rodarem, diga isso.

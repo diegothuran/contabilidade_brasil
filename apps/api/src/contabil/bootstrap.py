@@ -20,6 +20,7 @@ def bootstrap(
     roles: list[str],
     legal_entity_id: str | None = None,
 ) -> None:
+    user_id = user_id.strip().lower()
     unknown = [role for role in roles if role not in ROLES]
     if not roles or unknown:
         raise ValueError("Papéis aceitos: preparer, approver, admin, viewer, client.")

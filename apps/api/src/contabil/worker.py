@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 from contabil.audit.service import verify_chain
 from contabil.imports.service import publish_batch, validate_batch
 from contabil.exports.service import run_operational_export
+from contabil.identity.notices import deliver_notice, sweep_reminders
 from contabil.reconciliation.service import import_statement, resolve_case_from_journal
 from contabil.platform.auth import apply_tenant
 from contabil.platform.db import session_factory
@@ -26,6 +27,8 @@ HANDLERS = {
     "BankStatementReceived": import_statement,
     "JournalPublished": resolve_case_from_journal,
     "OperationalExportRequested": run_operational_export,
+    "DocumentRequestCreated": deliver_notice,
+    "DocumentRequestReturned": deliver_notice,
 }
 
 
@@ -136,14 +139,19 @@ def verify_tenants(session: Session) -> None:
 
 def run_loop(stop: threading.Event) -> None:
     last_verify = 0.0
+    last_remind = 0.0
     while not stop.is_set():
         session = session_factory(admin=True)()
         count = 0
         try:
             count = relay_once(session)
-            if time.time() - last_verify > 30:
+            now = time.time()
+            if now - last_remind > 3600:
+                sweep_reminders(session, datetime.now(timezone.utc).date())
+                last_remind = now
+            if now - last_verify > 30:
                 verify_tenants(session)
-                last_verify = time.time()
+                last_verify = now
             session.commit()
         except Exception:
             session.rollback()

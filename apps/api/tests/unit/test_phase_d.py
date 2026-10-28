@@ -1,18 +1,58 @@
 from __future__ import annotations
 
+from datetime import date, datetime, timezone
 from types import SimpleNamespace
 
 import pytest
 
 from contabil.audit.hash import content_hash
-from contabil.document_requests.service import blocks_close, queue_statuses
+from contabil.document_requests.service import blocks_close, client_timestamps, portal_summary, queue_statuses
 from contabil.exports.service import DISCLAIMER, assemble_operational_package
 from contabil.platform.errors import DomainError
 from contabil.platform.principal import Principal, ensure_client, ensure_office
 from contabil.tenancy.service import invite_user
 
 
-def test_open_and_received_block_the_close() -> None:
+def test_portal_summary_counts_open_work_and_the_next_due_date() -> None:
+    today = date(2026, 10, 27)
+    summary = portal_summary(
+        [
+            ("open", date(2026, 10, 20)),
+            ("open", date(2026, 11, 2)),
+            ("received", date(2026, 10, 31)),
+            ("confirmed", date(2026, 10, 1)),
+            ("cancelled", date(2026, 9, 1)),
+        ],
+        today,
+    )
+    assert summary == {"open": 2, "received": 1, "overdue": 1, "next_due_on": "2026-10-31"}
+    assert portal_summary([("open", date(2026, 10, 1))], today)["next_due_on"] is None
+
+
+def test_client_timestamps_prefer_the_audit_and_fall_back_when_final() -> None:
+    updated = datetime(2026, 10, 27, 12, tzinfo=timezone.utc)
+    received = datetime(2026, 10, 20, 12, tzinfo=timezone.utc)
+    confirmed = datetime(2026, 10, 26, 12, tzinfo=timezone.utc)
+    assert client_timestamps("received", updated, received_at=received, confirmed_at=None) == (received, None)
+    assert client_timestamps("received", updated, received_at=None, confirmed_at=None) == (updated, None)
+    assert client_timestamps("confirmed", updated, received_at=received, confirmed_at=None) == (received, updated)
+    assert client_timestamps("confirmed", updated, received_at=None, confirmed_at=confirmed) == (None, confirmed)
+    assert client_timestamps("cancelled", updated, received_at=None, confirmed_at=None) == (None, None)
+
+
+def test_notice_names_the_request_and_not_the_company_registry() -> None:
+    from contabil.identity.mailer import notice_text
+    from contabil.identity.notices import reminder_kind
+
+    subject, body = notice_text("Recibo de outubro", "2026-10-31", "https://portal.example")
+    assert "Recibo de outubro" in subject
+    assert "2026-10-31" in body
+    assert "https://portal.example" in body
+    assert "CNPJ" not in body
+    today = date(2026, 10, 27)
+    assert reminder_kind(date(2026, 10, 30), today) == "due_soon"
+    assert reminder_kind(date(2026, 10, 20), today) == "overdue"
+    assert reminder_kind(date(2026, 11, 2), today) is None
     assert blocks_close("open") is True
     assert blocks_close("received") is True
     assert blocks_close("confirmed") is False

@@ -108,6 +108,8 @@ def invite_user(
     roles: list[str],
     legal_entity_id: str | None = None,
 ) -> dict:
+    # O Cognito do piloto não diferencia maiúsculas e devolve o nome em minúsculas no token.
+    username = username.strip().lower()
     if _USERNAME.fullmatch(username) is None:
         raise DomainError(
             400,

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import date, datetime, timezone
 
-from sqlalchemy import select, tuple_
+from sqlalchemy import func, select, tuple_
 from sqlalchemy.orm import Session
 
 from contabil.audit.service import append_event
@@ -13,22 +13,76 @@ from contabil.platform.constants import POSTING_PERIOD_STATUSES, SCHEMA_VERSION
 from contabil.platform.errors import DomainError
 from contabil.platform.ids import new_id
 from contabil.platform.principal import Principal, ensure_client, ensure_role
-from contabil.tables import AccountingPeriod, DocumentRequest, LegalEntity
+from contabil.identity.notices import enqueue_notice
+from contabil.tables import (
+    AccountingPeriod,
+    AuditEvent,
+    DocumentRequest,
+    DocumentRequestComment,
+    DocumentRequestFile,
+    LegalEntity,
+    SourceDocument,
+)
 from contabil.tenancy.service import before_cursor, encode_cursor, page_limit, require_entity
 
 BLOCKING_REQUEST_STATUSES = frozenset({"open", "received"})
 QUEUE_STATUSES = frozenset({"open", "received", "confirmed", "cancelled"})
+ACTIVE_FILE_LIMIT = 10
+COMMENT_STATUSES = frozenset({"open", "received"})
 
 TRANSITIONS = {
     ("open", "receive"): "received",
     ("open", "cancel"): "cancelled",
     ("received", "confirm"): "confirmed",
     ("received", "cancel"): "cancelled",
+    ("received", "return"): "open",
 }
+
+
+def upload_target(status: str) -> str:
+    if status == "received":
+        return "received"
+    return next_status(status, "receive")
 
 
 def blocks_close(status: str) -> bool:
     return status in BLOCKING_REQUEST_STATUSES
+
+
+def portal_summary(rows: list[tuple[str, date]], today: date) -> dict:
+    open_count = 0
+    received_count = 0
+    overdue = 0
+    upcoming: list[date] = []
+    for status, due_on in rows:
+        if status == "open":
+            open_count += 1
+        elif status == "received":
+            received_count += 1
+        if status in BLOCKING_REQUEST_STATUSES and due_on < today:
+            overdue += 1
+        elif status in BLOCKING_REQUEST_STATUSES:
+            upcoming.append(due_on)
+    return {
+        "open": open_count,
+        "received": received_count,
+        "overdue": overdue,
+        "next_due_on": min(upcoming).isoformat() if upcoming else None,
+    }
+
+
+def client_timestamps(
+    status: str,
+    updated_at: datetime | None,
+    *,
+    received_at: datetime | None,
+    confirmed_at: datetime | None,
+) -> tuple[datetime | None, datetime | None]:
+    if status == "received" and received_at is None:
+        received_at = updated_at
+    if status == "confirmed" and confirmed_at is None:
+        confirmed_at = updated_at
+    return received_at, confirmed_at
 
 
 def queue_statuses(raw: str | None) -> list[str]:
@@ -122,6 +176,7 @@ def create_request(
         target_ref=row.id,
         metadata={"action": "document_request_opened", "period_id": period.id, "document_type": document_type},
     )
+    enqueue_notice(session, principal.tenant_id, row.id, "created", date.today())
     return request_dict(row)
 
 
@@ -229,20 +284,97 @@ def list_queue(
     return {"items": [_queue_item(row, entity, period) for row, entity, period in rows], "next_cursor": next_cursor}
 
 
-def list_client_requests(session: Session, principal: Principal) -> dict:
+def list_client_requests(
+    session: Session,
+    principal: Principal,
+    *,
+    status: str | None,
+    cursor: str | None,
+    limit: int,
+) -> dict:
     ensure_client(principal)
-    rows = session.execute(
-        select(DocumentRequest, AccountingPeriod)
+    chosen = queue_statuses(status)
+    limit = page_limit(limit)
+    entity = _client_entity(session, principal)
+    owned = (
+        DocumentRequest.tenant_id == principal.tenant_id,
+        DocumentRequest.legal_entity_id == principal.legal_entity_id,
+    )
+    counted = session.execute(select(DocumentRequest.status, DocumentRequest.due_on).where(*owned)).all()
+    stmt = (
+        select(DocumentRequest, AccountingPeriod, SourceDocument.file_name)
         .join(AccountingPeriod, AccountingPeriod.id == DocumentRequest.period_id)
-        .where(
-            DocumentRequest.tenant_id == principal.tenant_id,
-            DocumentRequest.legal_entity_id == principal.legal_entity_id,
-            DocumentRequest.status.in_(("open", "received")),
+        .outerjoin(SourceDocument, SourceDocument.id == DocumentRequest.document_id)
+        .where(*owned, DocumentRequest.status.in_(chosen))
+    )
+    if cursor is not None:
+        due_on, row_id = _decode_client_cursor(cursor)
+        stmt = stmt.where(tuple_(DocumentRequest.due_on, DocumentRequest.id) > tuple_(due_on, row_id))
+    rows = session.execute(stmt.order_by(DocumentRequest.due_on.asc(), DocumentRequest.id.asc()).limit(limit + 1)).all()
+    next_cursor = None
+    if len(rows) > limit:
+        last = rows[limit - 1][0]
+        rows = rows[:limit]
+        next_cursor = _encode_client_cursor(last.due_on, last.id)
+    moments = _request_moments(session, principal.tenant_id, [row.id for row, _period, _name in rows])
+    items = []
+    for row, period, file_name in rows:
+        received_at, confirmed_at = client_timestamps(
+            row.status,
+            row.updated_at,
+            received_at=moments.get(row.id, {}).get("received_at"),
+            confirmed_at=moments.get(row.id, {}).get("confirmed_at"),
         )
-        .order_by(DocumentRequest.due_on.asc(), DocumentRequest.id.asc())
-        .limit(100)
+        item = _queue_item(row, entity, period)
+        item["file_name"] = file_name
+        item["received_at"] = format_utc(received_at) if received_at else None
+        item["confirmed_at"] = format_utc(confirmed_at) if confirmed_at else None
+        items.append(item)
+    return {
+        "items": items,
+        "next_cursor": next_cursor,
+        "summary": portal_summary([(item_status, due_on) for item_status, due_on in counted], date.today()),
+    }
+
+
+def _encode_client_cursor(due_on: date, row_id: str) -> str:
+    from base64 import urlsafe_b64encode
+
+    return urlsafe_b64encode(f"{due_on.isoformat()}|{row_id}".encode()).decode()
+
+
+def _decode_client_cursor(cursor: str) -> tuple[date, str]:
+    from base64 import urlsafe_b64decode
+
+    try:
+        raw = urlsafe_b64decode(cursor.encode()).decode()
+        stamp, row_id = raw.split("|", 1)
+        if not row_id:
+            raise ValueError(row_id)
+        return date.fromisoformat(stamp), row_id
+    except (ValueError, UnicodeError) as exc:
+        raise DomainError(400, "Cursor inválido", "O cursor de paginação não é válido.") from exc
+
+
+def _request_moments(session: Session, tenant_id: str, request_ids: list[str]) -> dict[str, dict[str, datetime]]:
+    if not request_ids:
+        return {}
+    events = session.scalars(
+        select(AuditEvent).where(
+            AuditEvent.tenant_id == tenant_id,
+            AuditEvent.target_type == "document_request",
+            AuditEvent.target_ref.in_(request_ids),
+        )
     ).all()
-    return {"items": [_queue_item(row, _client_entity(session, principal), period) for row, period in rows]}
+    found: dict[str, dict[str, datetime]] = {}
+    for event in events:
+        action = (event.details or {}).get("action")
+        bucket = found.setdefault(event.target_ref, {})
+        if action == "document_request_received":
+            bucket["received_at"] = event.occurred_at
+        elif action == "document_request_confirmed":
+            bucket["confirmed_at"] = event.occurred_at
+    return found
 
 
 def _client_entity(session: Session, principal: Principal) -> LegalEntity:
@@ -255,12 +387,22 @@ def _client_entity(session: Session, principal: Principal) -> LegalEntity:
 def client_document(session: Session, principal: Principal, document_id: str):
     ensure_client(principal)
     linked = session.scalar(
-        select(DocumentRequest.id).where(
+        select(DocumentRequestFile.id)
+        .join(DocumentRequest, DocumentRequest.id == DocumentRequestFile.request_id)
+        .where(
             DocumentRequest.tenant_id == principal.tenant_id,
             DocumentRequest.legal_entity_id == principal.legal_entity_id,
-            DocumentRequest.document_id == document_id,
+            DocumentRequestFile.document_id == document_id,
         )
     )
+    if linked is None:
+        linked = session.scalar(
+            select(DocumentRequest.id).where(
+                DocumentRequest.tenant_id == principal.tenant_id,
+                DocumentRequest.legal_entity_id == principal.legal_entity_id,
+                DocumentRequest.document_id == document_id,
+            )
+        )
     if linked is None:
         raise DomainError(404, "Não encontrado", "Pedido de documento não encontrado.")
     return get_document(session, principal, document_id)
@@ -284,7 +426,9 @@ def receive_content(
     if client_access and row.legal_entity_id != principal.legal_entity_id:
         raise DomainError(404, "Não encontrado", "Pedido de documento não encontrado.")
     period = _open_period(session, principal, row.legal_entity_id, row.period_id)
-    next_status(row.status, "receive")
+    upload_target(row.status)
+    if _active_files(session, principal.tenant_id, row.id) >= ACTIVE_FILE_LIMIT:
+        raise DomainError(409, "Limite de arquivos", "Este pedido já tem 10 arquivos ativos.")
     competence = f"{period.fiscal_year:04d}-{period.month:02d}"
     stored, _status = store_document(
         session,
@@ -301,7 +445,9 @@ def receive_content(
     )
     apply_tenant(session, principal.tenant_id)
     row = _locked(session, principal, request_id)
-    next_status(row.status, "receive")
+    upload_target(row.status)
+    if _active_files(session, principal.tenant_id, row.id) >= ACTIVE_FILE_LIMIT:
+        raise DomainError(409, "Limite de arquivos", "Este pedido já tem 10 arquivos ativos.")
     document = get_document(session, principal, stored["document_id"])
     if document.legal_entity_id != row.legal_entity_id:
         raise DomainError(409, "Arquivo de outra empresa", "O arquivo já está ligado a outra empresa deste escritório.")
@@ -309,6 +455,18 @@ def receive_content(
     row.document_id = document.id
     row.received_by = principal.user_id
     row.updated_at = datetime.now(timezone.utc)
+    session.add(
+        DocumentRequestFile(
+            id=new_id("dfile"),
+            tenant_id=principal.tenant_id,
+            request_id=row.id,
+            document_id=document.id,
+            uploaded_by=principal.user_id,
+            uploaded_at=row.updated_at,
+            state="active",
+            returned_reason=None,
+        )
+    )
     session.flush()
     append_event(
         session,
@@ -327,8 +485,8 @@ def confirm_request(session: Session, principal: Principal, request_id: str) -> 
     row = _locked(session, principal, request_id)
     _open_period(session, principal, row.legal_entity_id, row.period_id)
     next_status(row.status, "confirm")
-    if not row.document_id:
-        raise DomainError(409, "Arquivo ausente", "Confirme o pedido só depois que o arquivo chegar.")
+    if _confirm_blocked(session, principal.tenant_id, row):
+        raise DomainError(409, "Arquivo ausente", "Confirme o pedido só depois que houver um arquivo ativo.")
     row.status = "confirmed"
     row.confirmed_by = principal.user_id
     row.updated_at = datetime.now(timezone.utc)
@@ -343,6 +501,186 @@ def confirm_request(session: Session, principal: Principal, request_id: str) -> 
         metadata={"action": "document_request_confirmed", "document_id": row.document_id},
     )
     return request_dict(row)
+
+
+def return_request(session: Session, principal: Principal, request_id: str, reason: str) -> dict:
+    ensure_role(principal, "approver", "admin")
+    problem = cancel_reason_error(reason)
+    if problem:
+        raise DomainError(400, "Motivo curto", problem)
+    row = _locked(session, principal, request_id)
+    _open_period(session, principal, row.legal_entity_id, row.period_id)
+    next_status(row.status, "return")
+    cleaned = reason.strip()
+    now = datetime.now(timezone.utc)
+    for item in _files(session, principal.tenant_id, row.id):
+        if item.state == "active":
+            item.state = "returned"
+            item.returned_reason = cleaned
+    row.status = "open"
+    row.updated_at = now
+    session.flush()
+    append_event(
+        session,
+        tenant_id=principal.tenant_id,
+        event_type="other",
+        actor_ref=principal.user_id,
+        target_type="document_request",
+        target_ref=row.id,
+        reason=cleaned,
+        metadata={"action": "document_request_returned"},
+    )
+    enqueue_notice(session, principal.tenant_id, row.id, "returned", date.today())
+    return request_dict(row)
+
+
+def add_comment(session: Session, principal: Principal, request_id: str, body: str) -> dict:
+    cleaned = body.strip()
+    if not cleaned or len(cleaned) > 1000:
+        raise DomainError(400, "Comentário inválido", "Escreva uma mensagem com até 1000 caracteres.")
+    client_access = principal.roles == frozenset({"client"})
+    if client_access:
+        ensure_client(principal)
+    else:
+        ensure_role(principal, "preparer", "approver", "admin")
+    row = _locked(session, principal, request_id)
+    if client_access and row.legal_entity_id != principal.legal_entity_id:
+        raise DomainError(404, "Não encontrado", "Pedido de documento não encontrado.")
+    if row.status not in COMMENT_STATUSES:
+        raise DomainError(409, "Estado inválido", "Este pedido não aceita comentário.")
+    comment = DocumentRequestComment(
+        id=new_id("dcom"),
+        tenant_id=principal.tenant_id,
+        request_id=row.id,
+        author_ref=principal.user_id,
+        author_kind="client" if client_access else "office",
+        body=cleaned,
+        created_at=datetime.now(timezone.utc),
+    )
+    session.add(comment)
+    session.flush()
+    append_event(
+        session,
+        tenant_id=principal.tenant_id,
+        event_type="other",
+        actor_ref=principal.user_id,
+        target_type="document_request",
+        target_ref=row.id,
+        metadata={"action": "document_request_commented", "comment_id": comment.id},
+    )
+    return _comment_dict(comment)
+
+
+def list_comments(session: Session, principal: Principal, request_id: str) -> dict:
+    row = _visible_request(session, principal, request_id)
+    return {"items": [_comment_dict(item) for item in _comments(session, principal.tenant_id, row.id)]}
+
+
+def request_detail(session: Session, principal: Principal, request_id: str) -> dict:
+    row = _visible_request(session, principal, request_id)
+    period = session.get(AccountingPeriod, row.period_id)
+    entity = session.get(LegalEntity, row.legal_entity_id)
+    if period is None or entity is None:
+        raise DomainError(404, "Não encontrado", "Pedido de documento não encontrado.")
+    body = _queue_item(row, entity, period)
+    body["files"] = [_file_dict(item, name) for item, name in _named_files(session, principal.tenant_id, row.id)]
+    body["comments"] = [_comment_dict(item) for item in _comments(session, principal.tenant_id, row.id)]
+    return body
+
+
+def _visible_request(session: Session, principal: Principal, request_id: str) -> DocumentRequest:
+    client_access = principal.roles == frozenset({"client"})
+    if client_access:
+        ensure_client(principal)
+    row = session.scalar(
+        select(DocumentRequest).where(DocumentRequest.id == request_id, DocumentRequest.tenant_id == principal.tenant_id)
+    )
+    if row is None or (client_access and row.legal_entity_id != principal.legal_entity_id):
+        raise DomainError(404, "Não encontrado", "Pedido de documento não encontrado.")
+    return row
+
+
+def _active_files(session: Session, tenant_id: str, request_id: str) -> int:
+    return int(
+        session.scalar(
+            select(func.count())
+            .select_from(DocumentRequestFile)
+            .where(
+                DocumentRequestFile.tenant_id == tenant_id,
+                DocumentRequestFile.request_id == request_id,
+                DocumentRequestFile.state == "active",
+            )
+        )
+        or 0
+    )
+
+
+def _confirm_blocked(session: Session, tenant_id: str, row: DocumentRequest) -> bool:
+    tracked = int(
+        session.scalar(
+            select(func.count())
+            .select_from(DocumentRequestFile)
+            .where(DocumentRequestFile.tenant_id == tenant_id, DocumentRequestFile.request_id == row.id)
+        )
+        or 0
+    )
+    if tracked == 0:
+        return not row.document_id
+    return _active_files(session, tenant_id, row.id) < 1
+
+
+def _files(session: Session, tenant_id: str, request_id: str) -> list[DocumentRequestFile]:
+    return list(
+        session.scalars(
+            select(DocumentRequestFile).where(
+                DocumentRequestFile.tenant_id == tenant_id,
+                DocumentRequestFile.request_id == request_id,
+            )
+        ).all()
+    )
+
+
+def _named_files(session: Session, tenant_id: str, request_id: str) -> list[tuple[DocumentRequestFile, str]]:
+    return list(
+        session.execute(
+            select(DocumentRequestFile, SourceDocument.file_name)
+            .join(SourceDocument, SourceDocument.id == DocumentRequestFile.document_id)
+            .where(DocumentRequestFile.tenant_id == tenant_id, DocumentRequestFile.request_id == request_id)
+            .order_by(DocumentRequestFile.uploaded_at.asc(), DocumentRequestFile.id.asc())
+        ).all()
+    )
+
+
+def _comments(session: Session, tenant_id: str, request_id: str) -> list[DocumentRequestComment]:
+    return list(
+        session.scalars(
+            select(DocumentRequestComment)
+            .where(DocumentRequestComment.tenant_id == tenant_id, DocumentRequestComment.request_id == request_id)
+            .order_by(DocumentRequestComment.created_at.asc(), DocumentRequestComment.id.asc())
+        ).all()
+    )
+
+
+def _file_dict(row: DocumentRequestFile, file_name: str) -> dict:
+    return {
+        "file_id": row.id,
+        "document_id": row.document_id,
+        "file_name": file_name,
+        "state": row.state,
+        "uploaded_by": row.uploaded_by,
+        "uploaded_at": format_utc(row.uploaded_at),
+        "returned_reason": row.returned_reason,
+    }
+
+
+def _comment_dict(row: DocumentRequestComment) -> dict:
+    return {
+        "comment_id": row.id,
+        "author_ref": row.author_ref,
+        "author_kind": row.author_kind,
+        "body": row.body,
+        "created_at": format_utc(row.created_at),
+    }
 
 
 def cancel_request(session: Session, principal: Principal, request_id: str, reason: str) -> dict:

@@ -1,8 +1,17 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { ApiError, api, uploadRequestFile } from "../api";
+import { ApiError, api, downloadDocument, uploadRequestFile } from "../api";
+import { RequestThread } from "./RequestThread";
 import { can, useSession } from "../session";
+
+type Submission = {
+  submission_id: string;
+  legal_entity_id: string;
+  file_name: string;
+  note: string | null;
+  document_id: string;
+};
 
 type RequestItem = {
   document_request_id: string;
@@ -46,16 +55,23 @@ export function DocumentRequestsPage() {
   const [params] = useSearchParams();
   const queryClient = useQueryClient();
   const [officeQueue, setOfficeQueue] = useState(params.get("fila") === "escritorio");
+  const [submissionsView, setSubmissionsView] = useState(params.get("aba") === "enviados");
   const [documentType, setDocumentType] = useState("receipt");
   const [title, setTitle] = useState("");
   const [dueOn, setDueOn] = useState("");
   const [fileById, setFileById] = useState<Record<string, File | null>>({});
   const [reasonById, setReasonById] = useState<Record<string, string>>({});
+  const [openId, setOpenId] = useState<string | null>(null);
   const requests = useQuery({
     queryKey: ["document-requests", entityId, periodId],
-    enabled: Boolean(entityId && periodId) && !officeQueue,
+    enabled: Boolean(entityId && periodId) && !officeQueue && !submissionsView,
     queryFn: () =>
       api<{ items: RequestItem[] }>(`/v1/document-requests?legal_entity_id=${entityId}&period_id=${periodId}`),
+  });
+  const submissions = useQuery({
+    queryKey: ["client-submissions", me.tenant_id],
+    enabled: submissionsView,
+    queryFn: () => api<{ items: Submission[] }>("/v1/client-submissions?status=new"),
   });
   const queue = useQuery({
     queryKey: ["document-request-queue", me.tenant_id, "page"],
@@ -111,12 +127,23 @@ export function DocumentRequestsPage() {
         <p>A barra agora está na empresa e na competência desta pendência.</p>
       ) : null}
       <p>
-        <button type="button" className="secondary" onClick={() => setOfficeQueue((current) => !current)}>
+        <button type="button" className="secondary" onClick={() => { setOfficeQueue((current) => !current); setSubmissionsView(false); }}>
           {officeQueue ? "Ver esta competência" : "Ver a fila do escritório"}
+        </button>
+        <button type="button" className="secondary" onClick={() => { setSubmissionsView((current) => !current); setOfficeQueue(false); }}>
+          {submissionsView ? "Ver esta competência" : "Enviados pelo cliente"}
         </button>
       </p>
       {officeQueue ? (
         <QueueTable items={queue.data?.items ?? []} loading={queue.isLoading} error={queue.isError} />
+      ) : submissionsView ? (
+        <SubmissionTable
+          items={submissions.data?.items ?? []}
+          loading={submissions.isLoading}
+          error={submissions.isError}
+          periodId={periodId}
+          onChanged={() => queryClient.invalidateQueries({ queryKey: ["client-submissions", me.tenant_id] })}
+        />
       ) : (
         <>
       {!periodId ? <p className="muted">Escolha a competência na barra.</p> : null}
@@ -209,11 +236,21 @@ export function DocumentRequestsPage() {
                     </form>
                   ) : null}
                   {item.cancel_reason ? <p className="muted">{item.cancel_reason}</p> : null}
+                  <button type="button" className="secondary" onClick={() => setOpenId(item.document_request_id)}>
+                    Ver arquivos
+                  </button>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
+      ) : null}
+      {openId ? (
+        <RequestThread
+          requestId={openId}
+          mode="office"
+          onDownload={(documentId, fileName) => void downloadDocument(documentId, fileName)}
+        />
       ) : null}
         </>
       )}
@@ -263,6 +300,71 @@ function QueueTable({ items, loading, error }: { items: RequestItem[]; loading: 
               >
                 Abrir nesta competência
               </button>
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
+function SubmissionTable({
+  items,
+  loading,
+  error,
+  periodId,
+  onChanged,
+}: {
+  items: Submission[];
+  loading: boolean;
+  error: boolean;
+  periodId: string;
+  onChanged: () => void;
+}) {
+  const [title, setTitle] = useState("");
+  const [dueOn, setDueOn] = useState("");
+  const [documentType, setDocumentType] = useState("other");
+  const [reason, setReason] = useState("");
+  const classify = useMutation({
+    mutationFn: (submissionId: string) =>
+      api(`/v1/client-submissions/${submissionId}/classify`, {
+        body: { period_id: periodId, document_type: documentType, title, due_on: dueOn },
+      }),
+    onSuccess: onChanged,
+  });
+  const discard = useMutation({
+    mutationFn: (submissionId: string) =>
+      api(`/v1/client-submissions/${submissionId}/discard`, { body: { reason } }),
+    onSuccess: onChanged,
+  });
+  if (loading) return <p className="muted">Carregando envios.</p>;
+  if (error) return <p className="error">Não foi possível listar os envios.</p>;
+  if (items.length === 0) return <p className="muted">Nenhum documento enviado sem pedido.</p>;
+  return (
+    <table>
+      <thead>
+        <tr><th>Arquivo</th><th>Nota</th><th></th></tr>
+      </thead>
+      <tbody>
+        {items.map((item) => (
+          <tr key={item.submission_id}>
+            <td>{item.file_name}</td>
+            <td>{item.note ?? "Sem nota"}</td>
+            <td>
+              {periodId ? (
+                <form className="row" onSubmit={(event) => { event.preventDefault(); classify.mutate(item.submission_id); }}>
+                  <input value={title} placeholder="Título do pedido" aria-label={`Título para ${item.file_name}`} onChange={(event) => setTitle(event.target.value)} />
+                  <select value={documentType} aria-label="Tipo" onChange={(event) => setDocumentType(event.target.value)}>
+                    {TYPES.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+                  </select>
+                  <input type="date" value={dueOn} aria-label="Prazo" onChange={(event) => setDueOn(event.target.value)} required />
+                  <button type="submit" disabled={!title.trim() || classify.isPending}>Classificar</button>
+                </form>
+              ) : <p className="muted">Escolha a competência na barra para classificar.</p>}
+              <form className="row" onSubmit={(event) => { event.preventDefault(); discard.mutate(item.submission_id); }}>
+                <input value={reason} placeholder="Motivo do descarte" aria-label={`Motivo para descartar ${item.file_name}`} onChange={(event) => setReason(event.target.value)} />
+                <button type="submit" className="secondary" disabled={reason.trim().length < 10 || discard.isPending}>Descartar</button>
+              </form>
             </td>
           </tr>
         ))}

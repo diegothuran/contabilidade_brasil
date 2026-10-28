@@ -24,6 +24,10 @@ O ledger não deve conhecer o detalhe de um município. O registry regulatório 
 
 Quando o contador ainda não decidiu uma regra ou o benchmark não comprova uma capacidade, escreva uma pergunta de decisão ou uma POC. Não converta incerteza em código permanente.
 
+## Onde fica cada coisa
+
+O [mapa do código](docs/mapa-do-codigo.md) liga cada módulo de `apps/api/src/contabil/` às rotas, tabelas, telas e ADRs, e mostra o caminho de uma escrita, o outbox, os estados e as armadilhas conhecidas. As regras de implementação e a definição de pronto estão em [AGENTS.md](AGENTS.md).
+
 ## Operação
 
 Use os schemas como fonte normativa para payloads. Mudança que a tela precisa entender atualiza, no mesmo commit, a SPEC do Rastro, as ADRs, o README, o caderno do contador, o OpenAPI e o README do piloto. Execute todos os validadores antes de concluir. Dados reais de clientes, XML, certificados e credenciais não entram neste repositório.

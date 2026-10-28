@@ -91,6 +91,59 @@ def test_client_sees_only_the_own_company_and_ignores_the_other_office(client, t
     assert foreign.status_code == 404
 
 
+def test_client_history_stays_inside_the_company(client, tokens, world):
+    del world
+    own = _ask(client, tokens["preparer"], title="Pedido encerrado do cliente", due_on="2026-09-12")
+    cancelled = _post(
+        client,
+        tokens["preparer"],
+        f"/v1/document-requests/{own['document_request_id']}/cancel",
+        {"reason": "O cliente entregou o documento por outro canal."},
+    )
+    assert cancelled.status_code == 200, cancelled.text
+    number = cnpj_digits("910000000007")
+    created = _post(
+        client,
+        tokens["admin"],
+        "/v1/legal-entities",
+        {"name": "Empresa do Histórico Ltda.", "cnpj": number, "fiscal_year": 2026},
+    )
+    assert created.status_code == 201, created.text
+    other_id = created.json()["legal_entity_id"]
+    other = _post(
+        client,
+        tokens["preparer"],
+        "/v1/document-requests",
+        {
+            "legal_entity_id": other_id,
+            "period_id": f"{other_id}-2026-09",
+            "document_type": "receipt",
+            "title": "Pedido encerrado de outra empresa",
+            "due_on": "2026-09-18",
+        },
+    )
+    assert other.status_code == 201, other.text
+    _post(
+        client,
+        tokens["preparer"],
+        f"/v1/document-requests/{other.json()['document_request_id']}/cancel",
+        {"reason": "Este pedido pertence a outra empresa do escritório."},
+    )
+    history = client.get(
+        "/v1/portal/document-requests",
+        params={"status": "confirmed,cancelled"},
+        headers=_auth(tokens["cliente"]),
+    )
+    assert history.status_code == 200, history.text
+    titles = [item["title"] for item in history.json()["items"]]
+    assert "Pedido encerrado do cliente" in titles
+    assert "Pedido encerrado de outra empresa" not in titles
+    own_item = next(item for item in history.json()["items"] if item["title"] == "Pedido encerrado do cliente")
+    assert own_item["cancel_reason"]
+    assert own_item["period"]
+    assert history.json()["summary"]["open"] >= 0
+
+
 def test_export_is_hashed_and_hidden_from_the_other_office(client, tokens, world):
     del world
     created = _post(
