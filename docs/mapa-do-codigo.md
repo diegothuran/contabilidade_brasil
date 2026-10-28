@@ -219,3 +219,5 @@ bash ~/.claude/plugins/cache/anthropic-plugin-directory/cartographer/<versão>/r
 ```
 
 A saída fica em `~/.cartographer/<hash>/`. O `endpoints.md` e a pasta `endpoints/` mostram, por rota, as funções e os arquivos tocados. O grafo automático liga alguns arquivos por engano, como testes a `rastro/data/types.ts`; use este mapa como referência e o gerado como apoio.
+
+O [CI](../.github/workflows/ci.yml) roda testes, lint e validadores em todo PR. Um teste de integração pulado faz o job falhar.
