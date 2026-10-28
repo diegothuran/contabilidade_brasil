@@ -1,4 +1,4 @@
-# SPEC — Contrato de interface v0.6.3
+# SPEC — Contrato de interface v0.6.4
 
 > Fonte de verdade da experiência do front-end. Atualizações de comportamento, estado, linguagem visual ou estrutura precisam atualizar este arquivo antes do código.
 
@@ -121,7 +121,7 @@ A barra de contexto marca a empresa escolhida e mantém a busca ao lado. A compe
 
 ## 13. Portal do cliente
 
-O cliente não entra na sala do escritório. A casca mostra o nome do escritório e a razão social e o CNPJ da empresa do login. Não há seletor de escritório, de empresa nem de competência, e não há menu de razão, fechamento, conciliação ou administração.
+O cliente não entra na sala do escritório. A casca mostra o nome do escritório e a razão social e o CNPJ formatado da empresa do login. O botão Sair encerra a sessão no provedor de login. Não há seletor de escritório, de empresa nem de competência, e não há menu de razão, fechamento, conciliação ou administração.
 
 O vocabulário da tela é pedido, prazo, estado e arquivo. O topo mostra abertos, recebidos, vencidos e o próximo prazo. Há duas listas: em aberto (pedido aberto e arquivo recebido) e histórico (pedido confirmado e pedido cancelado). O cancelado mostra o motivo. Cada pedido mostra o mês de referência. O cliente abre o pedido e vê os arquivos. O devolvido aparece riscado, com o motivo, e não some. No pedido aberto ou com arquivo recebido, o cliente envia outro arquivo, até dez ativos, e escreve uma mensagem. A conversa mostra Cliente ou Escritório. Confirmar, cancelar e devolver não aparecem. O download usa o nome original do arquivo. O cliente também envia um documento sem pedido, com uma nota. Esse envio não bloqueia o fechamento. O cliente liga ou desliga os avisos por e-mail. O aviso traz o título, o prazo e o link. Não mostra CNPJ, nome de arquivo nem a conversa.
 
@@ -129,6 +129,7 @@ Nada nesta tela fala em journal, balancete, papéis do escritório, exportação
 
 ## 14. Changelog
 
+- `0.6.4` — O portal mostra o CNPJ formatado e tem o botão Sair, que encerra a sessão no provedor de login.
 - `0.6.3` — O cliente liga ou desliga o aviso por e-mail. O texto leva título, prazo e link.
 - `0.6.2` — O cliente envia um documento sem pedido. O escritório classifica ou descarta. Hoje mostra a contagem.
 - `0.6.1` — O escritório devolve o arquivo com motivo. O pedido aceita até dez arquivos ativos e uma conversa.

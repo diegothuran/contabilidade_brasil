@@ -120,6 +120,7 @@
 .rastro .page-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 30px; margin-bottom: 26px; }
 .rastro .page-header p { max-width: 745px; margin-bottom: 0; font-size: .89rem; }
 .rastro .page-header__action { display: flex; flex: 0 0 auto; align-items: center; padding-top: 8px; }
+.rastro .page-header__action button { margin-left: 14px; }
 
 .rastro .button { display: inline-flex; min-height: 35px; align-items: center; justify-content: center; border: 1px solid var(--blue-rastro); border-radius: 7px; background: var(--blue-rastro); color: #fff; font-size: .74rem; font-weight: 650; line-height: 1; transition: background-color 150ms ease, border-color 150ms ease, transform 150ms ease; }
 .rastro .button:hover:not(:disabled) { border-color: var(--blue-deep); background: var(--blue-deep); transform: translateY(-1px); }
