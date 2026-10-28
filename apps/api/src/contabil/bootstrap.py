@@ -9,13 +9,22 @@ from contabil.platform.auth import apply_tenant
 from contabil.platform.db import session_factory
 from contabil.tables import AppUser, Membership, Tenant
 
-ROLES = frozenset({"preparer", "approver", "admin", "viewer"})
+ROLES = frozenset({"preparer", "approver", "admin", "viewer", "client"})
 
 
-def bootstrap(tenant_id: str, tenant_name: str, user_id: str, display_name: str, roles: list[str]) -> None:
+def bootstrap(
+    tenant_id: str,
+    tenant_name: str,
+    user_id: str,
+    display_name: str,
+    roles: list[str],
+    legal_entity_id: str | None = None,
+) -> None:
     unknown = [role for role in roles if role not in ROLES]
     if not roles or unknown:
-        raise ValueError("Papéis aceitos: preparer, approver, admin, viewer.")
+        raise ValueError("Papéis aceitos: preparer, approver, admin, viewer, client.")
+    if "client" in roles and (roles != ["client"] or not legal_entity_id):
+        raise ValueError("O cliente fica ligado a uma empresa e não acumula papel do escritório.")
     session = session_factory(admin=True)()
     try:
         if session.get(Tenant, tenant_id) is None:
@@ -35,6 +44,7 @@ def bootstrap(tenant_id: str, tenant_name: str, user_id: str, display_name: str,
                     tenant_id=tenant_id,
                     user_id=user_id,
                     roles=roles,
+                    legal_entity_id=legal_entity_id if "client" in roles else None,
                 )
             )
         session.commit()

@@ -29,9 +29,20 @@ def chosen_tenant(home: str, requested: str | None) -> str:
 
 
 def switch_allowed(home_roles: list[str] | tuple[str, ...] | frozenset[str], home: str, requested: str | None) -> bool:
+    if "client" in set(home_roles):
+        return chosen_tenant(home, requested) == home
     if chosen_tenant(home, requested) == home:
         return True
     return "admin" in set(home_roles)
+
+
+def effective_tenant(home: str, requested: str | None, home_roles: list[str] | tuple[str, ...] | frozenset[str]) -> str:
+    if "client" in set(home_roles):
+        return home
+    chosen = chosen_tenant(home, requested)
+    if not switch_allowed(home_roles, home, requested):
+        raise DomainError(403, "Ação não permitida", "Usuário sem acesso a este escritório.")
+    return chosen
 
 
 def offices_visible(general_admin: bool, active_tenant_id: str, offices: list[tuple[str, str]]) -> list[tuple[str, str]]:
@@ -101,16 +112,14 @@ def authenticate(session: Session, token: str, requested_tenant: str | None = No
     if not isinstance(tenant_id, str) or not tenant_id:
         logger.warning("token sem a claim %s", settings.oidc_tenant_claim)
         raise DomainError(401, "Não autenticado", "O token não identifica o escritório.")
-    chosen = chosen_tenant(tenant_id, requested_tenant)
     apply_tenant(session, tenant_id)
     bind_user(session, username)
+    home_membership = session.scalar(
+        select(Membership).where(Membership.user_id == username, Membership.tenant_id == tenant_id)
+    )
+    home_roles = list(home_membership.roles or []) if home_membership is not None else []
+    chosen = effective_tenant(tenant_id, requested_tenant, home_roles)
     if chosen != tenant_id:
-        home_membership = session.scalar(
-            select(Membership).where(Membership.user_id == username, Membership.tenant_id == tenant_id)
-        )
-        home_roles = list(home_membership.roles or []) if home_membership is not None else []
-        if not switch_allowed(home_roles, tenant_id, chosen):
-            raise DomainError(403, "Ação não permitida", "Usuário sem acesso a este escritório.")
         allowed = session.scalar(
             select(Membership.id).where(Membership.user_id == username, Membership.tenant_id == chosen)
         )
@@ -129,6 +138,8 @@ def authenticate(session: Session, token: str, requested_tenant: str | None = No
     roles = frozenset(membership.roles or [])
     if not roles:
         raise DomainError(403, "Ação não permitida", "Usuário sem papel neste escritório.")
+    if "client" in roles and (roles != frozenset({"client"}) or not getattr(membership, "legal_entity_id", None)):
+        raise DomainError(403, "Ação não permitida", "O acesso de cliente precisa estar ligado a uma empresa.")
     return Principal(
         user_id=username,
         tenant_id=chosen,
@@ -136,4 +147,5 @@ def authenticate(session: Session, token: str, requested_tenant: str | None = No
         display_name=display_name,
         tenant_name=tenant_name,
         home_tenant_id=tenant_id,
+        legal_entity_id=getattr(membership, "legal_entity_id", None),
     )

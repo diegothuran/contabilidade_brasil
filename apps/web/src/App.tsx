@@ -1,10 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
-import { ApiError, api } from "./api";
+import { ApiError, TENANT_KEY, api } from "./api";
 import { userManager } from "./auth";
+import { PortalPage } from "./pages/PortalPage";
 import { RastroShell } from "./rastro/RastroShell";
 import "./rastro/rastro.css";
-import { Entity, Me, SessionProvider } from "./session";
+import { Entity, Me, SessionProvider, isClient } from "./session";
 
 const ENTITY_KEY = "contabil.entity";
 const PERIOD_KEY = "contabil.periods.v2";
@@ -89,9 +90,20 @@ function LoginBrand() {
 
 function Shell() {
   const me = useQuery({ queryKey: ["me"], queryFn: () => api<Me>("/v1/me") });
-  const entities = useQuery({ queryKey: ["entities"], queryFn: () => api<{ items: Entity[] }>("/v1/legal-entities") });
+  const client = Boolean(me.data && isClient(me.data.roles));
+  const entities = useQuery({
+    queryKey: ["entities"],
+    enabled: Boolean(me.data) && !client,
+    queryFn: () => api<{ items: Entity[] }>("/v1/legal-entities"),
+  });
   const [entityId, setEntityId] = useState(() => sessionStorage.getItem(ENTITY_KEY) ?? "");
   const [periodsByEntity, setPeriodsByEntity] = useState<Record<string, string>>(readPeriods);
+
+  useEffect(() => {
+    if (client) {
+      sessionStorage.removeItem(TENANT_KEY);
+    }
+  }, [client]);
 
   useEffect(() => {
     const items = entities.data?.items ?? [];
@@ -104,17 +116,26 @@ function Shell() {
   }, [entities.data, entityId]);
 
   useEffect(() => {
-    if (entityId) {
+    if (entityId && !client) {
       sessionStorage.setItem(ENTITY_KEY, entityId);
     }
-  }, [entityId]);
+  }, [entityId, client]);
 
-  if (me.isError || entities.isError) {
-    const error = me.error ?? entities.error;
-    const detail = error instanceof ApiError ? error.message : "Não foi possível carregar o escritório.";
+  if (me.isError) {
+    const detail = me.error instanceof ApiError ? me.error.message : "Não foi possível carregar o escritório.";
     return <p className="error">{detail}</p>;
   }
-  if (me.isLoading || entities.isLoading || !me.data || !entities.data) {
+  if (me.isLoading || !me.data) {
+    return <p className="muted">Carregando escritório…</p>;
+  }
+  if (client) {
+    return <PortalPage me={me.data} />;
+  }
+  if (entities.isError) {
+    const detail = entities.error instanceof ApiError ? entities.error.message : "Não foi possível carregar o escritório.";
+    return <p className="error">{detail}</p>;
+  }
+  if (entities.isLoading || !entities.data) {
     return <p className="muted">Carregando escritório…</p>;
   }
   const items = entities.data.items;

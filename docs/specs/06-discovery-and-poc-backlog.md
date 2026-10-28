@@ -14,11 +14,11 @@
 
 **DISC-002 — Selecionar estados e obrigações.** Escolher recorte de piloto e responsabilidade por homologação. Pronto: matriz com obrigação, localidade, regime, versão e cobertura.
 
-**POC-004 — Portal de pendências.** Enviar, receber e aprovar documentos por competência. Pronto: cliente e contador resolvem cinco casos.
+**POC-004 — Portal de pendências.** Enviar, receber e aprovar documentos por competência. O cliente da empresa envia o arquivo do próprio pedido; o escritório confirma ([ADR 025](../adr/025-portal-do-cliente.md)). Pronto: cliente e contador resolvem cinco casos.
+
+**POC-006 — Exportação.** Exportar ledger, documentos, configurações, recibos e auditoria. O corte atual exporta a competência em JSON com hash ([ADR 023](../adr/023-exportacao-operacional.md)). Pronto: outro ambiente consegue ler o pacote.
 
 **POC-005 — Fechamento.** Executar checklist, lock, reabertura e pacote de evidências. Pronto: auditoria e snapshot são reproduzíveis.
-
-**POC-006 — Exportação.** Exportar ledger, documentos, configurações, recibos e auditoria. Pronto: outro ambiente consegue ler o pacote.
 
 ## P2 — provar o regulatório
 

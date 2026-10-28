@@ -97,7 +97,7 @@ def tokens(app):
     settings = get_settings()
     deadline = time.time() + 90
     last_error: str | None = None
-    names = ("preparer", "approver", "admin", "viewer", "outsider")
+    names = ("preparer", "approver", "admin", "viewer", "outsider", "cliente")
     while time.time() < deadline:
         try:
             issued: dict[str, str] = {}

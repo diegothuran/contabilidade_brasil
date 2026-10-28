@@ -142,7 +142,11 @@ O segundo escritório fictício é o Litoral. O comando cria o escritório, copi
 heroku run --no-tty --exit-code --app NOME-API -- python -m contabil.pilot_samples --tenant-id litoral --catalog litoral --copy-admins-from escritorio
 ```
 
-O seletor da barra lateral só aparece para o administrador geral, que tem o papel admin no escritório do login e acesso a outro escritório. Um login ligado a um escritório só vê esse escritório. A troca não muda o atributo do login; ela só vale enquanto a sessão do navegador guarda o escritório escolhido.
+O seletor da barra lateral só aparece para o administrador geral, que tem o papel admin no escritório do login e acesso a outro escritório. Um login ligado a um escritório só vê esse escritório. O cliente da empresa não vê o seletor. A troca não muda o atributo do login; ela só vale enquanto a sessão do navegador guarda o escritório escolhido.
+
+Hoje mostra a fila de pedidos que bloqueiam o fechamento. Abrir um item troca a empresa e a competência da barra. Em Evidências, quem prepara gera a exportação da competência e baixa o JSON quando o estado fica pronto. A lista de operações fica na API, em `GET /v1/operations`.
+
+Cada empresa de teste ganha um usuário `cliente-` seguido do nome interno da história (`andamento`, `fechada`, `banco`, `vazia` e `rascunhos`; no Litoral, `pousada`, `oficina`, `mercado`, `clinica` e `grafica`). Esse usuário existe no banco, ligado só àquela empresa, mas ainda não tem login. Para criar o login, o administrador convida o mesmo nome de usuário em Administração, com o papel Cliente, a mesma empresa e um e-mail de teste. A API reconhece o cliente que já existe, não duplica o acesso e manda o e-mail com a senha temporária. Convidar esse nome com outro papel ou outra empresa continua sendo recusado. O cliente envia o arquivo. Quem confirma continua sendo o escritório. Os cinco casos do escritório piloto são o recibo confirmado da Padaria, o extrato aberto do Studio, a nota aberta do Vale, o contrato aberto do Ateliê e o recibo de frete aberto da Transportes.
 
 
 ## Conferência
@@ -151,6 +155,9 @@ O seletor da barra lateral só aparece para o administrador geral, que tem o pap
 - A URL da interface abre a tela de entrada. Depois do Cognito, cai em `/app/rastro`.
 - O navegador não mostra erro de CORS em `/v1/me`.
 - O administrador cadastra uma empresa fictícia e ela aparece no seletor, com plano e períodos.
+- Hoje lista a pendência que bloqueia o fechamento. Abrir o item troca a empresa e a competência.
+- Em Evidências, a exportação da competência passa por em fila, gerando e pronto, e o JSON confere o SHA-256.
+- Um cliente convidado para uma empresa vê só os pedidos dessa empresa, envia o arquivo e não abre o razão. O escritório confirma.
 - O administrador entra, envia um OFX em Conciliação e vê um caso Sugerido. Sem bucket, esse passo fica para depois do storage.
 - O usuário do outro escritório recebe 404 ao abrir um caso do primeiro.
 - O seed de demonstração não aparece.

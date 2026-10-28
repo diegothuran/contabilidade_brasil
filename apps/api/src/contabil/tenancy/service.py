@@ -106,6 +106,7 @@ def invite_user(
     display_name: str,
     email: str,
     roles: list[str],
+    legal_entity_id: str | None = None,
 ) -> dict:
     if _USERNAME.fullmatch(username) is None:
         raise DomainError(
@@ -116,16 +117,49 @@ def invite_user(
     if _EMAIL.fullmatch(email) is None or len(email) > 200:
         raise DomainError(400, "E-mail inválido", "Informe um e-mail para o convite.")
     chosen = list(dict.fromkeys(roles))
-    if not chosen or any(role not in ROLES for role in chosen):
+    if "client" in chosen:
+        if chosen != ["client"]:
+            raise DomainError(400, "Papel inválido", "O cliente da empresa não combina com papel do escritório.")
+        if not legal_entity_id:
+            raise DomainError(400, "Empresa obrigatória", "O cliente precisa estar ligado a uma empresa.")
+    elif legal_entity_id:
+        raise DomainError(400, "Empresa indevida", "Só o cliente da empresa fica ligado a uma empresa.")
+    elif not chosen or any(role not in ROLES for role in chosen):
         raise DomainError(400, "Papel inválido", "Escolha ao menos um papel: preparer, approver, admin, viewer.")
+    if any(role not in ROLES for role in chosen):
+        raise DomainError(400, "Papel inválido", "Escolha ao menos um papel: preparer, approver, admin, viewer ou client.")
     visible_name = display_name.strip()
     if not visible_name or len(visible_name) > 200:
         raise DomainError(400, "Nome inválido", "Informe o nome de exibição.")
+    if legal_entity_id:
+        require_entity(session, principal.tenant_id, legal_entity_id)
     existing = session.scalar(
         select(Membership).where(Membership.tenant_id == principal.tenant_id, Membership.user_id == username)
     )
     if existing is not None:
-        raise DomainError(409, "Usuário já faz parte do escritório", "Este nome de usuário já tem acesso ao escritório.")
+        same_client = (
+            chosen == ["client"]
+            and list(existing.roles) == ["client"]
+            and existing.legal_entity_id == legal_entity_id
+        )
+        if not same_client:
+            raise DomainError(409, "Usuário já faz parte do escritório", "Este nome de usuário já tem acesso ao escritório.")
+        directory.create_user(username, email, visible_name, principal.tenant_id)
+        append_event(
+            session,
+            tenant_id=principal.tenant_id,
+            event_type="other",
+            actor_ref=principal.user_id,
+            target_type="user",
+            target_ref=username,
+            metadata={"action": "client_login_completed", "roles": chosen},
+        )
+        user = session.get(AppUser, username)
+        return {
+            "user_id": username,
+            "display_name": user.display_name if user is not None else visible_name,
+            "roles": chosen,
+        }
     directory.create_user(username, email, visible_name, principal.tenant_id)
     if session.get(AppUser, username) is None:
         session.add(AppUser(id=username, display_name=visible_name))
@@ -136,6 +170,7 @@ def invite_user(
             tenant_id=principal.tenant_id,
             user_id=username,
             roles=chosen,
+            legal_entity_id=legal_entity_id,
         )
     )
     append_event(
@@ -159,7 +194,12 @@ def list_users(session: Session, principal: Principal) -> dict:
     ).all()
     return {
         "items": [
-            {"user_id": membership.user_id, "display_name": name, "roles": list(membership.roles)}
+            {
+                "user_id": membership.user_id,
+                "display_name": name,
+                "roles": list(membership.roles),
+                **({"legal_entity_id": membership.legal_entity_id} if membership.legal_entity_id else {}),
+            }
             for membership, name in rows
         ]
     }

@@ -149,6 +149,112 @@ paths:
           schema: { type: string }
       responses:
         '200': { description: Pedidos }
+  /v1/document-requests/queue:
+    get:
+      summary: Fila de pedidos do escritório ativo
+      description: O padrão lista open e received, que bloqueiam o fechamento. A ordem é o prazo e, no mesmo prazo, open antes de received. O cliente da empresa não usa esta fila.
+      operationId: listDocumentRequestQueue
+      parameters:
+        - in: query
+          name: status
+          schema: { type: string }
+        - in: query
+          name: due_before
+          schema: { type: string, format: date }
+        - in: query
+          name: year
+          schema: { type: integer }
+        - in: query
+          name: month
+          schema: { type: integer }
+        - in: query
+          name: cursor
+          schema: { type: string }
+        - in: query
+          name: limit
+          schema: { type: integer, minimum: 1, maximum: 100, default: 50 }
+      responses:
+        '200': { description: Fila do escritório }
+        '403': { description: Acesso de cliente ou de outro escritório }
+  /v1/portal/document-requests:
+    get:
+      summary: Pedidos abertos ou recebidos da empresa do cliente
+      operationId: listPortalDocumentRequests
+      responses:
+        '200': { description: Pedidos do cliente }
+        '403': { description: Quem não é cliente da empresa }
+  /v1/portal/document-requests/{request_id}/content:
+    post:
+      summary: O cliente envia o arquivo do próprio pedido
+      operationId: receivePortalDocumentRequest
+      parameters:
+        - in: path
+          name: request_id
+          required: true
+          schema: { type: string }
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file: { type: string, format: binary }
+      responses:
+        '200': { description: Arquivo ligado ao pedido }
+        '404': { description: Pedido de outra empresa ou inexistente }
+  /v1/portal/documents/{document_id}/content:
+    get:
+      summary: Baixa o arquivo ligado a um pedido do cliente
+      operationId: downloadPortalDocument
+      parameters:
+        - in: path
+          name: document_id
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: Conteúdo original }
+        '404': { description: Arquivo de outro pedido ou inexistente }
+  /v1/legal-entities/{legal_entity_id}/exports:
+    post:
+      summary: Pede a exportação operacional da competência
+      description: preparer, approver ou admin dispara. A lista de operações não é uma tela. O resultado sai em GET /v1/exports/{export_id}.
+      operationId: createOperationalExport
+      parameters:
+        - in: path
+          name: legal_entity_id
+          required: true
+          schema: { type: string }
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [period_id, kind]
+              properties:
+                period_id: { type: string }
+                kind: { type: string, enum: [operational_v1] }
+      responses:
+        '202': { description: Exportação aceita, com export_id, operation_id e correlation_id }
+        '403': { description: Papel insuficiente }
+  /v1/exports/{export_id}:
+    get:
+      summary: Pacote operacional quando a operação terminou
+      operationId: getOperationalExport
+      parameters:
+        - in: path
+          name: export_id
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: Pacote JSON, content: { application/json: { schema: { $ref: '#/components/schemas/OperationalExport' } } } }
+        '404': { description: Exportação de outro escritório ou inexistente }
+        '409': { description: Ainda em fila, gerando ou falhou }
   /v1/document-requests/{request_id}/content:
     post:
       summary: Grava o arquivo original e marca o pedido como recebido
@@ -590,9 +696,33 @@ paths:
           schema: { type: string }
       responses:
         '200': { description: Obrigação, content: { application/json: { schema: { $ref: '#/components/schemas/RegulatoryObligation' } } } }
+  /v1/operations:
+    get:
+      summary: Lista operações assíncronas do escritório
+      description: Filtro por kind, status e correlation_id. Não há tela para esta lista. O cliente da empresa não consulta.
+      operationId: listOperations
+      parameters:
+        - in: query
+          name: kind
+          schema: { type: string }
+        - in: query
+          name: status
+          schema: { type: string, enum: [accepted, running, completed, failed] }
+        - in: query
+          name: correlation_id
+          schema: { type: string }
+        - in: query
+          name: cursor
+          schema: { type: string }
+        - in: query
+          name: limit
+          schema: { type: integer, minimum: 1, maximum: 100, default: 50 }
+      responses:
+        '200': { description: Operações, com operation_id, status, correlation_id, kind e target_ref }
+        '403': { description: Acesso de cliente }
   /v1/operations/{operation_id}:
     get:
-      summary: Consulta status e código de erro de um job assíncrono
+      summary: Consulta status, correlation_id e código de erro de um job assíncrono
       operationId: getOperation
       parameters:
         - in: path
@@ -629,17 +759,18 @@ paths:
                   type: array
                   minItems: 1
                   maxItems: 4
-                  items: { type: string, enum: [preparer, approver, admin, viewer] }
+                  items: { type: string, enum: [preparer, approver, admin, viewer, client] }
+                legal_entity_id: { type: string, description: Obrigatório quando o papel é client. }
       responses:
-        '201': { description: Convite registrado }
+        '201': { description: Convite registrado. Para um cliente que já existe ligado à mesma empresa, só cria o login, sem duplicar o acesso. }
         '400': { description: Dados do convite inválidos }
         '403': { description: Papel insuficiente }
-        '409': { description: Usuário já existe neste ou noutro escritório }
+        '409': { description: Usuário já existe neste ou noutro escritório com outro acesso }
         '503': { description: Diretório de usuários não configurado }
   /v1/me:
     get:
       summary: Identidade, papéis e escritórios da pessoa
-      description: O escritório ativo é o do token. O header X-Tenant-Id só troca o escritório quando a pessoa é administradora no escritório do login e já tem membership no escritório pedido. Os demais logins recebem apenas o escritório do token.
+      description: O escritório ativo é o do token. O header X-Tenant-Id só troca o escritório quando a pessoa é administradora no escritório do login e já tem membership no escritório pedido. O login de cliente ignora o header e devolve só a própria empresa. Os demais logins recebem apenas o escritório do token.
       operationId: getMe
       responses:
         '200': { description: Sessão }
@@ -874,6 +1005,7 @@ components:
     ImportBatch: { type: object, description: Validado por schemas/import-batch.schema.json, additionalProperties: true }
     SourceDocument: { type: object, description: Validado por schemas/source-document.schema.json, additionalProperties: true }
     DocumentRequest: { type: object, description: Validado por schemas/document-request.schema.json, additionalProperties: true }
+    OperationalExport: { type: object, description: Validado por schemas/export-package.schema.json, additionalProperties: true }
     ReconciliationCase: { type: object, description: Validado por schemas/reconciliation-case.schema.json, additionalProperties: true }
     CloseRun: { type: object, description: Validado por schemas/close-run.schema.json, additionalProperties: true }
     RegulatoryObligation: { type: object, description: Validado por schemas/regulatory-obligation.schema.json, additionalProperties: true }

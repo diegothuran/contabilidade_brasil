@@ -21,15 +21,18 @@ O primeiro público é um escritório com cerca de **20 a 200 CNPJs**, em dois o
 
 | Área | O que funciona | Onde fica na sala |
 | --- | --- | --- |
-| Escritório e acesso | Login OIDC, escritório (tenant) isolado no banco por RLS, papéis `preparer`, `approver`, `admin` e `viewer`. | Barra lateral e rodapé com usuário e papéis |
+| Escritório e acesso | Login OIDC, escritório (tenant) isolado no banco por RLS, papéis `preparer`, `approver`, `admin`, `viewer` e `client`. O cliente fica numa empresa só. | Barra lateral do escritório, ou a casca do cliente |
 | Empresas | O admin cadastra a empresa com CNPJ validado e único no escritório. Ela nasce com matriz, modelo mínimo de contas e 12 períodos abertos. | Rotinas do razão › Nova empresa |
 | Plano de contas | Contas sintéticas e analíticas por empresa. Só conta analítica (postável) recebe lançamento. | Rotinas do razão › Plano de contas |
 | Lançamentos | Rascunho equilibrado, envio, aprovação e publicação. Quem cria não aprova nem publica. Publicado não se edita: corrige-se por estorno vinculado. | Hoje, Dados e ledger, Rotinas do razão › Novo lançamento |
 | Balancete | Débito, crédito e saldo por conta e competência, com drill-down até a linha. | Rotinas do razão › Balancete |
 | Períodos | O checklist bloqueia o fechamento. O snapshot fica gravado com SHA-256. Reabrir pede motivo e aprovação de outra pessoa e não altera o snapshot. | Fechamentos |
+| Pendências | Pedido de documento na competência. Aberto ou recebido bloqueia o fechamento. Hoje mostra a fila do escritório. | Hoje e Pendências |
 | Importação | Lote CSV em simulação, relatório de diferenças e publicação por outra pessoa. Identificador já importado não entra de novo. | Migrações |
 | Bancos e conciliação | Conta bancária ligada ao plano, extrato CSV ou OFX, casos Sugerido e Sem candidato, aprovação humana do vínculo. | Conciliação; Rotinas do razão › Bancos |
 | Documentos | Arquivo original no object storage com hash SHA-256, tipo e competência. | Evidências |
+| Exportação | JSON da competência com lançamentos, documentos, pedidos, auditoria, totais do balancete e SHA-256. | Evidências |
+| Portal do cliente | O cliente envia o arquivo do próprio pedido. Não vê o razão e não confirma. | Casca do cliente |
 | Auditoria | Eventos encadeados por hash, com verificação da cadeia. | Rotinas do razão › Auditoria |
 
 Revisões de IA, obrigações e entregas e integrações externas aparecem no menu, mas a tela diz que ainda não há contrato. Elas não simulam estado.
@@ -40,10 +43,11 @@ Revisões de IA, obrigações e entregas e integrações externas aparecem no me
 
 | Papel | Pode |
 | --- | --- |
-| `preparer` | Criar conta e rascunho, enviar para aprovação, montar lote de importação, enviar documento e extrato, pedir reabertura. |
-| `approver` | Aprovar, rejeitar e publicar o lançamento de outra pessoa; publicar lote; aprovar conciliação; fechar período e aprovar a reabertura pedida por outra pessoa. |
-| `admin` | O que os dois acima podem, mais cadastrar empresa e convidar pessoas para o escritório. |
-| `viewer` | Consultar. |
+| `preparer` | Criar conta e rascunho, enviar para aprovação, montar lote de importação, enviar documento e extrato, pedir reabertura, pedir documento e pedir a exportação da competência. |
+| `approver` | Aprovar, rejeitar e publicar o lançamento de outra pessoa; publicar lote; aprovar conciliação; fechar período e aprovar a reabertura pedida por outra pessoa; confirmar o pedido de documento. |
+| `admin` | O que os dois acima podem, mais cadastrar empresa, convidar pessoas para o escritório e convidar o cliente de uma empresa. |
+| `viewer` | Consultar, inclusive a fila de pendências e a exportação já gerada. Não dispara exportação. |
+| `client` | Ver e enviar arquivo só nos pedidos abertos ou recebidos da própria empresa. Não confirma, não cancela e não abre a sala do escritório. |
 
 A segregação vale mesmo para quem tem vários papéis: quem criou o lançamento não aprova nem publica esse lançamento.
 
@@ -53,12 +57,16 @@ O primeiro admin nasce no comando `contabil.bootstrap`. Os seguintes entram em *
 
 1. Entre pela tela do Rastro. O login vai ao provedor de identidade e volta para `/app/rastro`.
 2. Na barra **Cliente / CNPJ**, no topo, escolha a empresa. A competência ao lado é dessa empresa.
-3. Em **Hoje**, veja os lançamentos recentes. A lista completa fica em **Dados e ledger**.
-4. Em **Rotinas do razão › Novo lançamento**, monte um rascunho equilibrado e envie para aprovação.
-5. Outra pessoa, com papel `approver`, abre o lançamento, aprova e publica.
-6. Confira o saldo em **Rotinas do razão › Balancete** e desça até a linha.
-7. Em **Conciliação**, envie o extrato e decida cada caso sugerido.
-8. Em **Fechamentos**, abra o checklist, revise o balancete e feche a competência. Baixe o pacote e confira o SHA-256.
+3. Em **Hoje**, veja o que bloqueia o fechamento e os lançamentos recentes. Abrir uma pendência troca a empresa e a competência da barra.
+4. Em **Pendências**, peça o documento, envie o arquivo ou confirme. A fila do escritório lista as outras empresas.
+5. Em **Rotinas do razão › Novo lançamento**, monte um rascunho equilibrado e envie para aprovação.
+6. Outra pessoa, com papel `approver`, abre o lançamento, aprova e publica.
+7. Confira o saldo em **Rotinas do razão › Balancete** e desça até a linha.
+8. Em **Conciliação**, envie o extrato e decida cada caso sugerido.
+9. Em **Evidências**, gere a exportação da competência e confira o SHA-256 quando o estado estiver pronto.
+10. Em **Fechamentos**, abra o checklist, revise o balancete e feche a competência. Baixe o pacote e confira o SHA-256.
+
+O cliente entra com o próprio usuário e vê só os pedidos da empresa. Enviar o arquivo não confirma o pedido: quem confirma é o escritório.
 
 A caminhada sintética da empresa fictícia Orbe fica em **Demonstração**, no grupo Sistema. Ela mostra o desenho futuro da sala e não grava lançamento.
 

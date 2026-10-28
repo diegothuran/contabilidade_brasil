@@ -74,8 +74,13 @@ def store_document(
     competence: str | None,
     source_ref: str | None,
     source_type: str = "upload",
+    allow_client: bool = False,
 ) -> tuple[dict, int]:
-    ensure_role(principal, "preparer", "approver", "admin")
+    if allow_client and principal.roles == frozenset({"client"}):
+        if not principal.legal_entity_id or legal_entity_id != principal.legal_entity_id:
+            raise DomainError(404, "Não encontrado", "Pedido de documento não encontrado.")
+    else:
+        ensure_role(principal, "preparer", "approver", "admin")
     if document_type not in DOCUMENT_TYPES:
         raise DomainError(400, "Tipo inválido", "O tipo de documento não é aceito.")
     if competence is not None and _COMPETENCE.fullmatch(competence) is None:

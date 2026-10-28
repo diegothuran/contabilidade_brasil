@@ -23,4 +23,7 @@
 | [019](019-convite-de-usuario.md) | Só o admin convida. O Cognito envia a senha por e-mail. |
 | [020](020-fechamento-com-evidencia.md) | Fechar exige checklist. O snapshot é imutável e o pacote sai no download. |
 | [021](021-pedido-de-documento.md) | Pedido de documento em aberto ou recebido bloqueia o fechamento. |
-| [022](022-troca-de-escritorio.md) | A pessoa troca de escritório só entre memberships suas. |
+| [022](022-troca-de-escritorio.md) | A pessoa troca de escritório só entre memberships suas. O cliente não troca. |
+| [023](023-exportacao-operacional.md) | A exportação da competência sai em Evidências e a lista de operações fica na API. |
+| [024](024-fila-de-pendencias.md) | A fila de pendências é do escritório ativo e Hoje mostra o que bloqueia. |
+| [025](025-portal-do-cliente.md) | O cliente vê só os pedidos da própria empresa e não abre a sala do escritório. |

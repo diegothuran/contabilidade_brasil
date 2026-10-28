@@ -7,12 +7,34 @@ from fastapi import APIRouter, Depends, File, Query, Request, UploadFile
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict, Field
 
-from contabil.document_requests.service import cancel_request, confirm_request, create_request, list_requests, receive_content
+from contabil.document_requests.service import cancel_request, confirm_request, create_request, list_queue, list_requests, receive_content
 from contabil.platform.deps import Ctx, get_context
 from contabil.platform.errors import IdempotentReplay
 from contabil.platform.idempotency import claim_idempotency, persist, replay_guard
 
 router = APIRouter()
+
+
+@router.get("/document-requests/queue")
+def get_queue(
+    status: str | None = None,
+    due_before: date | None = None,
+    year: int | None = None,
+    month: int | None = None,
+    cursor: str | None = None,
+    limit: int = Query(default=50),
+    ctx: Ctx = Depends(get_context),
+) -> dict:
+    return list_queue(
+        ctx.session,
+        ctx.principal,
+        status=status,
+        due_before=due_before,
+        year=year,
+        month=month,
+        cursor=cursor,
+        limit=limit,
+    )
 
 
 class RequestCreate(BaseModel):

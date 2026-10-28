@@ -1,0 +1,105 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contabilidade-brasil.local/schemas/export-package.schema.json",
+  "title": "Operational export",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "kind", "generated_at", "tenant_id", "legal_entity", "period", "disclaimer", "journals", "documents", "document_requests", "audit_events", "trial_balance", "sha256"],
+  "properties": {
+    "schema_version": { "type": "string", "const": "1.0.0" },
+    "kind": { "type": "string", "const": "operational_v1" },
+    "generated_at": { "type": "string", "format": "date-time" },
+    "tenant_id": { "type": "string", "minLength": 1, "maxLength": 160 },
+    "legal_entity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["legal_entity_id", "name", "cnpj"],
+      "properties": {
+        "legal_entity_id": { "type": "string" },
+        "name": { "type": "string" },
+        "cnpj": { "type": "string" }
+      }
+    },
+    "period": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["period_id", "fiscal_year", "month"],
+      "properties": {
+        "period_id": { "type": "string" },
+        "fiscal_year": { "type": "integer" },
+        "month": { "type": "integer", "minimum": 1, "maximum": 12 }
+      }
+    },
+    "disclaimer": { "type": "string", "minLength": 20 },
+    "journals": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["journal_id", "entry_date", "description", "status"],
+        "properties": {
+          "journal_id": { "type": "string" },
+          "entry_date": { "type": "string", "format": "date" },
+          "description": { "type": "string" },
+          "status": { "type": "string" }
+        }
+      }
+    },
+    "documents": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["document_id", "document_type", "file_name", "sha256", "competence"],
+        "properties": {
+          "document_id": { "type": "string" },
+          "document_type": { "type": "string" },
+          "file_name": { "type": "string" },
+          "sha256": { "type": "string" },
+          "competence": { "type": ["string", "null"] }
+        }
+      }
+    },
+    "document_requests": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["document_request_id", "title", "status", "due_on", "blocks_close"],
+        "properties": {
+          "document_request_id": { "type": "string" },
+          "title": { "type": "string" },
+          "status": { "type": "string" },
+          "due_on": { "type": "string", "format": "date" },
+          "blocks_close": { "type": "boolean" }
+        }
+      }
+    },
+    "audit_events": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["event_id", "event_type", "occurred_at", "target_type", "target_ref"],
+        "properties": {
+          "event_id": { "type": "string" },
+          "event_type": { "type": "string" },
+          "occurred_at": { "type": "string" },
+          "target_type": { "type": "string" },
+          "target_ref": { "type": "string" }
+        }
+      }
+    },
+    "trial_balance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["currency", "debit_total", "credit_total"],
+      "properties": {
+        "currency": { "type": "string" },
+        "debit_total": { "type": "string" },
+        "credit_total": { "type": "string" }
+      }
+    },
+    "sha256": { "type": "string", "minLength": 64, "maxLength": 64 }
+  }
+}

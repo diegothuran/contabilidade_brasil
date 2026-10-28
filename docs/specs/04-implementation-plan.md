@@ -22,13 +22,15 @@ Implementar contas a pagar/receber, OFX/CSV, casos de conciliação, candidatos 
 
 **Pronto quando:** uma competência completa pode fechar com pendências visíveis e auditoria exportável.
 
-O corte C1 está na fundação local. Um extrato CSV ou OFX reimportado não duplica transação. Cada transação nova vira um caso com candidatos do razão, score e explicação, e só um aprovador cria o vínculo. A conta banco mostra o que ainda está pendente. O corte de fechamento grava checklist, snapshot e pacote sob demanda ([ADR 020](../adr/020-fechamento-com-evidencia.md)). O primeiro corte do portal pede um documento na competência, guarda o arquivo e bloqueia o fechamento enquanto o pedido está aberto ou só recebido ([ADR 021](../adr/021-pedido-de-documento.md)). Contas a pagar e receber, match 1:N, N:1 e parcial, login de cliente e comentário continuam fora. As perguntas estão no caderno de descoberta.
+O corte C1 está na fundação local. Um extrato CSV ou OFX reimportado não duplica transação. Cada transação nova vira um caso com candidatos do razão, score e explicação, e só um aprovador cria o vínculo. A conta banco mostra o que ainda está pendente. O corte de fechamento grava checklist, snapshot e pacote sob demanda ([ADR 020](../adr/020-fechamento-com-evidencia.md)). O primeiro corte do portal pede um documento na competência, guarda o arquivo e bloqueia o fechamento enquanto o pedido está aberto ou só recebido ([ADR 021](../adr/021-pedido-de-documento.md)). O login do cliente, limitado ao próprio pedido, entra na Fase D ([ADR 025](../adr/025-portal-do-cliente.md)). Contas a pagar e receber, match 1:N, N:1 e parcial e comentário continuam fora. As perguntas estão no caderno de descoberta.
 
 ## Fase D — portal e API
 
 Implementar solicitações ao cliente, tarefas, upload, comentários, permissões, API versionada, idempotency key, status de jobs e exportação.
 
 **Pronto quando:** cinco clientes de teste resolvem uma lista de pendências sem depender de planilha paralela.
+
+O corte em andamento tem quatro partes. A fila do escritório e Hoje mostram o pedido que bloqueia ([ADR 024](../adr/024-fila-de-pendencias.md)). A exportação da competência sai em Evidências, e a lista de operações fica na API ([ADR 023](../adr/023-exportacao-operacional.md)). O cliente envia o arquivo do próprio pedido e o escritório confirma ([ADR 025](../adr/025-portal-do-cliente.md)). Comentário, e-mail, lembrete, vários arquivos no mesmo pedido e webhook continuam fora.
 
 ## Fase E — obrigação fiscal piloto
 

@@ -12,6 +12,9 @@ export type Me = {
   tenant_name: string;
   roles: string[];
   offices?: Office[];
+  legal_entity_id?: string | null;
+  legal_entity_name?: string | null;
+  legal_entity_cnpj?: string | null;
 };
 
 export type Entity = {
@@ -44,6 +47,10 @@ export function useSession(): SessionValue {
 
 export function can(roles: string[], ...needed: string[]): boolean {
   return needed.some((role) => roles.includes(role));
+}
+
+export function isClient(roles: string[]): boolean {
+  return roles.length === 1 && roles[0] === "client";
 }
 
 export const STATUS_LABEL: Record<string, string> = {

@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 
 from contabil.audit.service import verify_chain
 from contabil.imports.service import publish_batch, validate_batch
+from contabil.exports.service import run_operational_export
 from contabil.reconciliation.service import import_statement, resolve_case_from_journal
 from contabil.platform.auth import apply_tenant
 from contabil.platform.db import session_factory
@@ -23,6 +24,7 @@ HANDLERS = {
     "ImportBatchPublishRequested": publish_batch,
     "BankStatementReceived": import_statement,
     "JournalPublished": resolve_case_from_journal,
+    "OperationalExportRequested": run_operational_export,
 }
 
 

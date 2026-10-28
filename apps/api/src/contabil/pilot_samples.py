@@ -574,6 +574,13 @@ def _enrich(
         _ensure_sample_request(session, preparer, approver, entity_id, name, notes, confirm=True)
     elif behavior == "vazia":
         _ensure_sample_request(session, preparer, approver, entity_id, name, notes, confirm=False)
+    if behavior == "fechada":
+        _ensure_open_request(session, preparer, entity_id, name, notes, "Amostra: extrato de outubro", "bank_statement")
+    elif behavior == "banco":
+        _ensure_open_request(session, preparer, entity_id, name, notes, "Amostra: nota de outubro", "invoice")
+    elif behavior == "rascunhos":
+        _ensure_open_request(session, preparer, entity_id, name, notes, "Amostra: recibo de frete", "receipt")
+    _ensure_client(session, preparer, entity_id, story, name)
 
 
 def _activity_months(year: int, today: date) -> list[int]:
@@ -1086,6 +1093,66 @@ def _ensure_sample_request(
             confirm_request(session, approver, request_id)
     except DomainError as exc:
         notes.append(f"{name}: pedido de outubro não gravado ({exc.detail})")
+
+
+def _ensure_open_request(
+    session: Session,
+    preparer: Principal,
+    entity_id: str,
+    name: str,
+    notes: list[str],
+    title: str,
+    document_type: str,
+) -> None:
+    from contabil.document_requests.service import create_request
+    from contabil.platform.constants import POSTING_PERIOD_STATUSES
+
+    period_id = f"{entity_id}-2026-10"
+    period = session.get(AccountingPeriod, period_id)
+    if period is None or period.status not in POSTING_PERIOD_STATUSES:
+        notes.append(f"{name}: pedido aberto não gravado (período indisponível)")
+        return
+    existing = session.scalar(
+        select(DocumentRequest).where(
+            DocumentRequest.tenant_id == preparer.tenant_id,
+            DocumentRequest.legal_entity_id == entity_id,
+            DocumentRequest.period_id == period_id,
+            DocumentRequest.title == title,
+        )
+    )
+    if existing is not None:
+        return
+    try:
+        create_request(
+            session,
+            preparer,
+            legal_entity_id=entity_id,
+            period_id=period_id,
+            document_type=document_type,
+            title=title,
+            due_on=date(2026, 10, 20),
+        )
+    except DomainError as exc:
+        notes.append(f"{name}: pedido aberto não gravado ({exc.detail})")
+
+
+def _ensure_client(session: Session, preparer: Principal, entity_id: str, story: str, name: str) -> None:
+    user_id = f"cliente-{story}"[:64]
+    bootstrap(
+        preparer.tenant_id,
+        preparer.tenant_name,
+        user_id,
+        f"Cliente de teste {name}"[:200],
+        ["client"],
+        legal_entity_id=entity_id,
+    )
+    apply_tenant(session, preparer.tenant_id)
+    row = session.scalar(
+        select(Membership).where(Membership.tenant_id == preparer.tenant_id, Membership.user_id == user_id)
+    )
+    if row is not None and row.legal_entity_id != entity_id:
+        row.legal_entity_id = entity_id
+        row.roles = ["client"]
 
 
 def _ensure_import(session: Session, preparer: Principal, entity_id: str, name: str, notes: list[str]) -> None:

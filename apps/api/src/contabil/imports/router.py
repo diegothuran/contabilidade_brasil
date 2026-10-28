@@ -11,6 +11,7 @@ from contabil.imports.service import (
     get_operation,
     get_report,
     list_batches,
+    list_operations,
     list_rows,
     request_publish,
     template_csv,
@@ -80,6 +81,26 @@ def get_batch_report(batch_id: str, ctx: Ctx = Depends(get_context)) -> dict:
 def post_publish(batch_id: str, request: Request, ctx: Ctx = Depends(replay_guard)):
     operation = request_publish(ctx.session, ctx.principal, batch_id)
     return persist(ctx, request, 202, operation)
+
+
+@router.get("/operations")
+def get_operations(
+    kind: str | None = None,
+    status: str | None = None,
+    correlation_id: str | None = None,
+    cursor: str | None = None,
+    limit: int = Query(default=50),
+    ctx: Ctx = Depends(get_context),
+) -> dict:
+    return list_operations(
+        ctx.session,
+        ctx.principal,
+        kind=kind,
+        status=status,
+        correlation=correlation_id,
+        cursor=cursor,
+        limit=limit,
+    )
 
 
 @router.get("/operations/{operation_id}")

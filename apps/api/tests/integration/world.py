@@ -24,6 +24,7 @@ TABLES = (
     "operations",
     "import_batches",
     "document_requests",
+    "operational_exports",
     "source_documents",
     "outbox_events",
     "idempotency_keys",
@@ -60,11 +61,21 @@ def reset_world() -> None:
         ]
         for user_id, display_name, _tenant, _roles in users:
             session.add(AppUser(id=user_id, display_name=display_name))
+        session.add(AppUser(id="cliente", display_name="Cliente de teste"))
         session.flush()
         for user_id, _display_name, tenant_id, roles in users:
             session.add(Membership(id=f"mem_{tenant_id}_{user_id}", tenant_id=tenant_id, user_id=user_id, roles=roles))
         _entity(session, "le_test", "tenant_demo", "Empresa Teste", "100000000001")
         _entity(session, "le_other", "tenant_other", "Empresa Outra", "200000000001")
+        session.add(
+            Membership(
+                id="mem_tenant_demo_cliente",
+                tenant_id="tenant_demo",
+                user_id="cliente",
+                roles=["client"],
+                legal_entity_id="le_test",
+            )
+        )
         session.commit()
     except Exception:
         session.rollback()

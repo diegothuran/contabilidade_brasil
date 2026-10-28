@@ -91,6 +91,34 @@ export async function uploadRequestFile(requestId: string, file: File): Promise<
   await readPayload(response);
 }
 
+export async function uploadPortalFile(requestId: string, file: File): Promise<void> {
+  const body = new FormData();
+  body.set("file", file);
+  const response = await fetch(`${apiUrl}/v1/portal/document-requests/${requestId}/content`, {
+    method: "POST",
+    headers: await authorizedHeaders(),
+    body,
+  });
+  await readPayload(response);
+}
+
+export async function downloadPortalDocument(documentId: string, fileName: string): Promise<void> {
+  const response = await fetch(`${apiUrl}/v1/portal/documents/${documentId}/content`, {
+    headers: { Authorization: `Bearer ${await accessToken()}`, ...tenantHeaders() },
+  });
+  if (!response.ok) {
+    await readPayload(response);
+    return;
+  }
+  const blob = await response.blob();
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = fileName;
+  anchor.click();
+  URL.revokeObjectURL(url);
+}
+
 export async function downloadDocument(documentId: string, fileName: string): Promise<void> {
   const response = await fetch(`${apiUrl}/v1/documents/${documentId}/content`, {
     headers: { Authorization: `Bearer ${await accessToken()}`, ...tenantHeaders() },

@@ -11,6 +11,28 @@ class Principal:
     display_name: str
     tenant_name: str
     home_tenant_id: str = ""
+    legal_entity_id: str | None = None
+
+
+OFFICE_ROLES = frozenset({"preparer", "approver", "admin", "viewer"})
+
+
+def is_client(principal: Principal) -> bool:
+    return principal.roles == frozenset({"client"})
+
+
+def ensure_office(principal: Principal) -> None:
+    from contabil.platform.errors import DomainError
+
+    if "client" in principal.roles or principal.roles.isdisjoint(OFFICE_ROLES):
+        raise DomainError(403, "Ação não permitida", "O acesso de cliente não abre o escritório.")
+
+
+def ensure_client(principal: Principal) -> None:
+    from contabil.platform.errors import DomainError
+
+    if not is_client(principal) or not principal.legal_entity_id:
+        raise DomainError(403, "Ação não permitida", "Este acesso é do cliente da empresa.")
 
 
 def ensure_role(principal: Principal, *roles: str) -> None:

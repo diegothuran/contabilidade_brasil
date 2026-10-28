@@ -16,6 +16,7 @@ customer-data/
 certificates/
 backups/
 exports/
+!apps/api/src/contabil/exports/
 *.xml
 *.pdf
 *.csv

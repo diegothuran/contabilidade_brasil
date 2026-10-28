@@ -40,6 +40,7 @@ class Membership(Base):
     tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.id"))
     user_id: Mapped[str] = mapped_column(ForeignKey("app_users.id"))
     roles: Mapped[list[str]] = mapped_column(ARRAY(String(40)))
+    legal_entity_id: Mapped[str | None] = mapped_column(ForeignKey("legal_entities.id"), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
 
 
@@ -504,4 +505,20 @@ class CloseSnapshot(Base):
     close_run_id: Mapped[str] = mapped_column(ForeignKey("close_runs.id"))
     payload: Mapped[dict] = mapped_column(JSONB)
     sha256: Mapped[str] = mapped_column(String(64))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+
+class OperationalExport(Base):
+    __tablename__ = "operational_exports"
+    __table_args__ = (UniqueConstraint("operation_id", name="uq_operational_exports_operation"),)
+
+    id: Mapped[str] = mapped_column(String(160), primary_key=True)
+    tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.id"))
+    legal_entity_id: Mapped[str] = mapped_column(ForeignKey("legal_entities.id"))
+    period_id: Mapped[str] = mapped_column(ForeignKey("accounting_periods.id"))
+    operation_id: Mapped[str] = mapped_column(ForeignKey("operations.id"))
+    kind: Mapped[str] = mapped_column(String(40))
+    sha256: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    payload: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    created_by: Mapped[str] = mapped_column(String(160))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)

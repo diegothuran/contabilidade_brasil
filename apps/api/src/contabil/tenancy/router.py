@@ -7,7 +7,7 @@ from sqlalchemy import select
 from contabil.identity.directory import UserDirectory, get_user_directory
 from contabil.platform.deps import Ctx, get_context
 from contabil.platform.idempotency import persist, replay_guard
-from contabil.platform.principal import ensure_role
+from contabil.platform.principal import ensure_office, ensure_role
 from contabil.platform.auth import bind_user, offices_visible
 from contabil.tables import LegalEntity, Membership, Tenant
 from contabil.tenancy.service import create_legal_entity, entity_dict, invite_user, list_users
@@ -22,6 +22,7 @@ class UserInvite(BaseModel):
     display_name: str = Field(min_length=1, max_length=200)
     email: str = Field(min_length=3, max_length=200)
     roles: list[str] = Field(min_length=1, max_length=4)
+    legal_entity_id: str | None = Field(default=None, max_length=160)
 
 
 class LegalEntityCreate(BaseModel):
@@ -34,6 +35,7 @@ class LegalEntityCreate(BaseModel):
 
 @router.get("/users")
 def users(ctx: Ctx = Depends(get_context)) -> dict:
+    ensure_office(ctx.principal)
     ensure_role(ctx.principal, "admin")
     return list_users(ctx.session, ctx.principal)
 
@@ -45,6 +47,7 @@ def post_user(
     ctx: Ctx = Depends(replay_guard),
     directory: UserDirectory = Depends(get_user_directory),
 ):
+    ensure_office(ctx.principal)
     ensure_role(ctx.principal, "admin")
     created = invite_user(
         ctx.session,
@@ -54,6 +57,7 @@ def post_user(
         display_name=body.display_name,
         email=body.email,
         roles=body.roles,
+        legal_entity_id=body.legal_entity_id,
     )
     return persist(ctx, request, 201, created)
 
@@ -72,6 +76,13 @@ def me(ctx: Ctx = Depends(get_context)) -> dict:
         .order_by(Tenant.name)
     ).all()
     offices = offices_visible("admin" in set(home_roles or []), ctx.principal.tenant_id, [(tenant_id, name) for tenant_id, name in rows])
+    entity_name = None
+    entity_cnpj = None
+    if ctx.principal.legal_entity_id:
+        entity = ctx.session.get(LegalEntity, ctx.principal.legal_entity_id)
+        if entity is not None and entity.tenant_id == ctx.principal.tenant_id:
+            entity_name = entity.name
+            entity_cnpj = entity.cnpj
     return {
         "user_id": ctx.principal.user_id,
         "display_name": ctx.principal.display_name,
@@ -79,11 +90,15 @@ def me(ctx: Ctx = Depends(get_context)) -> dict:
         "tenant_name": ctx.principal.tenant_name,
         "roles": sorted(ctx.principal.roles),
         "offices": [{"tenant_id": tenant_id, "tenant_name": name} for tenant_id, name in offices],
+        "legal_entity_id": ctx.principal.legal_entity_id,
+        "legal_entity_name": entity_name,
+        "legal_entity_cnpj": entity_cnpj,
     }
 
 
 @router.post("/legal-entities", status_code=201)
 def post_legal_entity(body: LegalEntityCreate, request: Request, ctx: Ctx = Depends(replay_guard)):
+    ensure_office(ctx.principal)
     ensure_role(ctx.principal, "admin")
     created = create_legal_entity(
         ctx.session,
@@ -97,5 +112,6 @@ def post_legal_entity(body: LegalEntityCreate, request: Request, ctx: Ctx = Depe
 
 @router.get("/legal-entities")
 def legal_entities(ctx: Ctx = Depends(get_context)) -> dict:
+    ensure_office(ctx.principal)
     rows = ctx.session.scalars(select(LegalEntity).where(LegalEntity.tenant_id == ctx.principal.tenant_id).order_by(LegalEntity.name)).all()
     return {"items": [entity_dict(row) for row in rows]}

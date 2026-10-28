@@ -113,6 +113,17 @@
       "credentials": [{ "type": "password", "value": "dev-only-password", "temporary": false }]
     },
     {
+      "username": "cliente",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Cliente",
+      "lastName": "Demo",
+      "email": "cliente@demo.local",
+      "attributes": { "tenant_id": ["tenant_demo"] },
+      "realmRoles": ["viewer"],
+      "credentials": [{ "type": "password", "value": "dev-only-password", "temporary": false }]
+    },
+    {
       "username": "outsider",
       "enabled": true,
       "emailVerified": true,

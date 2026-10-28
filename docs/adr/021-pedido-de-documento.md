@@ -4,7 +4,7 @@
 
 ## Contexto
 
-O checklist `2026.10-1` conta os documentos da competência, mas não impede o fechamento quando falta um arquivo pedido ao cliente. O corte do portal, nesta versão, acontece dentro do escritório: quem pede, envia e confirma já tem papel no sistema. Não há login de cliente, e-mail nem lembrete.
+O checklist `2026.10-1` conta os documentos da competência, mas não impede o fechamento quando falta um arquivo pedido ao cliente. O primeiro corte aconteceu dentro do escritório. O login do cliente, limitado aos pedidos da própria empresa, entra no [ADR 025](025-portal-do-cliente.md). E-mail, lembrete, comentário e mais de um arquivo no mesmo pedido continuam fora.
 
 ## Decisão
 

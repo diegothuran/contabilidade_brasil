@@ -20,6 +20,7 @@ from contabil.platform.money import format_amount
 from contabil.platform.outbox import enqueue
 from contabil.platform.principal import Principal, ensure_role
 from contabil.platform.settings import get_settings
+from contabil.tenancy.service import before_cursor, encode_cursor, page_limit
 from contabil.tables import (
     Account,
     CostCenter,
@@ -105,6 +106,8 @@ def operation_dict(operation: Operation) -> dict:
         "status": operation.status,
         "correlation_id": operation.correlation_id,
         "error_code": operation.error_code,
+        "kind": operation.kind,
+        "target_ref": operation.target_ref,
     }
 
 
@@ -292,6 +295,41 @@ def get_operation(session: Session, principal: Principal, operation_id: str) -> 
     if operation is None:
         raise DomainError(404, "Não encontrado", "Operação não encontrada.")
     return operation_dict(operation)
+
+
+_OPERATION_STATUSES = frozenset({"accepted", "running", "completed", "failed"})
+
+
+def list_operations(
+    session: Session,
+    principal: Principal,
+    *,
+    kind: str | None,
+    status: str | None,
+    correlation: str | None,
+    cursor: str | None,
+    limit: int,
+) -> dict:
+    if status is not None and status not in _OPERATION_STATUSES:
+        raise DomainError(400, "Estado inválido", "Filtre por accepted, running, completed ou failed.")
+    limit = page_limit(limit)
+    stmt = select(Operation).where(Operation.tenant_id == principal.tenant_id)
+    if kind:
+        stmt = stmt.where(Operation.kind == kind)
+    if status:
+        stmt = stmt.where(Operation.status == status)
+    if correlation:
+        stmt = stmt.where(Operation.correlation_id == correlation)
+    comparison = before_cursor(Operation.created_at, Operation.id, cursor)
+    if comparison is not None:
+        stmt = stmt.where(comparison)
+    rows = session.scalars(stmt.order_by(Operation.created_at.desc(), Operation.id.desc()).limit(limit + 1)).all()
+    next_cursor = None
+    if len(rows) > limit:
+        last = rows[limit - 1]
+        rows = rows[:limit]
+        next_cursor = encode_cursor(last.created_at, last.id)
+    return {"items": [operation_dict(row) for row in rows], "next_cursor": next_cursor}
 
 
 def list_rows(session: Session, principal: Principal, batch_id: str, status: str | None) -> dict:

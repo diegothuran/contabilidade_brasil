@@ -2,6 +2,7 @@
 """Validate contracts, fixtures and accounting invariants."""
 from __future__ import annotations
 
+import hashlib
 import json
 from decimal import Decimal
 from pathlib import Path
@@ -39,6 +40,7 @@ def main() -> None:
         ("close-run.schema.json", "close-run.example.json"),
         ("source-document.schema.json", "source-document.example.json"),
         ("document-request.schema.json", "document-request.example.json"),
+        ("export-package.schema.json", "export-package.example.json"),
         ("regulatory-obligation.schema.json", "regulatory-obligation.example.json"),
         ("audit-event.schema.json", "audit-event.example.json"),
     ]
@@ -76,6 +78,18 @@ def main() -> None:
         raise SystemExit("confirmed document request requires document_id and confirmed_by")
     if request["status"] == "cancelled" and not request["cancel_reason"]:
         raise SystemExit("cancelled document request requires cancel_reason")
+
+    exported = load_json(EXAMPLES / "export-package.example.json")
+    canonical = json.dumps(
+        {key: value for key, value in exported.items() if key != "sha256"},
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=False,
+    )
+    if exported["sha256"] != hashlib.sha256(canonical.encode("utf-8")).hexdigest():
+        raise SystemExit("export example sha256 does not match the canonical payload")
+    if Decimal(exported["trial_balance"]["debit_total"]) != Decimal(exported["trial_balance"]["credit_total"]):
+        raise SystemExit("export example trial balance is not balanced")
 
     obligation = load_json(EXAMPLES / "regulatory-obligation.example.json")
     if obligation["status"] == "accepted" and not any(t["status"] == "accepted" for t in obligation["transmissions"]):

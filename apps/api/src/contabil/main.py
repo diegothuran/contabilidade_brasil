@@ -6,7 +6,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from uuid import uuid4
 
-from fastapi import FastAPI, Request
+from fastapi import Depends, FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
@@ -19,13 +19,16 @@ from contabil.audit.router import router as audit_router
 from contabil.closing.router import router as closing_router
 from contabil.document_requests.router import router as document_requests_router
 from contabil.documents.router import router as documents_router
+from contabil.exports.router import router as exports_router
 from contabil.imports.router import router as imports_router
 from contabil.ledger.router import router as ledger_router
 from contabil.master_data.router import router as master_data_router
 from contabil.periods.router import router as periods_router
+from contabil.portal.router import router as portal_router
 from contabil.reconciliation.router import router as reconciliation_router
 from contabil.platform.correlation import correlation_id
 from contabil.platform.db import get_engine
+from contabil.platform.deps import require_office
 from contabil.platform.errors import DomainError, IdempotentReplay, problem_response
 from contabil.platform.settings import get_settings
 from contabil.tenancy.router import router as tenancy_router
@@ -156,16 +159,19 @@ def create_app() -> FastAPI:
             return JSONResponse({"status": "unavailable"}, status_code=503)
         return JSONResponse({"status": "ready"})
 
+    office = [Depends(require_office)]
     app.include_router(tenancy_router, prefix="/v1")
-    app.include_router(master_data_router, prefix="/v1")
-    app.include_router(periods_router, prefix="/v1")
-    app.include_router(closing_router, prefix="/v1")
-    app.include_router(ledger_router, prefix="/v1")
-    app.include_router(documents_router, prefix="/v1")
-    app.include_router(document_requests_router, prefix="/v1")
-    app.include_router(imports_router, prefix="/v1")
-    app.include_router(reconciliation_router, prefix="/v1")
-    app.include_router(audit_router, prefix="/v1")
+    app.include_router(master_data_router, prefix="/v1", dependencies=office)
+    app.include_router(periods_router, prefix="/v1", dependencies=office)
+    app.include_router(closing_router, prefix="/v1", dependencies=office)
+    app.include_router(ledger_router, prefix="/v1", dependencies=office)
+    app.include_router(documents_router, prefix="/v1", dependencies=office)
+    app.include_router(document_requests_router, prefix="/v1", dependencies=office)
+    app.include_router(imports_router, prefix="/v1", dependencies=office)
+    app.include_router(exports_router, prefix="/v1", dependencies=office)
+    app.include_router(reconciliation_router, prefix="/v1", dependencies=office)
+    app.include_router(audit_router, prefix="/v1", dependencies=office)
+    app.include_router(portal_router, prefix="/v1")
     if settings.static_dir:
         _mount_spa(app, settings.static_dir)
     return app

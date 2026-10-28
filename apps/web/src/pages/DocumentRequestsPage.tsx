@@ -1,16 +1,22 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { ApiError, api, uploadRequestFile } from "../api";
 import { can, useSession } from "../session";
 
 type RequestItem = {
   document_request_id: string;
+  legal_entity_id?: string;
+  legal_entity_name?: string;
+  period_id?: string;
+  period?: string;
   document_type: string;
   title: string;
   due_on: string;
   status: string;
   document_id: string | null;
   cancel_reason: string | null;
+  blocks_close?: boolean;
 };
 
 const TYPES = [
@@ -37,7 +43,9 @@ function typeLabel(value: string): string {
 
 export function DocumentRequestsPage() {
   const { entityId, periodId, me } = useSession();
+  const [params] = useSearchParams();
   const queryClient = useQueryClient();
+  const [officeQueue, setOfficeQueue] = useState(params.get("fila") === "escritorio");
   const [documentType, setDocumentType] = useState("receipt");
   const [title, setTitle] = useState("");
   const [dueOn, setDueOn] = useState("");
@@ -45,9 +53,14 @@ export function DocumentRequestsPage() {
   const [reasonById, setReasonById] = useState<Record<string, string>>({});
   const requests = useQuery({
     queryKey: ["document-requests", entityId, periodId],
-    enabled: Boolean(entityId && periodId),
+    enabled: Boolean(entityId && periodId) && !officeQueue,
     queryFn: () =>
       api<{ items: RequestItem[] }>(`/v1/document-requests?legal_entity_id=${entityId}&period_id=${periodId}`),
+  });
+  const queue = useQuery({
+    queryKey: ["document-request-queue", me.tenant_id, "page"],
+    enabled: officeQueue,
+    queryFn: () => api<{ items: RequestItem[] }>("/v1/document-requests/queue"),
   });
   const refresh = () => queryClient.invalidateQueries({ queryKey: ["document-requests", entityId, periodId] });
   const create = useMutation({
@@ -94,6 +107,18 @@ export function DocumentRequestsPage() {
     <section>
       <h1>Pendências</h1>
       <p className="muted">O pedido fica nesta empresa e nesta competência. O arquivo original entra no mesmo armazenamento das evidências, com hash. Confirmar não publica lançamento.</p>
+      {params.get("origem") === "fila" ? (
+        <p>A barra agora está na empresa e na competência desta pendência.</p>
+      ) : null}
+      <p>
+        <button type="button" className="secondary" onClick={() => setOfficeQueue((current) => !current)}>
+          {officeQueue ? "Ver esta competência" : "Ver a fila do escritório"}
+        </button>
+      </p>
+      {officeQueue ? (
+        <QueueTable items={queue.data?.items ?? []} loading={queue.isLoading} error={queue.isError} />
+      ) : (
+        <>
       {!periodId ? <p className="muted">Escolha a competência na barra.</p> : null}
       {canAsk && periodId ? (
         <form
@@ -190,6 +215,58 @@ export function DocumentRequestsPage() {
           </tbody>
         </table>
       ) : null}
+        </>
+      )}
     </section>
+  );
+}
+
+function QueueTable({ items, loading, error }: { items: RequestItem[]; loading: boolean; error: boolean }) {
+  if (loading) {
+    return <p className="muted">Carregando a fila do escritório.</p>;
+  }
+  if (error) {
+    return <p className="error">Não foi possível listar a fila do escritório.</p>;
+  }
+  if (items.length === 0) {
+    return <p className="muted">Nenhum pedido aberto ou recebido neste escritório.</p>;
+  }
+  return (
+    <table>
+      <thead>
+        <tr><th>Empresa</th><th>Pedido</th><th>Competência</th><th>Prazo</th><th>Estado</th><th></th></tr>
+      </thead>
+      <tbody>
+        {items.map((item) => (
+          <tr key={item.document_request_id}>
+            <td>{item.legal_entity_name}</td>
+            <td>{item.title}</td>
+            <td>{item.period}</td>
+            <td>{item.due_on.split("-").reverse().join("/")}</td>
+            <td>
+              {REQUEST_STATUS[item.status] ?? item.status}
+              {item.blocks_close ? " · bloqueia o fechamento" : ""}
+            </td>
+            <td>
+              <button
+                type="button"
+                onClick={() => {
+                  if (!item.legal_entity_id || !item.period_id) {
+                    return;
+                  }
+                  sessionStorage.setItem("contabil.entity", item.legal_entity_id);
+                  const current = JSON.parse(sessionStorage.getItem("contabil.periods.v2") ?? "{}") as Record<string, string>;
+                  current[item.legal_entity_id] = item.period_id;
+                  sessionStorage.setItem("contabil.periods.v2", JSON.stringify(current));
+                  window.location.assign("/app/rastro/pendencias?origem=fila");
+                }}
+              >
+                Abrir nesta competência
+              </button>
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
   );
 }

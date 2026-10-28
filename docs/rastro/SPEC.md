@@ -1,4 +1,4 @@
-# SPEC — Contrato de interface v0.4.6
+# SPEC — Contrato de interface v0.5.0
 
 > Fonte de verdade da experiência do front-end. Atualizações de comportamento, estado, linguagem visual ou estrutura precisam atualizar este arquivo antes do código.
 
@@ -58,11 +58,11 @@ O produto ajuda escritórios de contabilidade a **fechar e entregar com evidênc
 
 ## 5. Contexto global obrigatório
 
-A barra de contexto deve exibir, nesta ordem: `Escritório > Cliente/CNPJ > Competência > Regime/UF > Estado do fechamento`. No aplicativo, o escritório fica na barra lateral. O seletor só aparece para o administrador geral que já tem acesso a mais de um escritório. Quem tem o login ligado a um escritório só vê o nome desse escritório. A troca limpa a empresa e a competência escolhidas. A empresa escolhida fica marcada no topo, com razão social e CNPJ, ao lado de uma busca que permanece visível. A busca responde enquanto a pessoa digita, por nome ou CNPJ, inclusive por aproximação, e ignora maiúsculas, acentos e pontuação. A competência aparece uma vez, na barra, como mês e ano. O balancete, as pendências, o lançamento novo, a importação e a conciliação usam essa competência e não repetem o seletor. Regime e UF só entram quando o cadastro os tiver. Trocas de empresa ou competência não podem ser silenciosas quando há ação selecionada ou aprovação pendente. A caminhada sintética usa dados fictícios e não comunica efeitos reais.
+A barra de contexto deve exibir, nesta ordem: `Escritório > Cliente/CNPJ > Competência > Regime/UF > Estado do fechamento`. No aplicativo, o escritório fica na barra lateral. O seletor só aparece para o administrador geral que já tem acesso a mais de um escritório. Quem tem o login ligado a um escritório só vê o nome desse escritório. A troca limpa a empresa e a competência escolhidas. A empresa escolhida fica marcada no topo, com razão social e CNPJ, ao lado de uma busca que permanece visível. A busca responde enquanto a pessoa digita, por nome ou CNPJ, inclusive por aproximação, e ignora maiúsculas, acentos e pontuação. A competência aparece uma vez, na barra, como mês e ano. O balancete, as pendências da competência, o lançamento novo, a importação, a conciliação e a exportação usam essa competência e não repetem o seletor. Regime e UF só entram quando o cadastro os tiver. Trocas de empresa ou competência não podem ser silenciosas quando há ação selecionada ou aprovação pendente. Abrir uma pendência da fila do escritório troca a empresa e a competência, e a barra passa a mostrar esse contexto. A caminhada sintética usa dados fictícios e não comunica efeitos reais. O cliente da empresa não usa esta barra: vê o escritório e a própria empresa, sem seletor.
 
 ## 6. Regras de interação
 
-- A home responde: o que aconteceu, onde, qual o risco, quem é responsável, qual evidência existe e qual é o próximo passo.
+- A home responde: o que bloqueia o fechamento, em qual empresa, qual o prazo e qual é o próximo passo. O próximo passo abre a pendência e a barra acompanha a empresa e a competência. Os lançamentos recentes continuam na mesma tela.
 - Ação primária resolve/encaminha; “abrir detalhes” é secundária.
 - Aprovação em massa exige prévia de escopo, contagens, impacto agregado e confirmação contextual.
 - Rejeição pede motivo quando muda o estado operacional.
@@ -94,7 +94,7 @@ Usar somente organizações e empresas fictícias, sem CPF, certificados, docume
 
 ## 11. Decisões abertas
 
-Nome definitivo e identidade; estados/municípios do piloto; obrigações iniciais; política de retenção; materialidade; conectores; modelo de permissões; métricas de sucesso; SLA/RPO/RTO; requisitos jurídicos de protocolo/assinatura; endpoints de fila do dia, close run, sugestão de IA, obrigação, saúde de conector e pacote de fechamento.
+Nome definitivo e identidade; estados/municípios do piloto; obrigações iniciais; política de retenção; materialidade; conectores; métricas de sucesso; SLA/RPO/RTO; requisitos jurídicos de protocolo/assinatura; comentário, e-mail e lembrete no pedido; webhook.
 
 ## 12. Montagem no aplicativo
 
@@ -102,27 +102,39 @@ A sala fica em `/app/rastro` e é a primeira tela depois do login. Ela é a úni
 
 | Menu | O que abre |
 | --- | --- |
-| Hoje | Lançamentos recentes da empresa selecionada. |
+| Hoje | Pendências que bloqueiam o fechamento no escritório, com empresa, prazo e o próximo passo, e os lançamentos recentes da empresa selecionada. |
 | Fechamentos | Checklist da competência, fechamento, hash do snapshot e download do pacote. Reabertura continua na lista. |
-| Pendências | Pedidos de documento da competência da barra. O arquivo entra nas evidências e a confirmação tira o bloqueio do fechamento. |
+| Pendências | Pedidos da competência da barra, ou a fila do escritório. O arquivo entra nas evidências e a confirmação tira o bloqueio do fechamento. Abrir um item da fila troca a empresa e a competência na barra. |
 | Balancete | Saldos da competência da barra. O cartão em Rotinas do razão e a rota antiga continuam. |
 | Conciliação | Casos de conciliação. |
 | Migrações | Lotes de importação. |
 | Dados e ledger | Lançamentos. |
 | Revisões de IA | Estado vazio: não há contrato de sugestão nesta versão. |
 | Obrigações e entregas | Estado vazio: não há obrigação versionada nesta versão. |
-| Evidências | Documentos da empresa. |
+| Evidências | Documentos da empresa e a exportação da competência da barra. Os estados aparecem em texto: em fila, gerando, pronto, falhou. Não há lista de operações nesta tela. |
 | Integrações | Estado vazio: nenhum conector externo. As contas bancárias ficam nas rotinas. |
 | Rotinas do razão | Novo lançamento, balancete, plano, bancos, auditoria e, para o admin, nova empresa. |
-| Administração | O admin convida uma pessoa. A senha temporária vai por e-mail e não aparece na tela. Quem não é admin vê que só o admin convida. |
+| Administração | O admin convida uma pessoa do escritório ou um cliente ligado a uma empresa. Convidar um cliente que já existe para a mesma empresa, mas ainda sem login, só cria o login. A senha temporária vai por e-mail e não aparece na tela. Quem não é admin vê que só o admin convida. |
 | Demonstração | Caminhada sintética da Orbe, só com `VITE_RASTRO_DEMO` diferente de `false`. |
 
-A barra de contexto marca a empresa escolhida e mantém a busca ao lado. A competência dessa empresa vale para o balancete, o lançamento novo, a importação e a conciliação. A caminhada sintética tem o próprio seletor e não altera a empresa do sistema. As rotas `/app/journals`, `/app/accounts` e vizinhas permanecem e renderizam na mesma casca.
+A barra de contexto marca a empresa escolhida e mantém a busca ao lado. A competência dessa empresa vale para o balancete, o lançamento novo, a importação, a conciliação, as pendências da competência e a exportação. A caminhada sintética tem o próprio seletor e não altera a empresa do sistema. As rotas `/app/journals`, `/app/accounts` e vizinhas permanecem e renderizam na mesma casca.
 
-## 13. Changelog
+## 13. Portal do cliente
 
-- `0.4.5` — Quem pertence a mais de um escritório troca o escritório na barra lateral. A empresa e a competência da sessão são limpas.
+O cliente não entra na sala do escritório. A casca mostra o nome do escritório e a razão social e o CNPJ da empresa do login. Não há seletor de escritório, de empresa nem de competência, e não há menu de razão, fechamento, conciliação ou administração.
+
+O vocabulário da tela é pedido, prazo, estado e arquivo. Os estados aparecem em texto: pedido aberto, arquivo recebido. Pedido confirmado ou cancelado não fica nesta lista. A ação é enviar um arquivo. Confirmar e cancelar não aparecem. O cliente pode baixar só o arquivo daquele pedido.
+
+Nada nesta tela fala em journal, balancete, papéis do escritório, exportação ou outro cliente.
+
+## 14. Changelog
+
+- `0.5.0` — O cliente da empresa vê só os próprios pedidos, envia o arquivo e não abre a sala do escritório. O convite completa o login de um cliente que já existe para a mesma empresa.
+- `0.4.9` — A lista de operações fica na API. Evidências não ganha essa lista.
+- `0.4.8` — Evidências gera a exportação da competência e mostra em fila, gerando, pronto ou falhou.
+- `0.4.7` — Hoje mostra a fila de pendências do escritório. Abrir um item troca a empresa e a competência na barra.
 - `0.4.6` — O seletor de escritório fica só para o administrador geral. Um login ligado a um escritório permanece nesse escritório.
+- `0.4.5` — Quem pertence a mais de um escritório troca o escritório na barra lateral. A empresa e a competência da sessão são limpas.
 - `0.4.4` — Pendências e Balancete entram no menu de Operação. O pedido em aberto bloqueia o fechamento.
 - `0.4.3` — O balancete abre os lançamentos da conta pelo nome dela, em vez de “Drill-down”.
 - `0.4.2` — A competência fica só na barra, em mês e ano. As telas não repetem o identificador do período.

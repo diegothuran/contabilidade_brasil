@@ -83,6 +83,13 @@ def test_chosen_tenant_keeps_the_home_office_when_the_header_is_empty() -> None:
     assert switch_allowed(["admin"], "escritorio", "litoral") is True
     assert switch_allowed(["preparer", "approver", "viewer"], "escritorio", "litoral") is False
     assert switch_allowed(["viewer"], "escritorio", None) is True
+    assert switch_allowed(["client"], "escritorio", "litoral") is False
+    from contabil.platform.auth import effective_tenant
+
+    assert effective_tenant("escritorio", "litoral", ["client"]) == "escritorio"
+    assert effective_tenant("escritorio", "../outro", ["client"]) == "escritorio"
+    with pytest.raises(DomainError):
+        effective_tenant("escritorio", "litoral", ["viewer"])
     offices = [("escritorio", "Escritório"), ("litoral", "Escritório Litoral")]
     assert offices_visible(True, "escritorio", offices) == offices
     assert offices_visible(False, "escritorio", offices) == [("escritorio", "Escritório")]

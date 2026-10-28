@@ -12,4 +12,4 @@ O header `X-Tenant-Id` escolhe o escritório ativo. Sem o header, vale o escrit�
 
 ## Consequências
 
-Um header com escritório alheio, ou enviado por quem não é administrador no escritório do login, recebe 403 e não revela se o escritório existe. Convite continua criando membership num escritório só. O piloto ganha o escritório fictício `litoral`, com outra carteira, e o administrador geral do escritório `escritorio` também entra nele.
+Um header com escritório alheio, ou enviado por quem não é administrador no escritório do login, recebe 403 e não revela se o escritório existe. O login de cliente ignora `X-Tenant-Id` e permanece no escritório do token. Ele não vê o seletor e não troca de empresa ([ADR 025](025-portal-do-cliente.md)). Convite continua criando membership num escritório só. O piloto ganha o escritório fictício `litoral`, com outra carteira, e o administrador geral do escritório `escritorio` também entra nele.

@@ -3,6 +3,45 @@ import { Link } from "react-router-dom";
 import { api } from "../api";
 import { STATUS_LABEL, can, useSession } from "../session";
 
+type QueueItem = {
+  document_request_id: string;
+  legal_entity_id: string;
+  legal_entity_name: string;
+  period_id: string;
+  period: string;
+  title: string;
+  due_on: string;
+  status: string;
+  blocks_close: boolean;
+};
+
+const REQUEST_STATUS: Record<string, string> = {
+  open: "Pedido aberto",
+  received: "Arquivo recebido",
+  confirmed: "Confirmado",
+  cancelled: "Cancelado",
+};
+
+function openRequest(item: QueueItem) {
+  sessionStorage.setItem("contabil.entity", item.legal_entity_id);
+  const current = readPeriodMap();
+  current[item.legal_entity_id] = item.period_id;
+  sessionStorage.setItem("contabil.periods.v2", JSON.stringify(current));
+  window.location.assign("/app/rastro/pendencias?origem=fila");
+}
+
+function readPeriodMap(): Record<string, string> {
+  try {
+    const parsed = JSON.parse(sessionStorage.getItem("contabil.periods.v2") ?? "{}") as unknown;
+    if (!parsed || typeof parsed !== "object") {
+      return {};
+    }
+    return Object.fromEntries(Object.entries(parsed).filter((entry): entry is [string, string] => typeof entry[1] === "string"));
+  } catch {
+    return {};
+  }
+}
+
 type Journal = {
   journal_id: string;
   description: string;
@@ -17,6 +56,10 @@ export function OfficeHome() {
     queryKey: ["journals", entityId, "home"],
     enabled: Boolean(entityId),
     queryFn: () => api<{ items: Journal[] }>(`/v1/journals?legal_entity_id=${entityId}&limit=8`),
+  });
+  const queue = useQuery({
+    queryKey: ["document-request-queue", me.tenant_id],
+    queryFn: () => api<{ items: QueueItem[] }>("/v1/document-requests/queue?limit=8"),
   });
 
   if (!company) {
@@ -44,11 +87,40 @@ export function OfficeHome() {
       <section className="page-header">
         <div>
           <span className="eyebrow">{company.name}</span>
-          <h1>O que esta empresa tem no razão.</h1>
-          <p>A empresa e a competência da barra valem para lançamentos, balancete, plano, bancos e períodos.</p>
+          <h1>O que precisa de atenção neste escritório.</h1>
+          <p>A fila mostra o pedido que bloqueia o fechamento. Os lançamentos recentes continuam os da empresa da barra.</p>
         </div>
         <div className="page-header__action">
-          <Link className="button" to="/app/rastro/ledger">Abrir lançamentos</Link>
+          <Link className="button" to="/app/rastro/pendencias?fila=escritorio">Ver a fila</Link>
+        </div>
+      </section>
+      <section className="panel panel--flush">
+        <div className="table-toolbar">
+          <span className="eyebrow">Pendências que bloqueiam</span>
+          <span className="table-count">{queue.isLoading ? "Carregando" : `${queue.data?.items.length ?? 0} nesta lista`}</span>
+        </div>
+        <div className="table-scroll">
+          <table className="data-table">
+            <thead>
+              <tr><th>Empresa</th><th>Pedido</th><th>Competência</th><th>Prazo</th><th>Estado</th><th></th></tr>
+            </thead>
+            <tbody>
+              {queue.isError ? (
+                <tr><td colSpan={6}>Não foi possível carregar a fila do escritório.</td></tr>
+              ) : (queue.data?.items.length ?? 0) === 0 ? (
+                <tr><td colSpan={6}>Nenhum pedido aberto ou recebido neste escritório.</td></tr>
+              ) : queue.data?.items.map((item) => (
+                <tr key={item.document_request_id}>
+                  <td>{item.legal_entity_name}</td>
+                  <td>{item.title}</td>
+                  <td>{item.period}</td>
+                  <td>{item.due_on.split("-").reverse().join("/")}</td>
+                  <td>{REQUEST_STATUS[item.status] ?? item.status}{item.blocks_close ? " · bloqueia o fechamento" : ""}</td>
+                  <td><button type="button" onClick={() => openRequest(item)}>Abrir pendência</button></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </section>
       <section className="panel panel--flush">

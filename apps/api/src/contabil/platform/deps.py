@@ -36,3 +36,10 @@ def get_context(
         raise
     finally:
         session.close()
+
+
+def require_office(ctx: Ctx = Depends(get_context)) -> Ctx:
+    from contabil.platform.principal import ensure_office
+
+    ensure_office(ctx.principal)
+    return ctx

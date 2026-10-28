@@ -1,0 +1,42 @@
+{
+  "schema_version": "1.0.0",
+  "kind": "operational_v1",
+  "generated_at": "2026-10-27T00:00:00Z",
+  "tenant_id": "escritorio",
+  "legal_entity": {
+    "legal_entity_id": "le_teste",
+    "name": "Padaria Aurora Ltda. (teste)",
+    "cnpj": "90000000000191"
+  },
+  "period": {
+    "period_id": "le_teste-2026-10",
+    "fiscal_year": 2026,
+    "month": 10
+  },
+  "disclaimer": "Este pacote reúne lançamentos, documentos, pedidos, auditoria e o resumo do balancete da competência. Não é livro autenticado no SPED e não tem assinatura ICP-Brasil. Não inclui certificado, senha nem arquivo transmitido a órgão.",
+  "journals": [
+    {
+      "journal_id": "jr_1",
+      "entry_date": "2026-10-02",
+      "description": "Venda de teste",
+      "status": "published"
+    }
+  ],
+  "documents": [],
+  "document_requests": [
+    {
+      "document_request_id": "dreq_1",
+      "title": "Recibo de teste",
+      "status": "open",
+      "due_on": "2026-10-20",
+      "blocks_close": true
+    }
+  ],
+  "audit_events": [],
+  "trial_balance": {
+    "currency": "BRL",
+    "debit_total": "10",
+    "credit_total": "10"
+  },
+  "sha256": "abce51550935ccadb18b4eb34084bffa6e6d67e9ead09ba2946603dbaae62042"
+}
