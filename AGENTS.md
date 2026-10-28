@@ -38,4 +38,4 @@ Uma alteração está pronta quando atualiza a spec correspondente, mantém o co
 
 Se a tela precisa entender a mudança (estado, papel, rota, texto, contexto ou campo novo), o mesmo commit atualiza as decisões de projeto: `docs/rastro/SPEC.md` com entrada no changelog, a ADR afetada, o `README.md`, o caderno do contador, `schemas/openapi.yaml` e `deploy/pilot/README.md`.
 
-Antes de concluir, rode os testes unitários em `apps/api` (`pytest tests/unit`), `npm run typecheck` em `apps/web`, `python scripts/validate_specs.py` e `python scripts/check_internal_links.py`. Os testes de integração precisam do compose no ar; quando não rodarem, diga isso.
+Antes de concluir, rode os testes unitários em `apps/api` (`pytest tests/unit`), `npm run typecheck` e `npm run lint` em `apps/web`, `python scripts/validate_specs.py` e `python scripts/check_internal_links.py`. Os testes de integração precisam do compose no ar; quando não rodarem, diga isso.
