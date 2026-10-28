@@ -1,5 +1,7 @@
 # Plano de implementação e POCs
 
+Este é o plano de descoberta original, com os cards de avaliação. O andamento das fases construídas está no [Anchor 4](specs/04-implementation-plan.md). Ledger, migração, conciliação, fechamento e o primeiro corte do portal (CARD-POC-004) já rodam no piloto com dados fictícios.
+
 ## Fase 0 — descoberta e avaliação de ferramentas
 
 Definir ICP, dois ou três estados, competências de teste, papéis, fontes de dados e obrigações. Avaliar banco relacional, object storage, fila, identidade, observabilidade, OCR, provedor de documentos e alternativas de conector fiscal. A avaliação deve considerar contrato, versionamento, limites, custo, exportação, SLA e capacidade de teste, não apenas demonstração comercial.

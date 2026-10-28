@@ -14,6 +14,8 @@ Portal, tarefas e solicitações ligam contador e cliente. A plataforma de integ
 
 No piloto, o admin cadastra a `LegalEntity` com CNPJ único no escritório. Ela nasce com matriz, um modelo mínimo de contas que não é referencial e os períodos abertos do ano informado ([ADR 017](adr/017-cadastro-de-empresa.md)).
 
+A `Membership` liga uma pessoa a um escritório com papéis. O papel `client` é exclusivo e exige a `LegalEntity` da pessoa. Uma restrição no banco garante as duas coisas ([ADR 025](adr/025-portal-do-cliente.md)). No código, `DocumentRequest` é o pedido de documento da competência, e `OperationalExport` é a forma construída do `ExportPackage` ([ADR 023](adr/023-exportacao-operacional.md)).
+
 ## Estados importantes
 
 ### Journal

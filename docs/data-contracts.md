@@ -32,6 +32,14 @@ Um pedido pede um arquivo para uma empresa e uma competência aberta ou reaberta
 
 `open` e `received` bloqueiam o fechamento da competência. `confirmed` e `cancelled` não bloqueiam. O checklist que conta esses pedidos é `2026.10-2`.
 
+O cliente da empresa vê só os pedidos `open` e `received` da própria empresa e pode enviar o arquivo. Ele não confirma nem cancela. A fila do escritório lista os pedidos de todas as empresas do escritório ativo, por prazo, com `open` antes de `received` no mesmo prazo, e marca `blocks_close` em cada item ([ADR 024](adr/024-fila-de-pendencias.md)).
+
+## ExportPackage
+
+O pacote `operational_v1` exporta uma competência de uma empresa: o cabeçalho dos lançamentos publicados ou revertidos (data, histórico e estado, sem as linhas), os documentos com hash, os pedidos de documento com `blocks_close`, os eventos de auditoria e os totais de débito e crédito do balancete. O contrato está em `schemas/export-package.schema.json`. Cada lista tem teto de 200 itens. O campo `sha256` é o hash do pacote calculado sem ele mesmo. O pedido é assíncrono: responde com `operation_id` e `correlation_id`, e o pacote fica disponível quando o estado chega a pronto. O pedido e a conclusão geram o evento `document_exported` na auditoria ([ADR 023](adr/023-exportacao-operacional.md)).
+
+O pacote não é SPED, ECD nem arquivo de obrigação. Ele serve para outro sistema ou outro ambiente ler a competência.
+
 ## Extrato bancário
 
 O CSV deste corte usa o cabeçalho `date;description;amount;external_id`. O separador é `;` quando ele aparece na primeira linha e `,` nos demais casos. `amount` é decimal com ponto e sinal: negativo é saída. `external_id` pode vir vazio. A data aceita `AAAA-MM-DD` ou `DD/MM/AAAA`.
@@ -82,6 +90,8 @@ SubledgerDocument -> JournalEntry -> JournalLine
 BankTransaction -> ReconciliationCase -> aprovação -> JournalEntry
 CloseRun -> checklist -> snapshot no Postgres; pacote gerado no download
 DocumentRequest -> SourceDocument
+Membership client -> LegalEntity -> DocumentRequest
+ExportPackage -> competência -> cabeçalho de JournalEntry, SourceDocument, DocumentRequest, AuditEvent
 RegulatoryObligation -> arquivos -> Transmission -> Protocol/Receipt
 AuditEvent -> todos os efeitos sensíveis
 ```

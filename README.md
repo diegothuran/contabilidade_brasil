@@ -2,7 +2,7 @@
 
 Base de produto, domínio e código para uma plataforma contábil de escritórios no Brasil. A interface se chama **Rastro**: fechamento com evidência.
 
-O repositório tem duas partes. A primeira é a fundação de produto: benchmark, modelo de domínio, specs, ADRs e contratos JSON. A segunda é uma aplicação que já roda: razão de partidas dobradas, períodos, importação, conciliação bancária, documentos e auditoria, com uma interface web e um piloto hospedado.
+O repositório tem duas partes. A primeira é a fundação de produto: benchmark, modelo de domínio, specs, ADRs e contratos JSON. A segunda é uma aplicação que já roda: razão de partidas dobradas, períodos, fechamento, importação, conciliação bancária, documentos, pedidos de documento, exportação da competência, portal do cliente e auditoria, com uma interface web e um piloto hospedado.
 
 Ainda não é um produto fiscal pronto. Não há regra tributária, obrigação acessória, transmissão a órgão nem plano referencial suficiente para produção.
 
@@ -51,7 +51,7 @@ Revisões de IA, obrigações e entregas e integrações externas aparecem no me
 
 A segregação vale mesmo para quem tem vários papéis: quem criou o lançamento não aprova nem publica esse lançamento.
 
-O primeiro admin nasce no comando `contabil.bootstrap`. Os seguintes entram em **Administração**: o admin informa usuário, nome, e-mail e papéis. O Cognito manda a senha temporária por e-mail, e a pessoa troca essa senha no primeiro acesso. A tela não mostra a senha ([ADR 019](docs/adr/019-convite-de-usuario.md)).
+O primeiro admin nasce no comando `contabil.bootstrap`. Os seguintes entram em **Administração**: o admin informa usuário, nome, e-mail e papéis. Para o cliente, o papel Cliente vem sozinho e a empresa é obrigatória ([ADR 025](docs/adr/025-portal-do-cliente.md)). O Cognito manda a senha temporária por e-mail, e a pessoa troca essa senha no primeiro acesso. A tela não mostra a senha ([ADR 019](docs/adr/019-convite-de-usuario.md)).
 
 ### Um ciclo de trabalho
 
@@ -82,7 +82,7 @@ flowchart LR
     api --> db[("PostgreSQL<br/>RLS por escritório")]
     api --> s3[("Object storage S3<br/>arquivo original e hash")]
     api --> outbox["Outbox no Postgres"]
-    outbox --> worker["Worker<br/>importação e extrato"]
+    outbox --> worker["Worker<br/>importação, extrato e exportação"]
     worker --> db
     worker --> s3
 ```
@@ -98,7 +98,8 @@ flowchart LR
 
 | Módulo | Pasta em `apps/api/src/contabil/` | Conteúdo |
 | --- | --- | --- |
-| Tenancy | `tenancy/` | Escritório, membership, empresa e cadastro com CNPJ. |
+| Tenancy | `tenancy/` | Escritório, membership, empresa, cadastro com CNPJ, convite e `/v1/me`. |
+| Identidade | `identity/` | Diretório de usuários: convite no Cognito, com a senha temporária por e-mail. |
 | Master data | `master_data/` | Plano de contas, centro de custo e o modelo mínimo de contas. |
 | Ledger | `ledger/` | Journals, linhas, aprovação, publicação, estorno e balancete. |
 | Períodos | `periods/` | Abertura, fechamento e reabertura aprovada. |
@@ -106,17 +107,20 @@ flowchart LR
 | Importação | `imports/` | Lotes CSV, simulação, relatório de diferenças e publicação. |
 | Conciliação | `reconciliation/` | Contas bancárias, parser de CSV e OFX, matching explicável e casos. |
 | Documentos | `documents/` | Upload, hash e download do arquivo original. |
+| Pedidos de documento | `document_requests/` | Pedido na competência, envio, confirmação, cancelamento e a fila do escritório. |
+| Exportação | `exports/` | Pacote JSON da competência, gerado pelo outbox, com SHA-256 e auditoria. |
+| Portal do cliente | `portal/` | Rotas do cliente: os pedidos da própria empresa e o envio do arquivo. |
 | Auditoria | `audit/` | Eventos encadeados por hash e verificação. |
-| Plataforma | `platform/` | Autenticação, RLS, idempotência, correlation ID, outbox, storage, dinheiro em decimal. |
+| Plataforma | `platform/` | Autenticação, escopo do cliente (`require_office`), RLS, idempotência, correlation ID, outbox, storage, dinheiro em decimal. |
 
 ### Garantias no código
 
 - **Partidas dobradas:** publicação exige débitos iguais a créditos; dinheiro é `Decimal`, nunca float.
 - **Imutabilidade:** journal publicado não muda; trigger no banco reforça a regra ([ADR 001](docs/adr/001-ledger-immutavel.md), [ADR 010](docs/adr/010-rls-e-triggers.md)).
-- **Isolamento:** toda tabela de negócio tem `tenant_id` e RLS forçada, inclusive para o dono da tabela ([ADR 005](docs/adr/005-isolamento-de-tenant.md)).
+- **Isolamento:** toda tabela de negócio tem `tenant_id` e RLS forçada, inclusive para o dono da tabela ([ADR 005](docs/adr/005-isolamento-de-tenant.md)). O cliente fica preso à empresa da membership: as rotas do escritório respondem 403 para ele, e o banco exige empresa em toda membership `client` ([ADR 025](docs/adr/025-portal-do-cliente.md)).
 - **Aprovação humana:** nenhum efeito contábil sai sem uma segunda pessoa autorizada ([ADR 004](docs/adr/004-aprovacao-humana.md)).
 - **Idempotência:** POSTs que mudam estado aceitam `Idempotency-Key`; o mesmo pedido devolve a mesma resposta ([ADR 006](docs/adr/006-adaptadores-e-idempotencia.md)).
-- **Jobs:** importação e extrato vão para o outbox, com retry limitado e dead-letter ([ADR 008](docs/adr/008-outbox-postgresql.md), [ADR 012](docs/adr/012-jobs-outbox.md)).
+- **Jobs:** importação, extrato e exportação vão para o outbox, com retry limitado e dead-letter. A resposta traz `operation_id` e `correlation_id`, e `GET /v1/operations` lista as operações ([ADR 008](docs/adr/008-outbox-postgresql.md), [ADR 012](docs/adr/012-jobs-outbox.md), [ADR 023](docs/adr/023-exportacao-operacional.md)).
 - **Evidência:** o arquivo original fica no object storage com hash; o banco guarda metadado e referência ([ADR 011](docs/adr/011-object-storage-s3.md)).
 
 O desenho completo, inclusive módulos ainda não construídos, está em [docs/architecture.md](docs/architecture.md) e no [modelo de domínio](docs/domain-model.md).
@@ -164,11 +168,11 @@ flowchart LR
 | API | App Heroku `contabilidade-brasil` | Publicado com `git push heroku main`. O release roda as migrações. O outbox roda no mesmo processo. |
 | Banco | Heroku Postgres Essential-0 | RLS forçada; o seed de demonstração não roda aqui. |
 | Login | AWS Cognito, client público com PKCE | MFA opcional por aplicativo; o escritório vem do atributo `custom:tenant_id`. |
-| Arquivos | Bucket S3 privado | Ainda não configurado. Sem ele, documentos, importação e extrato ficam indisponíveis. |
+| Arquivos | Bucket S3 privado em `us-east-2` | Versionado e sem acesso público. A API grava e lê só nesse bucket. Sem ele, documentos, importação, extrato e o envio do cliente ficam indisponíveis. |
 
 O piloto custa cerca de US$ 19 por mês e guarda o dado nos Estados Unidos. Por isso só aceita dado fictício ([ADR 015](docs/adr/015-piloto-barato-heroku.md)). A ida para AWS São Paulo está descrita no [ADR 014](docs/adr/014-deploy-piloto-aws-sa-east-1.md), para quando o escritório depender do sistema no dia a dia.
 
-O roteiro completo do piloto está em [deploy/pilot/README.md](deploy/pilot/README.md): apps, Cognito, configuração, bootstrap do escritório, usuário de teste, primeira empresa e o comando das empresas de teste.
+O roteiro completo do piloto está em [deploy/pilot/README.md](deploy/pilot/README.md): apps, Cognito, configuração, bootstrap do escritório, usuário de teste, primeira empresa, o comando das empresas de teste nos escritórios piloto e Litoral e o login dos clientes de teste.
 
 ## Estrutura
 
@@ -202,7 +206,7 @@ docker compose up --build
 - API e OpenAPI gerada: `http://localhost:8000/docs`
 - Keycloak: `http://localhost:8080` (realm `contabil`). Se essa porta já estiver em uso, defina `KEYCLOAK_PORT` no `.env` antes do build; a interface e o emissor do token usam essa porta.
 - MinIO: API em `http://localhost:9000` e console em `http://localhost:9001`. Usuário e senha vêm de `MINIO_ROOT_USER` e `MINIO_ROOT_PASSWORD` no `.env`. A imagem local é a do Chainguard, porque `minio/minio` não está mais no Docker Hub; o contrato da aplicação continua S3.
-- Usuários `preparer`, `approver`, `admin`, `viewer` e `outsider`, senha `dev-only-password`. O `outsider` é de outro escritório e serve para provar o isolamento.
+- Usuários `preparer`, `approver`, `admin`, `viewer`, `cliente` e `outsider`, senha `dev-only-password`. O `cliente` só enxerga a Empresa Alfa e entra na casca do cliente. O `outsider` é de outro escritório e serve para provar o isolamento.
 - Adminer, se quiser inspecionar o banco: `docker compose --profile tools up adminer` em `http://localhost:8081`
 
 O primeiro boot do Keycloak pode levar cerca de um minuto. Para repetir a carga inicial, apague o volume com `docker compose down -v`.
@@ -261,7 +265,7 @@ A visão completa contempla:
 - API versionada, webhooks idempotentes e observabilidade;
 - IA apenas como assistência explicável, sem publicar lançamentos ou transmitir obrigações sozinha.
 
-Ainda não construído: contas a pagar e receber, motor regulatório, obrigações, conectores governamentais, portal do cliente e assistência por IA. O checklist de fechamento e o pacote já estão na sala ([ADR 020](docs/adr/020-fechamento-com-evidencia.md)).
+Ainda não construído: contas a pagar e receber, motor regulatório, obrigações, conectores governamentais, webhooks e assistência por IA. No portal do cliente faltam comentário, e-mail, lembrete e mais de um arquivo por pedido. O checklist de fechamento e o pacote já estão na sala ([ADR 020](docs/adr/020-fechamento-com-evidencia.md)), assim como a fila de pendências, a exportação da competência e o envio pelo cliente ([ADR 024](docs/adr/024-fila-de-pendencias.md), [ADR 023](docs/adr/023-exportacao-operacional.md), [ADR 025](docs/adr/025-portal-do-cliente.md)).
 
 Folha completa, cobertura nacional de NFS-e, banking próprio, crédito, manufatura profunda, marketplace amplo e IA autônoma ficam fora do primeiro ciclo.
 

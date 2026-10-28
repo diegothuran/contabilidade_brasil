@@ -56,11 +56,11 @@ O object storage mantém o arquivo original, hash, tipo, versão, origem e polí
 
 ## Eventos e jobs
 
-Toda operação longa retorna `operation_id`, status e `correlation_id`. O outbox publica eventos depois da transação. Consumidores são idempotentes. Cada conector possui retry com backoff, circuit breaker, deadline e dead-letter queue. Um job de reconciliação busca divergências entre o status local e o órgão ou parceiro.
+Toda operação longa retorna `operation_id`, status e `correlation_id`. Hoje isso vale para importação, extrato e exportação da competência, e `GET /v1/operations` lista as operações do escritório. O outbox publica eventos depois da transação. Consumidores são idempotentes. Cada conector possui retry com backoff, circuit breaker, deadline e dead-letter queue. Um job de reconciliação busca divergências entre o status local e o órgão ou parceiro.
 
 ## Segurança
 
-O isolamento começa no backend por tenant, escritório, empresa e estabelecimento. RBAC define papéis. ABAC adiciona escopo de entidade, período, obrigação e operação. Preparar, revisar, aprovar e transmitir podem ser papéis diferentes. MFA é obrigatório para administradores e operações sensíveis quando o provedor de identidade estiver escolhido.
+O isolamento começa no backend por tenant, escritório, empresa e estabelecimento. No código, o escritório é isolado por RLS forçada, e o cliente da empresa fica preso à empresa da membership: as rotas do escritório exigem `require_office`, e as rotas de `portal/` só leem pedidos dessa empresa ([ADR 025](adr/025-portal-do-cliente.md)). RBAC define papéis. ABAC adiciona escopo de entidade, período, obrigação e operação. Preparar, revisar, aprovar e transmitir podem ser papéis diferentes. MFA é obrigatório para administradores e operações sensíveis quando o provedor de identidade estiver escolhido.
 
 Auditoria registra antes/depois quando aplicável, ator, serviço, timestamp, motivo, aprovação, regra, versão, hash, protocolo e resultado. Logs técnicos usam referências pseudonimizadas e nunca devem registrar tokens, chaves, senhas ou payloads completos por padrão.
 

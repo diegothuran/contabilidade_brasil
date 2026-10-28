@@ -82,7 +82,17 @@ def _seed_foundation(session) -> None:
         ]
         for entity_id, tenant_id, name, cnpj in entities:
             session.add(LegalEntity(id=entity_id, tenant_id=tenant_id, name=name, cnpj=cnpj, currency="BRL"))
+        session.add(AppUser(id="cliente", display_name="Cliente da Empresa Alfa"))
         session.flush()
+        session.add(
+            Membership(
+                id="mem_tenant_demo_cliente",
+                tenant_id="tenant_demo",
+                user_id="cliente",
+                roles=["client"],
+                legal_entity_id="le_alfa",
+            )
+        )
         for entity_id, tenant_id, _name, _cnpj in entities:
             session.add(Establishment(id=f"est_{entity_id}", tenant_id=tenant_id, legal_entity_id=entity_id, name="Matriz"))
         session.flush()

@@ -64,6 +64,14 @@
 
 **Dado** um retorno de rejeição, **quando** o órgão responde, **então** a obrigação permanece rejeitada, mantém arquivo/protocolo/retorno e mostra próxima ação.
 
+### Cliente da empresa
+
+**Dado** um login de cliente ligado a uma empresa, **quando** ele pede o razão, o balancete ou um pedido de outra empresa, **então** o backend nega; nos pedidos da própria empresa, ele envia o arquivo e o pedido espera a confirmação do escritório.
+
+### Exportação da competência
+
+**Dado** uma competência com lançamentos, documentos e pedidos, **quando** quem prepara pede a exportação, **então** a resposta traz `operation_id` e `correlation_id`, o pacote fica pronto com SHA-256 e a auditoria registra a exportação.
+
 ### Tenant inválido
 
 **Dado** um usuário de um escritório, **quando** tenta acessar documento de outro, **então** o backend nega sem revelar sua existência.

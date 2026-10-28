@@ -30,7 +30,9 @@ Implementar solicitações ao cliente, tarefas, upload, comentários, permissõe
 
 **Pronto quando:** cinco clientes de teste resolvem uma lista de pendências sem depender de planilha paralela.
 
-O corte em andamento tem quatro partes. A fila do escritório e Hoje mostram o pedido que bloqueia ([ADR 024](../adr/024-fila-de-pendencias.md)). A exportação da competência sai em Evidências, e a lista de operações fica na API ([ADR 023](../adr/023-exportacao-operacional.md)). O cliente envia o arquivo do próprio pedido e o escritório confirma ([ADR 025](../adr/025-portal-do-cliente.md)). Comentário, e-mail, lembrete, vários arquivos no mesmo pedido e webhook continuam fora.
+O primeiro corte está publicado no piloto, em quatro partes. A fila do escritório e Hoje mostram o pedido que bloqueia ([ADR 024](../adr/024-fila-de-pendencias.md)). A exportação da competência sai em Evidências, e a lista de operações fica na API ([ADR 023](../adr/023-exportacao-operacional.md)). O cliente envia o arquivo do próprio pedido e o escritório confirma ([ADR 025](../adr/025-portal-do-cliente.md)). Cada escritório fictício tem cinco clientes de teste, um por empresa; o admin cria o login deles em Administração. Comentário, e-mail, lembrete, vários arquivos no mesmo pedido e webhook continuam fora.
+
+Falta para fechar a fase: os cinco clientes resolverem as pendências com o contador, e o contador dizer se o fluxo dispensa a planilha paralela. Os testes de integração da Fase D ainda precisam rodar com o compose no ar.
 
 ## Fase E — obrigação fiscal piloto
 
@@ -46,7 +48,7 @@ Adicionar sugestões de classificação, conciliação e explicação. A aplica�
 
 ## Primeiro ambiente hospedado
 
-O primeiro ambiente hospedado testa plano, razão, documentos e conciliação bancária 1:1 no plano mais barato, como no [ADR 015](../adr/015-piloto-barato-heroku.md). A API e o outbox dividem um dyno. A interface, com a sala de fechamento como entrada, ocupa outro, como no [ADR 016](../adr/016-frontend-separado.md). A credencial única do banco obedece ao RLS por `FORCE ROW LEVEL SECURITY`. O dado desse ambiente fica nos Estados Unidos. Portal, fechamento e obrigação fiscal continuam nas fases D e E. A forma AWS do [ADR 014](../adr/014-deploy-piloto-aws-sa-east-1.md) entra com documento de cliente real ou quando o escritório depender do sistema no dia a dia.
+O primeiro ambiente hospedado testa plano, razão, documentos, conciliação bancária 1:1, fechamento, pedidos de documento, exportação e o portal do cliente no plano mais barato, como no [ADR 015](../adr/015-piloto-barato-heroku.md). A API e o outbox dividem um dyno. A interface, com a sala de fechamento como entrada, ocupa outro, como no [ADR 016](../adr/016-frontend-separado.md). A credencial única do banco obedece ao RLS por `FORCE ROW LEVEL SECURITY`. O dado desse ambiente fica nos Estados Unidos, num bucket S3 privado em `us-east-2`. A obrigação fiscal continua na Fase E. A forma AWS do [ADR 014](../adr/014-deploy-piloto-aws-sa-east-1.md) entra com documento de cliente real ou quando o escritório depender do sistema no dia a dia.
 
 ## Dependências críticas
 

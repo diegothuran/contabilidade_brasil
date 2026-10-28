@@ -102,7 +102,7 @@ Para provar o isolamento, repita com outro `--tenant-id` e outro usuário. Esse 
 
 ## Convite pela sala
 
-O primeiro admin continua no bootstrap acima. As pessoas seguintes nascem em **Administração**, com o admin logado. O Cognito envia a senha temporária para o e-mail informado. No primeiro acesso a pessoa troca essa senha. O MFA segue opcional.
+O primeiro admin continua no bootstrap acima. As pessoas seguintes nascem em **Administração**, com o admin logado. O cliente de uma empresa também nasce aqui, com o papel Cliente sozinho e a empresa escolhida. O Cognito envia a senha temporária para o e-mail informado. No primeiro acesso a pessoa troca essa senha. O MFA segue opcional.
 
 Isso só envia e-mail depois de um usuário IAM restrito ao user pool, com `cognito-idp:AdminCreateUser` e `cognito-idp:AdminGetUser`. O client público da tela não recebe essa permissão. As chaves ficam só na API:
 
@@ -134,7 +134,7 @@ Ele deixa cinco empresas fictícias, cada uma com um caso diferente:
 - Ateliê Brisa: plano, períodos e encomendas publicadas em alguns meses do ano.
 - Transportes Rio Claro: fretes publicados, mais um rascunho e um lançamento pendente no mês corrente.
 
-O movimento copiado igual em todas as empresas é estornado quando o período ainda está aberto, e no lugar entra o lançamento do ramo. Com o bucket configurado, cada empresa ganha recibo, nota, contrato, um arquivo com o nome do ramo, um lote de diário em simulação e um extrato OFX. A Padaria Aurora também fica com um pedido de recibo já confirmado em outubro de 2026. O Ateliê Brisa fica com um pedido de contrato aberto nessa competência, e o fechamento de outubro permanece bloqueado até confirmar ou cancelar. Sem o bucket, o comando imprime `extrato=skipped` e não grava arquivo; o pedido aberto do Ateliê ainda é criado.
+O movimento copiado igual em todas as empresas é estornado quando o período ainda está aberto, e no lugar entra o lançamento do ramo. Com o bucket configurado, cada empresa ganha recibo, nota, contrato, um arquivo com o nome do ramo, um lote de diário em simulação e um extrato OFX. A Padaria Aurora também fica com um pedido de recibo já confirmado em outubro de 2026. O Ateliê Brisa fica com um pedido de contrato aberto nessa competência, com prazo em 31/10, e o fechamento de outubro permanece bloqueado até confirmar ou cancelar. O Studio Norte (extrato), o Comercial Vale Azul (nota) e a Transportes Rio Claro (recibo de frete) ficam com pedidos abertos com prazo em 20/10, para a fila ter itens vencidos. Sem o bucket, o comando imprime `extrato=skipped` e não grava arquivo; os pedidos abertos ainda são criados.
 
 O segundo escritório fictício é o Litoral. O comando cria o escritório, copia os administradores do escritório de origem e carrega outra carteira: Pousada Maré Alta, Oficina Serra Dourada, Mercado Bom Preço, Clínica Verde Vale e Gráfica Norte Sul.
 

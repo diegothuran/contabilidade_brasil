@@ -13,7 +13,8 @@
       { "name": "preparer", "description": "Prepara lançamentos" },
       { "name": "approver", "description": "Aprova e publica" },
       { "name": "admin", "description": "Administra o escritório" },
-      { "name": "viewer", "description": "Consulta" }
+      { "name": "viewer", "description": "Consulta" },
+      { "name": "client", "description": "Cliente de uma empresa" }
     ]
   },
   "clients": [
@@ -120,7 +121,7 @@
       "lastName": "Demo",
       "email": "cliente@demo.local",
       "attributes": { "tenant_id": ["tenant_demo"] },
-      "realmRoles": ["viewer"],
+      "realmRoles": ["client"],
       "credentials": [{ "type": "password", "value": "dev-only-password", "temporary": false }]
     },
     {
