@@ -6,7 +6,7 @@ from sqlalchemy import func, select
 
 from contabil.platform.auth import apply_tenant
 from contabil.platform.db import session_factory
-from contabil.tables import JournalEntry, JournalLine, LegalEntity
+from contabil.tables import JournalEntry, JournalLine, LegalEntity, Membership
 
 
 def test_pilot_samples_are_idempotent_and_skip_statements_without_storage(monkeypatch, world):
@@ -26,6 +26,10 @@ def test_pilot_samples_are_idempotent_and_skip_statements_without_storage(monkey
         apply_tenant(session, "tenant_demo")
         names = session.scalars(select(LegalEntity.name).where(LegalEntity.tenant_id == "tenant_demo", LegalEntity.name.contains("(teste)"))).all()
         assert len(names) == 5
+        clients = session.scalars(
+            select(Membership.legal_entity_id).where(Membership.tenant_id == "tenant_demo", Membership.user_id.like("cliente-%"))
+        ).all()
+        assert {company["legal_entity_id"] for company in first["created"]} <= set(clients)
         for company in first["created"]:
             debit = session.scalar(
                 select(func.coalesce(func.sum(JournalLine.amount), 0))

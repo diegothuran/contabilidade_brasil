@@ -223,7 +223,7 @@ docker compose exec api pytest
 
 Os testes de integração precisam do compose no ar. Os unitários rodam sem Docker, dentro de `apps/api`, com `pytest tests/unit`.
 
-O build da interface executa `tsc`. Na máquina, com Node, use `npm run typecheck` e `npm run lint` dentro de `apps/web`. O smoke de ponta a ponta é `npm run e2e` em `apps/web`, com o compose no ar.
+O build da interface executa `tsc`. Na máquina, com Node, use `npm run typecheck` e `npm run lint` dentro de `apps/web`; o lint roda o ESLint e depois o `tsc`. O smoke de ponta a ponta é `npm run e2e` em `apps/web`, com o compose no ar.
 
 Contratos e documentação:
 

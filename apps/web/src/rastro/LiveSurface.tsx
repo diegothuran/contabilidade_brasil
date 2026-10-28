@@ -86,6 +86,8 @@ function periodTone(status: string): string {
   return "neutral";
 }
 
+const NO_PERIODS: PeriodItem[] = [];
+
 export function LiveContextBar() {
   const { me, entities, entityId, setEntityId, periodId, setPeriodId } = useSession();
   const periods = useQuery({
@@ -93,7 +95,7 @@ export function LiveContextBar() {
     enabled: Boolean(entityId),
     queryFn: () => api<{ items: PeriodItem[] }>(`/v1/legal-entities/${entityId}/periods`),
   });
-  const items = periods.data?.items ?? [];
+  const items = periods.data?.items ?? NO_PERIODS;
 
   useEffect(() => {
     if (!entityId || periods.isLoading) {

@@ -1138,6 +1138,8 @@ def _ensure_open_request(
 
 def _ensure_client(session: Session, preparer: Principal, entity_id: str, story: str, name: str) -> None:
     user_id = f"cliente-{story}"[:64]
+    # O bootstrap grava o acesso em outra sessão; a empresa nova precisa estar commitada.
+    session.commit()
     bootstrap(
         preparer.tenant_id,
         preparer.tenant_name,

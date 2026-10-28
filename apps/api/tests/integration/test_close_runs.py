@@ -50,7 +50,7 @@ def test_close_writes_snapshot_and_package(client, tokens, world):
     assert package.json()["snapshot"]["close_run_id"] == run_id
     assert "ICP-Brasil" in package.json()["manifest"]["disclaimer"]
     events = client.get("/v1/audit-events", headers=_auth(tokens["approver"]))
-    assert any(item["event_type"] == "document_exported" and item["target_ref"] == run_id for item in events.json()["items"])
+    assert any(item["event_type"] == "document_exported" and item["target"]["ref"] == run_id for item in events.json()["items"])
     denied = _post(
         client,
         tokens["preparer"],

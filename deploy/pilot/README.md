@@ -148,6 +148,12 @@ Hoje mostra a fila de pedidos que bloqueiam o fechamento. Abrir um item troca a 
 
 Cada empresa de teste ganha um usuário `cliente-` seguido do nome interno da história (`andamento`, `fechada`, `banco`, `vazia` e `rascunhos`; no Litoral, `pousada`, `oficina`, `mercado`, `clinica` e `grafica`). Esse usuário existe no banco, ligado só àquela empresa, mas ainda não tem login. Para criar o login, o administrador convida o mesmo nome de usuário em Administração, com o papel Cliente, a mesma empresa e um e-mail de teste. A API reconhece o cliente que já existe, não duplica o acesso e manda o e-mail com a senha temporária. Convidar esse nome com outro papel ou outra empresa continua sendo recusado. O cliente envia o arquivo. Quem confirma continua sendo o escritório. Os cinco casos do escritório piloto são o recibo confirmado da Padaria, o extrato aberto do Studio, a nota aberta do Vale, o contrato aberto do Ateliê e o recibo de frete aberto da Transportes.
 
+Depois da rodada com os clientes, o relatório abaixo mostra o ciclo de cada pedido: quem enviou o arquivo, os dias até receber e até confirmar, se chegou no prazo, e um resumo. Ele só lê o banco e imprime no terminal, sem gravar arquivo. `--since AAAA-MM-DD` limita aos pedidos abertos a partir dessa data. O roteiro da rodada está no [caderno do contador](../../docs/accountant-discovery-workbook.md#rodada-da-fase-d).
+
+```bash
+heroku run --no-tty --exit-code --app NOME-API -- python -m contabil.pilot_report --tenant-id escritorio
+```
+
 
 ## Conferência
 
