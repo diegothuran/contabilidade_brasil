@@ -1,6 +1,6 @@
 # Caderno de descoberta com o contador
 
-Este documento transforma a experiência do contador em decisões de produto. A conversa deve usar exemplos reais anonimizados, arquivos sem dados pessoais e uma competência já encerrada quando possível.
+Este documento transforma a experiência do contador em decisões de produto. A conversa deve usar exemplos reais anonimizados, arquivos sem dados pessoais e uma competência já encerrada quando possível. A ordem da conversa, a forma de perguntar e a folha de anotação estão no [roteiro de entrevista](roteiro-entrevista-contador.md).
 
 ## Sessão 1 — escritório e carteira
 
@@ -24,7 +24,7 @@ O aceite da conversa é definir quais reconciliações precisam zerar, quais dif
 
 Para o piloto, escolher duas ou três UFs e um conjunto pequeno de obrigações. Registrar órgão, documento, regime, competência, versão do leiaute, prazo, pré-requisitos, certificado, assinatura, protocolo, rejeições, contingência, retificação e retenção.
 
-O contador deve classificar cada capacidade como: indispensável no piloto, útil depois, dependente de parceiro ou fora do produto.
+O contador deve classificar cada capacidade como: indispensável no piloto, útil depois, dependente de parceiro ou fora do produto. As perguntas estão em [Perguntas da Fase E](#perguntas-da-fase-e), e a sessão segue a Sessão 2 do [roteiro de entrevista](roteiro-entrevista-contador.md#sessão-2--escolher-a-obrigação-do-piloto-90-minutos).
 
 ## Sessão 5 — portal e colaboração
 
@@ -128,3 +128,23 @@ O piloto já tem conversa, vários arquivos, devolução, envio sem pedido e lem
 31. **Pedido vencido.** Hoje ele continua aberto, gera um aviso por e-mail, conta como vencido no resumo do portal e segue na fila do escritório pela ordem do prazo. Ele precisa mudar de estado, avisar alguém do escritório ou ir para uma fila separada?
 32. O cliente precisa ver o pedido já confirmado ou cancelado, e o motivo do cancelamento? Neste corte, sim: o histórico mostra os dois e o motivo do cancelamento.
 33. **Envio sem pedido.** Hoje o documento que o cliente manda sem pedido espera o escritório, que o liga a um pedido novo ou o descarta com motivo. Ele não vira pendência sozinho. Esse fluxo serve, ou o envio deve abrir um pedido automaticamente?
+
+## Perguntas da Fase E
+
+A Fase E começa por estas respostas ([DISC-002](specs/06-discovery-and-poc-backlog.md)). Nenhuma tem decisão provisória: o piloto ainda não tem obrigação fiscal, e nenhuma regra, prazo ou leiaute entra no código antes delas.
+
+34. **Carteira por regime.** Quantos CNPJs o escritório atende em cada regime de tributação, aproximadamente? Quais regimes dão mais trabalho por cliente?
+35. **Localidade.** Em quais UFs e municípios estão os clientes? Quais concentram a maior parte da carteira?
+36. **Obrigações de hoje.** Quais obrigações o escritório entrega hoje, com que periodicidade e para quantos clientes? Para cada uma: quem prepara, quem transmite, em que software e quanto tempo leva por cliente.
+37. **Classificação.** Cada obrigação citada na 36 é indispensável no piloto, útil depois, dependente de parceiro ou fora do produto?
+38. **Obrigação do piloto.** Qual obrigação o piloto deve cobrir primeiro, e por quê? Critérios possíveis, sem ordem definida: volume, custo de um erro, existência de ambiente de teste, dependência de município e quanto da informação já está no razão.
+39. **Entradas e pré-requisitos.** De onde vêm os dados dessa obrigação? O que precisa estar fechado ou entregue antes, como a competência, outra obrigação ou um documento do cliente?
+40. **Conferência.** O que o escritório confere antes de transmitir, e com que validador ou programa?
+41. **Prazos.** Qual é o prazo legal e qual é o prazo interno do escritório? Quem controla os dois hoje, e como fica sabendo de uma mudança de prazo ou de leiaute?
+42. **Rejeição e retificação.** Quais rejeições são mais comuns e como são corrigidas? Quando uma entrega precisa de retificação, o que liga a retificação à entrega original?
+43. **Prova.** O que o escritório guarda de cada entrega (arquivo transmitido, recibo, protocolo, relatório do validador), onde e por quanto tempo?
+44. **Contingência.** O que o escritório faz quando o serviço do órgão está fora do ar perto do prazo?
+45. **Certificado e procuração.** A transmissão usa certificado da empresa ou do escritório, com procuração? O certificado é A1 ou A3, quem guarda e quem renova?
+46. **Homologação ou parceiro.** Existe ambiente de teste para essa obrigação, e o escritório já usou? Ou ele prefere que um parceiro transmita?
+47. **Quem transmite.** Quem no escritório pode transmitir? O escritório aceitaria que o sistema só transmitisse depois da aprovação de uma segunda pessoa ([ADR 004](adr/004-aprovacao-humana.md))?
+48. **Cobertura.** Como o contador quer ver o que o sistema cobre e o que não cobre: por obrigação, por UF, por município ou por cliente?

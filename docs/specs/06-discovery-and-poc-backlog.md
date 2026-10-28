@@ -12,7 +12,13 @@
 
 ## P1 — provar a operação do escritório
 
-**DISC-002 — Selecionar estados e obrigações.** Escolher recorte de piloto e responsabilidade por homologação. Pronto: matriz com obrigação, localidade, regime, versão e cobertura.
+**DISC-002 — Selecionar estados e obrigações.** Escolher recorte de piloto e responsabilidade por homologação. Pronto: matriz com obrigação, localidade, regime, versão e cobertura. A conversa segue a Sessão 2 do [roteiro de entrevista](../roteiro-entrevista-contador.md), com as perguntas 34 a 48 do [caderno do contador](../accountant-discovery-workbook.md#perguntas-da-fase-e). A matriz tem uma linha por obrigação citada:
+
+| Obrigação | Órgão | Localidade | Regimes | Versão do leiaute | Ambiente de teste | Parceiro | Classificação |
+|---|---|---|---|---|---|---|---|
+| a preencher com o contador | | | | | | | indispensável / útil depois / parceiro / fora |
+
+A linha marcada como obrigação do piloto (pergunta 38) abre o card do POC-007.
 
 **POC-004 — Portal de pendências.** Enviar, receber e aprovar documentos por competência. O cliente da empresa envia o arquivo do próprio pedido; o escritório confirma ([ADR 025](../adr/025-portal-do-cliente.md)). Pronto: cliente e contador resolvem cinco casos.
 
