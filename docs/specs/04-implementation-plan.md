@@ -40,6 +40,8 @@ Escolher obrigação e localidades. Implementar registry, validação, homologa�
 
 **Pronto quando:** o fluxo funciona em homologação, apresenta cobertura explicitamente e não duplica envio.
 
+A fase começa pelo [DISC-002](06-discovery-and-poc-backlog.md), sem código. O contador escolhe a obrigação e descreve o fluxo dela na Sessão 2 do [roteiro de entrevista](../roteiro-entrevista-contador.md), respondendo as perguntas 34 a 48 do [caderno](../accountant-discovery-workbook.md#perguntas-da-fase-e). O primeiro código da fase, o registry e o adapter da obrigação escolhida, só entra depois dessa escolha, com ADR própria.
+
 ## Fase F — assistência de IA
 
 Adicionar sugestões de classificação, conciliação e explicação. A aplicação valida schema e evidências; usuário autorizado aprova.

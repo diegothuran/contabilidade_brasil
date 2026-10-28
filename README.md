@@ -248,7 +248,7 @@ Depois leia:
 3. [contratos contábeis em linguagem humana](docs/data-contracts.md);
 4. [arquitetura](docs/architecture.md) e [mapa do código](docs/mapa-do-codigo.md);
 5. [Product Spec](docs/specs/01-product-spec.md) até [Agent Configuration](docs/specs/05-agent-configuration.md);
-6. [backlog de discovery e POCs](docs/specs/06-discovery-and-poc-backlog.md);
+6. [backlog de discovery e POCs](docs/specs/06-discovery-and-poc-backlog.md) e o [roteiro de entrevista com o contador](docs/roteiro-entrevista-contador.md);
 7. [schemas e exemplos](schemas/README.md);
 8. [ADRs](docs/adr/README.md).
 
