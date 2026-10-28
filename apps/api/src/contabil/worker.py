@@ -4,6 +4,7 @@ import logging
 import signal
 import threading
 import time
+from datetime import datetime, timezone
 
 from sqlalchemy import select, text
 from sqlalchemy.orm import Session
@@ -48,7 +49,7 @@ def _complete_operation(session: Session, tenant_id: str, operation_id: str | No
     operation = session.scalar(select(Operation).where(Operation.id == operation_id, Operation.tenant_id == tenant_id))
     if operation is not None and operation.status in {"accepted", "running"}:
         operation.status = "completed"
-        operation.updated_at = operation.updated_at
+        operation.updated_at = datetime.now(timezone.utc)
 
 
 def _fail_operation(session: Session, tenant_id: str, operation_id: str | None) -> None:
@@ -58,6 +59,7 @@ def _fail_operation(session: Session, tenant_id: str, operation_id: str | None) 
     if operation is not None and operation.status != "completed":
         operation.status = "failed"
         operation.error_code = "handler_failed"
+        operation.updated_at = datetime.now(timezone.utc)
 
 
 def relay_once(session: Session) -> int:
