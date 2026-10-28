@@ -30,6 +30,18 @@ O contador deve classificar cada capacidade como: indispensável no piloto, úti
 
 Listar os documentos e respostas que o cliente precisa entregar. Registrar quem pede, quem recebe, prazo, confirmação, lembrete, comentário, aprovação e impacto no fechamento. O objetivo é diferenciar um portal de evidência de um simples armazenamento de arquivos.
 
+### Rodada da Fase D
+
+A Fase D fecha quando cinco clientes de teste resolvem as pendências com o contador e ele diz se o fluxo dispensa a planilha paralela.
+
+**Preparar.** Carregar as empresas de teste no escritório e convidar em Administração o cliente de cada uma, como no [roteiro do piloto](../deploy/pilot/README.md#empresas-de-teste). Cada empresa fica com um pedido aberto, com prazo e tipo de documento. Os dados são fictícios.
+
+**Observar.** Durante a rodada, anotar onde o cliente travou, o que foi pedido ou respondido por fora (WhatsApp, e-mail, telefone, planilha) e por quê. Cada contato por fora é um candidato a regra do portal, não uma falha do cliente.
+
+**Medir.** No fim, rodar `python -m contabil.pilot_report --tenant-id ESCRITORIO`. Para cada pedido, ele mostra quem enviou o arquivo (cliente ou escritório), os dias até receber e até confirmar e se chegou no prazo, além de um resumo. Os horários vêm da trilha de auditoria.
+
+**Decidir.** O fluxo dispensa a planilha quando os cinco pedidos chegam pelo próprio cliente, o escritório confirma sem contato por fora e nenhum pedido precisa ser controlado em outro lugar. O contador pode trocar esse critério; a troca entra aqui. As respostas das perguntas 27 a 32 decidem o próximo corte do portal.
+
 ## Cartões de cenário para validar
 
 ### Cenário A — saldo de abertura
@@ -104,3 +116,12 @@ A conciliação bancária deste corte também adotou regras para poder ser testa
 24. O cliente da empresa envia um arquivo no próprio pedido. O papel `client` não combina com papel do escritório e não abre a sala. O admin convida o cliente em Administração. Se o cliente já existe para a mesma empresa e ainda não tem login, o convite só cria o login. Confirmar continua com o escritório. E-mail, lembrete, comentário e mais de um arquivo no mesmo pedido ficam fora. Pedido aberto ou com arquivo ainda não confirmado bloqueia o fechamento (`2026.10-2`).
 25. Hoje mostra a fila do escritório ordenada pelo prazo, do mais próximo para o mais distante, e no mesmo prazo o pedido ainda sem arquivo vem primeiro. Abrir o item troca a empresa e a competência na barra. Não há responsável designado no pedido.
 26. A exportação da competência leva o cabeçalho dos lançamentos, sem as linhas, e no máximo 200 itens por lista ([ADR 023](adr/023-exportacao-operacional.md)). Isso basta para levar a competência a outro sistema, ou o escritório precisa das linhas, das contas e de mais volume?
+
+## Perguntas da rodada da Fase D
+
+27. O pedido precisa de comentário? Se sim, quem escreve para quem (cliente para escritório, escritório para cliente, os dois) e o comentário entra no pacote de fechamento?
+28. O cliente precisa de lembrete? Quando (antes do prazo, no prazo, depois), por qual canal (e-mail, WhatsApp, só na tela) e quem dispara (o sistema ou uma pessoa do escritório)?
+29. Um pedido aceita mais de um arquivo? Se sim, o escritório confirma o pedido inteiro ou cada arquivo, e um arquivo errado volta para o cliente com motivo?
+30. O pedido precisa de responsável designado no escritório, além de quem abriu?
+31. O que acontece com o pedido vencido: continua aberto, muda de estado, avisa alguém ou entra numa fila separada?
+32. O cliente precisa ver o pedido já confirmado ou cancelado, e o motivo do cancelamento?

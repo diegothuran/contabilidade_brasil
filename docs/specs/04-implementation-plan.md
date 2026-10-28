@@ -32,7 +32,7 @@ Implementar solicitações ao cliente, tarefas, upload, comentários, permissõe
 
 O primeiro corte está publicado no piloto, em quatro partes. A fila do escritório e Hoje mostram o pedido que bloqueia ([ADR 024](../adr/024-fila-de-pendencias.md)). A exportação da competência sai em Evidências, e a lista de operações fica na API ([ADR 023](../adr/023-exportacao-operacional.md)). O cliente envia o arquivo do próprio pedido e o escritório confirma ([ADR 025](../adr/025-portal-do-cliente.md)). Cada escritório fictício tem cinco clientes de teste, um por empresa; o admin cria o login deles em Administração. Comentário, e-mail, lembrete, vários arquivos no mesmo pedido e webhook continuam fora.
 
-Falta para fechar a fase: os cinco clientes resolverem as pendências com o contador, e o contador dizer se o fluxo dispensa a planilha paralela. Os testes de integração da Fase D ainda precisam rodar com o compose no ar.
+Falta para fechar a fase: os cinco clientes resolverem as pendências com o contador, e o contador dizer se o fluxo dispensa a planilha paralela. O roteiro dessa rodada, o critério de decisão e as perguntas 27 a 32 estão no [caderno do contador](../accountant-discovery-workbook.md#rodada-da-fase-d). O comando `contabil.pilot_report` mostra o ciclo de cada pedido para a conversa. Os testes de integração, inclusive os da Fase D, passaram com o compose no ar em 27 de outubro de 2026.
 
 ## Fase E — obrigação fiscal piloto
 
