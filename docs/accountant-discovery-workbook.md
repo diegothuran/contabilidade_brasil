@@ -38,7 +38,7 @@ A Fase D fecha quando cinco clientes de teste resolvem as pendências com o cont
 
 **Observar.** Durante a rodada, anotar onde o cliente travou, o que foi pedido ou respondido por fora (WhatsApp, e-mail, telefone, planilha) e por quê. Cada contato por fora é um candidato a regra do portal, não uma falha do cliente.
 
-**Medir.** No fim, rodar `python -m contabil.pilot_report --tenant-id ESCRITORIO`. Para cada pedido, ele mostra quem enviou o arquivo (cliente ou escritório), os dias até receber e até confirmar e se chegou no prazo, além de um resumo. Os horários vêm da trilha de auditoria.
+**Medir.** No fim, rodar `python -m contabil.pilot_report --tenant-id ESCRITORIO`. Para cada pedido, ele mostra quem enviou o primeiro arquivo (cliente ou escritório), se chegou no prazo, os dias até receber, até confirmar e da abertura até a confirmação, quantas vezes o arquivo voltou e quantas mensagens cada lado escreveu. O resumo conta também os documentos enviados sem pedido e quantos o escritório classificou. Os horários e as contagens vêm da trilha de auditoria; o texto das mensagens não é lido.
 
 **Decidir.** O fluxo dispensa a planilha quando os cinco pedidos chegam pelo próprio cliente, o escritório confirma sem contato por fora e nenhum pedido precisa ser controlado em outro lugar. O contador pode trocar esse critério; a troca entra aqui. As respostas das perguntas 27 a 32 decidem o próximo corte do portal.
 

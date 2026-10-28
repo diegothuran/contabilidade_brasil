@@ -20,8 +20,8 @@ def _request(request_id: str, status: str, due_on: date, received_by: str | None
     )
 
 
-def _event(request_id: str, action: str, moment: datetime) -> SimpleNamespace:
-    return SimpleNamespace(target_ref=request_id, occurred_at=moment, details={"action": action})
+def _event(request_id: str, action: str, moment: datetime, actor: str = "preparer") -> SimpleNamespace:
+    return SimpleNamespace(target_ref=request_id, occurred_at=moment, actor_ref=actor, details={"action": action})
 
 
 def _at(day: int, hour: int = 12) -> datetime:
@@ -91,3 +91,37 @@ def test_summary_counts_client_uploads_and_open_items() -> None:
     assert summary["mediana_dias_ate_confirmar"] == 1.0
     assert summary["abertos"] == 3
     assert summary["abertos_vencidos"] == 1
+
+
+def test_cycle_counts_returns_and_conversation_by_side() -> None:
+    cycles = request_cycles(
+        [_request("refeito", "confirmed", date(2026, 10, 20), received_by="cliente-andamento")],
+        [
+            _event("refeito", "document_request_opened", _at(1)),
+            _event("refeito", "document_request_received", _at(3), "cliente-andamento"),
+            _event("refeito", "document_request_returned", _at(4), "approver"),
+            _event("refeito", "document_request_commented", _at(4), "approver"),
+            _event("refeito", "document_request_commented", _at(5), "cliente-andamento"),
+            _event("refeito", "document_request_received", _at(6), "cliente-andamento"),
+            _event("refeito", "document_request_confirmed", _at(7), "approver"),
+        ],
+        {"cliente-andamento"},
+        _TODAY,
+    )
+    item = cycles[0]
+    assert item["recebido_em"] == _at(3)
+    assert item["devolucoes"] == 1
+    assert item["comentarios_cliente"] == 1
+    assert item["comentarios_escritorio"] == 1
+    assert item["dias_ate_aceitar"] == 6.0
+    summary = summarize(cycles, ["new", "classified", "discarded"])
+    assert summary["pedidos_com_devolucao"] == 1
+    assert summary["pedidos_com_conversa"] == 1
+    assert summary["envios_sem_pedido"] == 3
+    assert summary["envios_sem_pedido_classificados"] == 1
+
+
+def test_summary_without_submissions_counts_zero() -> None:
+    summary = summarize(_cycles())
+    assert summary["pedidos_com_devolucao"] == 0
+    assert summary["envios_sem_pedido"] == 0
