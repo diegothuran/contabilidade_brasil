@@ -32,7 +32,7 @@ O primeiro público é um escritório com cerca de **20 a 200 CNPJs**, em dois o
 | Bancos e conciliação | Conta bancária ligada ao plano, extrato CSV ou OFX, casos Sugerido e Sem candidato, aprovação humana do vínculo. | Conciliação; Rotinas do razão › Bancos |
 | Documentos | Arquivo original no object storage com hash SHA-256, tipo e competência. | Evidências |
 | Exportação | JSON da competência com lançamentos, documentos, pedidos, auditoria, totais do balancete e SHA-256. | Evidências |
-| Portal do cliente | O cliente envia o arquivo do próprio pedido. Não vê o razão e não confirma. | Casca do cliente |
+| Portal do cliente | O cliente envia o arquivo do próprio pedido, vê o resumo, o histórico, a conversa e pode mandar um documento sem pedido. Não vê o razão e não confirma. | Casca do cliente |
 | Auditoria | Eventos encadeados por hash, com verificação da cadeia. | Rotinas do razão › Auditoria |
 
 Revisões de IA, obrigações e entregas e integrações externas aparecem no menu, mas a tela diz que ainda não há contrato. Elas não simulam estado.
@@ -47,7 +47,7 @@ Revisões de IA, obrigações e entregas e integrações externas aparecem no me
 | `approver` | Aprovar, rejeitar e publicar o lançamento de outra pessoa; publicar lote; aprovar conciliação; fechar período e aprovar a reabertura pedida por outra pessoa; confirmar o pedido de documento. |
 | `admin` | O que os dois acima podem, mais cadastrar empresa, convidar pessoas para o escritório e convidar o cliente de uma empresa. |
 | `viewer` | Consultar, inclusive a fila de pendências e a exportação já gerada. Não dispara exportação. |
-| `client` | Ver e enviar arquivo só nos pedidos abertos ou recebidos da própria empresa. Não confirma, não cancela e não abre a sala do escritório. |
+| `client` | Ver o resumo, o histórico e a conversa da própria empresa, enviar arquivo e um documento sem pedido, e escolher o aviso por e-mail. Não confirma, não cancela e não abre a sala do escritório. |
 
 A segregação vale mesmo para quem tem vários papéis: quem criou o lançamento não aprova nem publica esse lançamento.
 

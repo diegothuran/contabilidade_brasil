@@ -15,6 +15,8 @@ logger = logging.getLogger(__name__)
 class UserDirectory(Protocol):
     def create_user(self, username: str, email: str, display_name: str, tenant_id: str) -> None: ...
 
+    def get_email(self, username: str) -> str | None: ...
+
 
 class UnavailableDirectory:
     def create_user(self, username: str, email: str, display_name: str, tenant_id: str) -> None:
@@ -24,6 +26,10 @@ class UnavailableDirectory:
             "Diretório de usuários não configurado",
             "O convite por e-mail ainda não está ligado neste ambiente.",
         )
+
+    def get_email(self, username: str) -> str | None:
+        del username
+        return None
 
 
 def parse_cognito_issuer(issuer: str) -> tuple[str, str] | None:
@@ -74,6 +80,15 @@ class CognitoDirectory:
         attributes = {item["Name"]: item["Value"] for item in current.get("UserAttributes", [])}
         if attributes.get("custom:tenant_id") != tenant_id:
             raise DomainError(409, "Usuário de outro escritório", "Este nome de usuário já pertence a outro escritório.")
+
+    def get_email(self, username: str) -> str | None:
+        try:
+            current = self._client.admin_get_user(UserPoolId=self._pool, Username=username)
+        except ClientError:
+            logger.warning("cognito admin_get_user failed")
+            return None
+        attributes = {item["Name"]: item["Value"] for item in current.get("UserAttributes", [])}
+        return attributes.get("email")
 
 
 def _error_code(exc: ClientError) -> str:

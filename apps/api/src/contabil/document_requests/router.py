@@ -7,7 +7,18 @@ from fastapi import APIRouter, Depends, File, Query, Request, UploadFile
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict, Field
 
-from contabil.document_requests.service import cancel_request, confirm_request, create_request, list_queue, list_requests, receive_content
+from contabil.document_requests.service import (
+    add_comment,
+    cancel_request,
+    confirm_request,
+    create_request,
+    list_comments,
+    list_queue,
+    list_requests,
+    receive_content,
+    request_detail,
+    return_request,
+)
 from contabil.platform.deps import Ctx, get_context
 from contabil.platform.errors import IdempotentReplay
 from contabil.platform.idempotency import claim_idempotency, persist, replay_guard
@@ -83,6 +94,32 @@ def get_requests(
         cursor=cursor,
         limit=limit,
     )
+
+
+@router.get("/document-requests/{request_id}")
+def get_request(request_id: str, ctx: Ctx = Depends(get_context)) -> dict:
+    return request_detail(ctx.session, ctx.principal, request_id)
+
+
+@router.post("/document-requests/{request_id}/return")
+def post_return(request_id: str, body: CancelBody, request: Request, ctx: Ctx = Depends(replay_guard)):
+    return persist(ctx, request, 200, return_request(ctx.session, ctx.principal, request_id, body.reason))
+
+
+@router.get("/document-requests/{request_id}/comments")
+def get_comments(request_id: str, ctx: Ctx = Depends(get_context)) -> dict:
+    return list_comments(ctx.session, ctx.principal, request_id)
+
+
+class CommentBody(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    body: str = Field(min_length=1, max_length=1000)
+
+
+@router.post("/document-requests/{request_id}/comments")
+def post_comment(request_id: str, body: CommentBody, request: Request, ctx: Ctx = Depends(replay_guard)):
+    return persist(ctx, request, 201, add_comment(ctx.session, ctx.principal, request_id, body.body))
 
 
 @router.post("/document-requests/{request_id}/content", response_model=None)

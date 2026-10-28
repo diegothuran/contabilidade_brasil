@@ -61,6 +61,10 @@ export function OfficeHome() {
     queryKey: ["document-request-queue", me.tenant_id],
     queryFn: () => api<{ items: QueueItem[] }>("/v1/document-requests/queue?limit=8"),
   });
+  const submissions = useQuery({
+    queryKey: ["client-submissions", me.tenant_id, "home"],
+    queryFn: () => api<{ items: { submission_id: string }[] }>("/v1/client-submissions?status=new"),
+  });
 
   if (!company) {
     return (
@@ -89,6 +93,9 @@ export function OfficeHome() {
           <span className="eyebrow">{company.name}</span>
           <h1>O que precisa de atenção neste escritório.</h1>
           <p>A fila mostra o pedido que bloqueia o fechamento. Os lançamentos recentes continuam os da empresa da barra.</p>
+          {(submissions.data?.items.length ?? 0) > 0 ? (
+            <p>{submissions.data?.items.length} documento(s) enviado(s) pelo cliente, ainda sem pedido. <Link to="/app/rastro/pendencias?aba=enviados">Classificar</Link></p>
+          ) : null}
         </div>
         <div className="page-header__action">
           <Link className="button" to="/app/rastro/pendencias?fila=escritorio">Ver a fila</Link>

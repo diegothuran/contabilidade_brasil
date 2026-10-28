@@ -45,6 +45,10 @@ class Settings(BaseSettings):
     object_storage_create_buckets: bool = False
     cognito_admin_access_key: str = ""
     cognito_admin_secret_key: str = ""
+    mail_from: str = ""
+    ses_access_key: str = ""
+    ses_secret_key: str = ""
+    portal_base_url: str = ""
 
     @field_validator("database_url", "database_admin_url", mode="before")
     @classmethod

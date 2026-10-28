@@ -114,6 +114,16 @@ heroku config:set --app NOME-API \
 
 Sem essas variáveis, a tela diz que o diretório de usuários não está configurado. O remetente é o padrão do Cognito, com o limite desse remetente. O bootstrap não altera uma membership que já existe e continua útil para o primeiro admin.
 
+O aviso ao cliente usa o SES na mesma região. Sem `MAIL_FROM`, `SES_ACCESS_KEY` e `SES_SECRET_KEY`, o pedido segue e o aviso fica registrado como não configurado. Em sandbox, cada e-mail de destino precisa estar verificado no SES. `PORTAL_BASE_URL` é o endereço da interface, o único link que o aviso carrega. O banco não guarda o e-mail: ele é lido no Cognito na hora do envio. O cliente desliga o aviso no próprio portal.
+
+```bash
+heroku config:set --app NOME-API \
+  MAIL_FROM=REMETENTE \
+  SES_ACCESS_KEY=CHAVE \
+  SES_SECRET_KEY=SEGREDO \
+  PORTAL_BASE_URL=URL-DA-INTERFACE
+```
+
 ## Primeira empresa
 
 O admin entra na sala, abre **Rotinas do razão** e depois **Nova empresa**. A barra de contexto, no topo, é o seletor da empresa. O cadastro pede nome, CNPJ e ano. A empresa nasce com matriz, o modelo mínimo de teste e 12 períodos abertos. Use CNPJ fictício: o dado fica nos Estados Unidos. Os lançamentos ficam em **Dados e ledger**. A caminhada da Orbe fica em **Demonstração** e não grava nada.
@@ -163,7 +173,7 @@ heroku run --no-tty --exit-code --app NOME-API -- python -m contabil.pilot_repor
 - O administrador cadastra uma empresa fictícia e ela aparece no seletor, com plano e períodos.
 - Hoje lista a pendência que bloqueia o fechamento. Abrir o item troca a empresa e a competência.
 - Em Evidências, a exportação da competência passa por em fila, gerando e pronto, e o JSON confere o SHA-256.
-- Um cliente convidado para uma empresa vê só os pedidos dessa empresa, envia o arquivo e não abre o razão. O escritório confirma.
+- Um cliente convidado para uma empresa vê o resumo, os pedidos em aberto, o histórico e a conversa. Envia arquivo, manda um documento sem pedido e não abre o razão. O escritório devolve, classifica ou confirma. A Transportes Rio Claro e a Gráfica Norte Sul ficam com uma nota devolvida e uma mensagem.
 - O administrador entra, envia um OFX em Conciliação e vê um caso Sugerido. Sem bucket, esse passo fica para depois do storage.
 - O usuário do outro escritório recebe 404 ao abrir um caso do primeiro.
 - O seed de demonstração não aparece.

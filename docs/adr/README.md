@@ -27,3 +27,6 @@
 | [023](023-exportacao-operacional.md) | A exportação da competência sai em Evidências e a lista de operações fica na API. |
 | [024](024-fila-de-pendencias.md) | A fila de pendências é do escritório ativo e Hoje mostra o que bloqueia. |
 | [025](025-portal-do-cliente.md) | O cliente vê só os pedidos da própria empresa e não abre a sala do escritório. |
+| [026](026-devolucao-e-conversa.md) | O escritório devolve o arquivo com motivo. O pedido aceita vários arquivos e uma conversa. |
+| [027](027-envio-sem-pedido.md) | O cliente envia um documento sem pedido. O escritório classifica ou descarta. |
+| [028](028-aviso-por-email.md) | O cliente recebe aviso pelo SES. O e-mail é lido no Cognito e não fica no banco. |

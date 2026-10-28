@@ -91,6 +91,20 @@ export async function uploadRequestFile(requestId: string, file: File): Promise<
   await readPayload(response);
 }
 
+export async function uploadPortalSubmission(file: File, note: string): Promise<void> {
+  const body = new FormData();
+  body.set("file", file);
+  if (note.trim()) {
+    body.set("note", note.trim());
+  }
+  const response = await fetch(`${apiUrl}/v1/portal/submissions`, {
+    method: "POST",
+    headers: await authorizedHeaders(),
+    body,
+  });
+  await readPayload(response);
+}
+
 export async function uploadPortalFile(requestId: string, file: File): Promise<void> {
   const body = new FormData();
   body.set("file", file);

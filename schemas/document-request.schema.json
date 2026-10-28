@@ -4,7 +4,7 @@
   "title": "Document request",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version", "document_request_id", "tenant_id", "legal_entity_id", "period_id", "document_type", "title", "due_on", "status", "document_id", "requested_by", "received_by", "confirmed_by", "cancelled_by", "cancel_reason", "created_at"],
+  "required": ["schema_version", "document_request_id", "tenant_id", "legal_entity_id", "period_id", "document_type", "title", "due_on", "status", "document_id", "requested_by", "received_by", "confirmed_by", "cancelled_by", "cancel_reason", "created_at", "files"],
   "properties": {
     "schema_version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" },
     "document_request_id": { "type": "string", "minLength": 8, "maxLength": 160 },
@@ -21,6 +21,24 @@
     "confirmed_by": { "type": ["string", "null"], "maxLength": 160 },
     "cancelled_by": { "type": ["string", "null"], "maxLength": 160 },
     "cancel_reason": { "type": ["string", "null"], "maxLength": 2000 },
-    "created_at": { "type": "string", "format": "date-time" }
+    "created_at": { "type": "string", "format": "date-time" },
+    "files": {
+      "type": "array",
+      "maxItems": 20,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["file_id", "document_id", "file_name", "state", "uploaded_by", "uploaded_at", "returned_reason"],
+        "properties": {
+          "file_id": { "type": "string", "maxLength": 160 },
+          "document_id": { "type": "string", "maxLength": 160 },
+          "file_name": { "type": "string", "maxLength": 300 },
+          "state": { "type": "string", "enum": ["active", "returned"] },
+          "uploaded_by": { "type": "string", "maxLength": 160 },
+          "uploaded_at": { "type": "string", "format": "date-time" },
+          "returned_reason": { "type": ["string", "null"], "maxLength": 2000 }
+        }
+      }
+    }
   }
 }

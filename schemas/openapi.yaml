@@ -178,11 +178,58 @@ paths:
         '403': { description: Acesso de cliente ou de outro escritório }
   /v1/portal/document-requests:
     get:
-      summary: Pedidos abertos ou recebidos da empresa do cliente
+      summary: Pedidos da empresa do cliente
+      description: Sem filtro, devolve open e received. O histórico pede confirmed,cancelled. A resposta inclui o resumo da empresa, o mês de referência, o nome do arquivo e as datas de recebimento e confirmação.
       operationId: listPortalDocumentRequests
+      parameters:
+        - in: query
+          name: status
+          schema: { type: string }
+        - in: query
+          name: cursor
+          schema: { type: string }
+        - in: query
+          name: limit
+          schema: { type: integer, minimum: 1, maximum: 100, default: 50 }
       responses:
-        '200': { description: Pedidos do cliente }
+        '200': { description: Pedidos do cliente e o resumo }
+        '400': { description: Estado ou cursor inválido }
         '403': { description: Quem não é cliente da empresa }
+  /v1/portal/document-requests/{request_id}:
+    get:
+      summary: Detalhe do pedido do cliente, com arquivos e conversa
+      operationId: getPortalDocumentRequest
+      parameters:
+        - in: path
+          name: request_id
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: Pedido, arquivos e comentários }
+        '404': { description: Pedido de outra empresa ou inexistente }
+  /v1/portal/document-requests/{request_id}/comments:
+    post:
+      summary: O cliente comenta no próprio pedido aberto ou recebido
+      operationId: commentPortalDocumentRequest
+      parameters:
+        - in: path
+          name: request_id
+          required: true
+          schema: { type: string }
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [body]
+              properties:
+                body: { type: string, minLength: 1, maxLength: 1000 }
+      responses:
+        '201': { description: Comentário registrado, sem o texto na auditoria }
+        '409': { description: Pedido já encerrado }
   /v1/portal/document-requests/{request_id}/content:
     post:
       summary: O cliente envia o arquivo do próprio pedido
@@ -217,6 +264,112 @@ paths:
       responses:
         '200': { description: Conteúdo original }
         '404': { description: Arquivo de outro pedido ou inexistente }
+  /v1/portal/preferences:
+    get:
+      summary: Preferência de aviso do cliente
+      operationId: getPortalPreferences
+      responses:
+        '200': { description: notify_client }
+    patch:
+      summary: Liga ou desliga o aviso por e-mail
+      operationId: updatePortalPreferences
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [notify_client]
+              properties:
+                notify_client: { type: boolean }
+      responses:
+        '200': { description: Preferência gravada na membership }
+  /v1/portal/submissions:
+    get:
+      summary: Documentos que o cliente enviou sem pedido
+      operationId: listPortalSubmissions
+      responses:
+        '200': { description: Envios da empresa do cliente }
+    post:
+      summary: O cliente envia um documento sem pedido
+      operationId: createPortalSubmission
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file: { type: string, format: binary }
+                note: { type: string, maxLength: 500 }
+      responses:
+        '201': { description: Envio registrado. Não bloqueia o fechamento. }
+  /v1/client-submissions:
+    get:
+      summary: Envios sem pedido do escritório
+      operationId: listClientSubmissions
+      parameters:
+        - in: query
+          name: status
+          schema: { type: string, default: new }
+      responses:
+        '200': { description: Envios }
+        '403': { description: Acesso de cliente }
+  /v1/client-submissions/{submission_id}/classify:
+    post:
+      summary: Classifica o envio como pedido já recebido
+      operationId: classifyClientSubmission
+      parameters:
+        - in: path
+          name: submission_id
+          required: true
+          schema: { type: string }
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [period_id, document_type, title, due_on]
+              properties:
+                period_id: { type: string }
+                document_type: { type: string }
+                title: { type: string, maxLength: 200 }
+                due_on: { type: string, format: date }
+      responses:
+        '200': { description: Pedido recebido criado }
+        '409': { description: Envio já tratado ou período fechado }
+  /v1/client-submissions/{submission_id}/discard:
+    post:
+      summary: Descarta o envio e preserva o arquivo
+      operationId: discardClientSubmission
+      parameters:
+        - in: path
+          name: submission_id
+          required: true
+          schema: { type: string }
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [reason]
+              properties:
+                reason: { type: string, minLength: 10, maxLength: 2000 }
+      responses:
+        '200': { description: Envio descartado }
+        '400': { description: Motivo curto }
   /v1/legal-entities/{legal_entity_id}/exports:
     post:
       summary: Pede a exportação operacional da competência
@@ -276,10 +429,79 @@ paths:
                 file: { type: string, format: binary }
       responses:
         '200': { description: Arquivo ligado ao pedido, content: { application/json: { schema: { $ref: '#/components/schemas/DocumentRequest' } } } }
-        '409': { description: Estado ou período não aceita o arquivo }
+        '409': { description: Estado ou período não aceita o arquivo, ou o pedido já tem 10 arquivos ativos }
+  /v1/document-requests/{request_id}:
+    get:
+      summary: Detalhe do pedido, com arquivos e conversa
+      operationId: getDocumentRequest
+      parameters:
+        - in: path
+          name: request_id
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: Pedido do escritório }
+        '403': { description: Acesso de cliente }
+        '404': { description: Pedido inexistente neste escritório }
+  /v1/document-requests/{request_id}/return:
+    post:
+      summary: Devolve o pedido recebido ao cliente
+      operationId: returnDocumentRequest
+      parameters:
+        - in: path
+          name: request_id
+          required: true
+          schema: { type: string }
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [reason]
+              properties:
+                reason: { type: string, minLength: 10, maxLength: 2000 }
+      responses:
+        '200': { description: Pedido voltou a aberto e os arquivos ativos ficaram devolvidos }
+        '400': { description: Motivo curto }
+        '409': { description: O pedido não está recebido }
+  /v1/document-requests/{request_id}/comments:
+    get:
+      summary: Conversa do pedido
+      operationId: listDocumentRequestComments
+      parameters:
+        - in: path
+          name: request_id
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: Comentários em ordem }
+    post:
+      summary: O escritório comenta no pedido aberto ou recebido
+      operationId: commentDocumentRequest
+      parameters:
+        - in: path
+          name: request_id
+          required: true
+          schema: { type: string }
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [body]
+              properties:
+                body: { type: string, minLength: 1, maxLength: 1000 }
+      responses:
+        '201': { description: Comentário registrado. A auditoria guarda só o identificador. }
   /v1/document-requests/{request_id}/confirm:
     post:
-      summary: Confirma o pedido depois que o arquivo chegou
+      summary: Confirma o pedido depois que há um arquivo ativo
       operationId: confirmDocumentRequest
       parameters:
         - in: path

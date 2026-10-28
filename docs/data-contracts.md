@@ -32,7 +32,9 @@ Um pedido pede um arquivo para uma empresa e uma competência aberta ou reaberta
 
 `open` e `received` bloqueiam o fechamento da competência. `confirmed` e `cancelled` não bloqueiam. O checklist que conta esses pedidos é `2026.10-2`.
 
-O cliente da empresa vê só os pedidos `open` e `received` da própria empresa e pode enviar o arquivo. Ele não confirma nem cancela. A fila do escritório lista os pedidos de todas as empresas do escritório ativo, por prazo, com `open` antes de `received` no mesmo prazo, e marca `blocks_close` em cada item ([ADR 024](adr/024-fila-de-pendencias.md)).
+O cliente da empresa vê os pedidos da própria empresa. A lista padrão traz `open` e `received`; o histórico traz `confirmed` e `cancelled`, com o motivo. A resposta inclui o resumo (abertos, recebidos, vencidos e o próximo prazo), o mês de referência e o nome do arquivo. `received_at` e `confirmed_at` saem da auditoria; se o evento não existir, o estado `received` usa a última atualização para o recebimento e o estado `confirmed` usa a última atualização para a confirmação. O cancelado não inventa essas datas. Ele não confirma nem cancela.
+
+Um pedido recebido volta a `open` quando o escritório devolve, com motivo de pelo menos 10 caracteres. Os arquivos ativos passam a `returned` e guardam o motivo. O envio seguinte, em `open` ou `received`, cria outro arquivo ativo, até dez. Confirmar exige um arquivo ativo. O `document_id` aponta para o último arquivo. A conversa guarda texto de até 1000 caracteres; a auditoria registra só o identificador do comentário. O pacote de exportação não inclui a conversa neste corte. A fila do escritório lista os pedidos de todas as empresas do escritório ativo, por prazo, com `open` antes de `received` no mesmo prazo, e marca `blocks_close` em cada item ([ADR 024](adr/024-fila-de-pendencias.md)).
 
 ## ExportPackage
 
