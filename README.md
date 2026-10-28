@@ -123,7 +123,7 @@ flowchart LR
 - **Jobs:** importação, extrato e exportação vão para o outbox, com retry limitado e dead-letter. A resposta traz `operation_id` e `correlation_id`, e `GET /v1/operations` lista as operações ([ADR 008](docs/adr/008-outbox-postgresql.md), [ADR 012](docs/adr/012-jobs-outbox.md), [ADR 023](docs/adr/023-exportacao-operacional.md)).
 - **Evidência:** o arquivo original fica no object storage com hash; o banco guarda metadado e referência ([ADR 011](docs/adr/011-object-storage-s3.md)).
 
-O desenho completo, inclusive módulos ainda não construídos, está em [docs/architecture.md](docs/architecture.md) e no [modelo de domínio](docs/domain-model.md).
+O desenho completo, inclusive módulos ainda não construídos, está em [docs/architecture.md](docs/architecture.md) e no [modelo de domínio](docs/domain-model.md). O [mapa do código](docs/mapa-do-codigo.md) liga cada módulo às rotas, tabelas, telas e ADRs, mostra o caminho de uma escrita e os estados de cada objeto.
 
 ## Deploy
 
@@ -185,7 +185,7 @@ O roteiro completo do piloto está em [deploy/pilot/README.md](deploy/pilot/READ
 | `docs/adr/` | Decisões arquiteturais com consequências explícitas. |
 | `docs/rastro/` | Contrato de interface da sala: vocabulário, estados, tokens e menu. |
 | `docs/references/` | Benchmark recebido e fontes de contexto preservadas. |
-| `docs/` | Modelo de domínio, arquitetura, síntese e caderno do contador. |
+| `docs/` | Modelo de domínio, arquitetura, mapa do código, síntese e caderno do contador. |
 | `schemas/` | Contratos JSON e OpenAPI. |
 | `examples/` | Fixtures sintéticas para validar os contratos. |
 | `prompts/` | Prompt de assistência contábil com guardrails. |
@@ -244,7 +244,7 @@ Depois leia:
 1. [síntese do benchmark e hipóteses de oportunidade](docs/benchmark-synthesis.md);
 2. [modelo de domínio](docs/domain-model.md);
 3. [contratos contábeis em linguagem humana](docs/data-contracts.md);
-4. [arquitetura](docs/architecture.md);
+4. [arquitetura](docs/architecture.md) e [mapa do código](docs/mapa-do-codigo.md);
 5. [Product Spec](docs/specs/01-product-spec.md) até [Agent Configuration](docs/specs/05-agent-configuration.md);
 6. [backlog de discovery e POCs](docs/specs/06-discovery-and-poc-backlog.md);
 7. [schemas e exemplos](schemas/README.md);
