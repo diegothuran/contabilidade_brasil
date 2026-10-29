@@ -61,9 +61,8 @@ jobs:
         with:
           node-version: "22"
 
-      # Não há package-lock.json no repositório, então npm ci não serve.
       - name: Instalar dependências
-        run: npm install
+        run: npm ci
 
       - name: Lint e tipos
         run: npm run lint
@@ -121,10 +120,9 @@ jobs:
           curl -fsS --retry 30 --retry-delay 2 --retry-all-errors http://localhost:8080/realms/contabil/.well-known/openid-configuration > /dev/null
           curl -fsS --retry 30 --retry-delay 2 --retry-all-errors http://localhost:5173/ > /dev/null
 
-      # Outro trabalho cria o package-lock.json; até lá, npm install.
       - name: Instalar dependências
         working-directory: apps/web
-        run: npm install
+        run: npm ci
 
       - name: Instalar o Chromium do Playwright
         working-directory: apps/web
