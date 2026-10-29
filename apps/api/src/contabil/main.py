@@ -109,7 +109,7 @@ def create_app() -> FastAPI:
         allow_origins=origins,
         allow_methods=["GET", "POST", "PATCH", "OPTIONS"],
         allow_headers=["Authorization", "Content-Type", "Idempotency-Key", "X-Correlation-Id", "X-Tenant-Id"],
-        expose_headers=["X-Correlation-Id"],
+        expose_headers=["X-Correlation-Id", "Content-Disposition"],
     )
     app.add_middleware(CorrelationMiddleware)
 

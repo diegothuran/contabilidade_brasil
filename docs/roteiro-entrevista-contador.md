@@ -72,7 +72,8 @@ O produto não decide regra contábil nem fiscal sozinho. Tudo o que depende do 
 | 17 | Primeiro admin e MFA | Depois | piloto | — |
 | 18 | Plano de contas real | Depois | [ADR 017](adr/017-cadastro-de-empresa.md) | modelo de 11 contas |
 | 21 | Retenção por tipo de documento | Depois | [ADR 011](adr/011-object-storage-s3.md) | — |
-| 22 | Relatórios do pacote | Depois | [ADR 020](adr/020-fechamento-com-evidencia.md) | cinco relatórios |
+| 22 | Relatórios do pacote e formato | Depois | [ADR 020](adr/020-fechamento-com-evidencia.md) | cinco relatórios; balancete e razão em impressão e CSV |
+| 49 | Saldo anterior e zeramento no exercício | Depois | caderno, relatórios | acumula desde o primeiro lançamento |
 | 23 | Assinatura ICP-Brasil | Depois | [ADR 020](adr/020-fechamento-com-evidencia.md) | não assina |
 
 ## Sessão 1 — validar o que o piloto já faz (60 minutos)
@@ -96,7 +97,7 @@ Em cada passo, leia a decisão provisória e peça confirma, muda ou retira. Na 
 
 A resposta da terceira é o critério de saída da Fase D.
 
-**Bloco 3 — razão, conciliação e fechamento (25 min).** Perguntas 1 a 5, 8, 11, 13, 14, 16, 19, 20 e 26. Abra um lançamento, uma conciliação e um fechamento já feitos no piloto. Para cada regra, a pergunta é a mesma: "hoje o sistema faz assim; no seu escritório é assim?". Se o tempo acabar, as que sobrarem passam para a Sessão 3.
+**Bloco 3 — razão, conciliação e fechamento (25 min).** Perguntas 1 a 5, 8, 11, 13, 14, 16, 19, 20, 26 e 49. Na 49, abra o Balancete e razão numa competência com saldo anterior, baixe o CSV na frente dele e peça que abra no Excel e imprima. Abra um lançamento, uma conciliação e um fechamento já feitos no piloto. Para cada regra, a pergunta é a mesma: "hoje o sistema faz assim; no seu escritório é assim?". Se o tempo acabar, as que sobrarem passam para a Sessão 3.
 
 ## Sessão 2 — escolher a obrigação do piloto (90 minutos)
 

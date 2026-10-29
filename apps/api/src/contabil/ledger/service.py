@@ -7,6 +7,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from contabil.audit.service import append_event
+from contabil.ledger.csv_export import account_ledger_csv, period_label, trial_balance_csv
 from contabil.ledger.presenter import journal_dict, totals
 from contabil.ledger.schemas import JournalCreate
 from contabil.master_data.service import require_cost_center, require_postable_accounts
@@ -17,7 +18,7 @@ from contabil.platform.ids import new_id
 from contabil.platform.money import format_amount, format_signed, parse_amount
 from contabil.platform.outbox import enqueue
 from contabil.platform.principal import Principal, ensure_role
-from contabil.tables import Account, JournalEntry, JournalLine
+from contabil.tables import Account, AccountingPeriod, JournalEntry, JournalLine
 from contabil.tenancy.service import before_cursor, encode_cursor, page_limit, require_entity
 
 
@@ -356,6 +357,34 @@ def reverse_journal(session: Session, principal: Principal, journal_id: str) -> 
     return journal_dict(reversal, lines)
 
 
+def _opening_balances(
+    session: Session, tenant_id: str, legal_entity_id: str, period: AccountingPeriod, account_id: str | None = None
+) -> dict[str, Decimal]:
+    """Débito menos crédito dos lançamentos efetivos das competências anteriores, por conta.
+
+    Acumula desde o primeiro lançamento, sem zerar contas de resultado na virada do exercício
+    (decisão provisória; pergunta 49 do caderno do contador).
+    """
+    debit_sum = func.coalesce(func.sum(JournalLine.amount).filter(JournalLine.side == "debit"), 0)
+    credit_sum = func.coalesce(func.sum(JournalLine.amount).filter(JournalLine.side == "credit"), 0)
+    query = (
+        select(JournalLine.account_id, debit_sum, credit_sum)
+        .join(JournalEntry, JournalEntry.id == JournalLine.journal_id)
+        .join(AccountingPeriod, AccountingPeriod.id == JournalEntry.period_id)
+        .where(
+            JournalLine.tenant_id == tenant_id,
+            JournalEntry.tenant_id == tenant_id,
+            JournalEntry.legal_entity_id == legal_entity_id,
+            JournalEntry.status.in_(EFFECTIVE_JOURNAL_STATUSES),
+            AccountingPeriod.end_date < period.start_date,
+        )
+        .group_by(JournalLine.account_id)
+    )
+    if account_id is not None:
+        query = query.where(JournalLine.account_id == account_id)
+    return {row[0]: Decimal(row[1] or 0) - Decimal(row[2] or 0) for row in session.execute(query).all()}
+
+
 def trial_balance(session: Session, principal: Principal, legal_entity_id: str, period_id: str) -> dict:
     entity = require_entity(session, principal.tenant_id, legal_entity_id)
     period = require_period(session, principal.tenant_id, entity.id, period_id, for_posting=False)
@@ -383,6 +412,7 @@ def trial_balance(session: Session, principal: Principal, legal_entity_id: str, 
         .group_by(Account.id, Account.code, Account.name)
         .order_by(Account.code)
     ).all()
+    opening = _opening_balances(session, principal.tenant_id, entity.id, period)
     debit_total = Decimal("0")
     credit_total = Decimal("0")
     items = []
@@ -391,14 +421,17 @@ def trial_balance(session: Session, principal: Principal, legal_entity_id: str, 
         credit_amount = Decimal(credit or 0)
         debit_total += debit_amount
         credit_total += credit_amount
+        opening_amount = opening.get(account_id, Decimal("0"))
         items.append(
             {
                 "account_id": account_id,
                 "code": code,
                 "name": name,
+                "opening_balance": format_signed(opening_amount),
                 "debit": format_amount(debit_amount),
                 "credit": format_amount(credit_amount),
                 "balance": format_signed(debit_amount - credit_amount),
+                "closing_balance": format_signed(opening_amount + debit_amount - credit_amount),
             }
         )
     return {
@@ -498,7 +531,8 @@ def account_lines(session: Session, principal: Principal, account_id: str, perio
     account = session.scalar(select(Account).where(Account.id == account_id, Account.tenant_id == principal.tenant_id))
     if account is None:
         raise DomainError(404, "Não encontrado", "Conta não encontrada.")
-    require_period(session, principal.tenant_id, account.legal_entity_id, period_id, for_posting=False)
+    period = require_period(session, principal.tenant_id, account.legal_entity_id, period_id, for_posting=False)
+    opening = _opening_balances(session, principal.tenant_id, account.legal_entity_id, period, account.id)
     rows = session.execute(
         select(
             JournalEntry.id,
@@ -522,7 +556,10 @@ def account_lines(session: Session, principal: Principal, account_id: str, perio
     ).all()
     return {
         "account_id": account.id,
+        "code": account.code,
+        "name": account.name,
         "period_id": period_id,
+        "opening_balance": format_signed(opening.get(account.id, Decimal("0"))),
         "lines": [
             {
                 "journal_id": journal_id,
@@ -538,3 +575,33 @@ def account_lines(session: Session, principal: Principal, account_id: str, perio
             for journal_id, line_id, entry_date, side, amount, description, status, source_type, source_id in rows
         ],
     }
+
+
+def trial_balance_csv_export(session: Session, principal: Principal, legal_entity_id: str, period_id: str) -> tuple[str, str]:
+    balance = trial_balance(session, principal, legal_entity_id, period_id)
+    entity = require_entity(session, principal.tenant_id, legal_entity_id)
+    period = require_period(session, principal.tenant_id, entity.id, period_id, for_posting=False)
+    content = trial_balance_csv(
+        entity_name=entity.name,
+        cnpj=entity.cnpj,
+        period=period_label(period.fiscal_year, period.month),
+        generated_at=datetime.now(timezone.utc),
+        balance=balance,
+    )
+    return f"balancete-{entity.cnpj}-{period.fiscal_year:04d}-{period.month:02d}.csv", content
+
+
+def account_lines_csv_export(session: Session, principal: Principal, account_id: str, period_id: str) -> tuple[str, str]:
+    ledger = account_lines(session, principal, account_id, period_id)
+    account = session.scalar(select(Account).where(Account.id == account_id, Account.tenant_id == principal.tenant_id))
+    entity = require_entity(session, principal.tenant_id, account.legal_entity_id)
+    period = require_period(session, principal.tenant_id, entity.id, period_id, for_posting=False)
+    content = account_ledger_csv(
+        entity_name=entity.name,
+        cnpj=entity.cnpj,
+        period=period_label(period.fiscal_year, period.month),
+        generated_at=datetime.now(timezone.utc),
+        ledger=ledger,
+    )
+    code = "".join(char if char.isalnum() or char in ".-" else "_" for char in account.code)
+    return f"razao-{code}-{period.fiscal_year:04d}-{period.month:02d}.csv", content

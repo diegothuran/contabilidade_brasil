@@ -1,4 +1,4 @@
-# SPEC — Contrato de interface v0.6.4
+# SPEC — Contrato de interface v0.6.5
 
 > Fonte de verdade da experiência do front-end. Atualizações de comportamento, estado, linguagem visual ou estrutura precisam atualizar este arquivo antes do código.
 
@@ -105,7 +105,7 @@ A sala fica em `/app/rastro` e é a primeira tela depois do login. Ela é a úni
 | Hoje | Pendências que bloqueiam o fechamento no escritório, com empresa, prazo e o próximo passo, e os lançamentos recentes da empresa selecionada. Mostra a contagem de documentos enviados pelo cliente sem pedido. |
 | Fechamentos | Checklist da competência, fechamento, hash do snapshot e download do pacote. Reabertura continua na lista. |
 | Pendências | Pedidos da competência da barra, a fila do escritório ou os documentos enviados pelo cliente sem pedido. O arquivo entra nas evidências e a confirmação tira o bloqueio do fechamento. Abrir um item da fila troca a empresa e a competência na barra. O pedido recebido pode ser devolvido ao cliente, com motivo. A conversa fica no pedido. Classificar um envio cria um pedido já recebido na competência da barra. |
-| Balancete | Saldos da competência da barra. O cartão em Rotinas do razão e a rota antiga continuam. |
+| Balancete e razão | Saldo anterior, débito, crédito e saldo atual da competência da barra, com D (devedor) e C (credor), totais e a diferença entre débitos e créditos. A busca filtra por código ou nome; por padrão só aparecem contas com saldo ou movimento. Clicar na conta abre o razão abaixo, do saldo anterior ao saldo atual. Imprimir e Baixar CSV (Excel) ficam no cabeçalho; o razão tem os próprios. A impressão esconde menu, barra e botões, leva empresa, CNPJ, competência, data de emissão e o aviso de relatório gerencial, e imprime só o relatório do botão usado. O cartão em Rotinas do razão e a rota antiga continuam. |
 | Conciliação | Casos de conciliação. |
 | Migrações | Lotes de importação. |
 | Dados e ledger | Lançamentos. |
@@ -129,6 +129,7 @@ Nada nesta tela fala em journal, balancete, papéis do escritório, exportação
 
 ## 14. Changelog
 
+- `0.6.5` — Balancete e razão: saldo anterior e atual, D/C, totais, busca, impressão por relatório e CSV para o Excel. Hoje ganha o atalho.
 - `0.6.4` — O portal mostra o CNPJ formatado e tem o botão Sair, que encerra a sessão no provedor de login.
 - `0.6.3` — O cliente liga ou desliga o aviso por e-mail. O texto leva título, prazo e link.
 - `0.6.2` — O cliente envia um documento sem pedido. O escritório classifica ou descarta. Hoje mostra a contagem.
