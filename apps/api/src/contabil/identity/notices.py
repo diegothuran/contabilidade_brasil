@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import select
 
 from contabil.identity.directory import get_user_directory
-from contabil.identity.mailer import get_mailer, notice_text
+from contabil.identity.mailer import UnavailableMailer, get_mailer, notice_text
 from contabil.platform.auth import apply_tenant
 from contabil.platform.ids import new_id
 from contabil.platform.outbox import enqueue
@@ -96,6 +96,10 @@ def sweep_reminders(session: Session, today: date) -> int:
 
 
 def _send(session: Session, row: DocumentRequest, kind: str, notice_date: date) -> bool:
+    mailer = get_mailer()
+    if isinstance(mailer, UnavailableMailer):
+        logger.info("notice skipped kind=%s request=%s reason=mail_off", kind, row.id)
+        return False
     if session.scalar(
         select(NotificationLog.id).where(
             NotificationLog.request_id == row.id,
@@ -112,7 +116,6 @@ def _send(session: Session, row: DocumentRequest, kind: str, notice_date: date) 
         )
     ).all()
     directory = get_user_directory()
-    mailer = get_mailer()
     subject, body = notice_text(row.title, row.due_on.isoformat(), get_settings().portal_base_url)
     delivered = False
     for member in members:
