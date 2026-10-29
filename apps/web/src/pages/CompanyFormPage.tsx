@@ -20,8 +20,9 @@ export function CompanyFormPage() {
       }),
     onSuccess: async (created) => {
       sessionStorage.setItem(ENTITY_KEY, created.legal_entity_id);
-      setEntityId(created.legal_entity_id);
+      // A lista precisa já ter a empresa nova; senão a casca volta para a primeira da lista.
       await queryClient.invalidateQueries({ queryKey: ["entities"] });
+      setEntityId(created.legal_entity_id);
       navigate("/app/accounts");
     },
   });
