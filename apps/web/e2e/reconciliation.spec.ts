@@ -66,7 +66,8 @@ test("envia um OFX e o aprovador concilia o caso sugerido", async ({ page }) => 
 
   await login(page, "preparer");
   await chooseCompany(page, "Empresa Alfa");
-  await page.getByRole("link", { name: "Bancos" }).click();
+  await page.locator(".sidebar").getByRole("link", { name: "Rotinas do razão" }).click();
+  await page.locator("article").filter({ has: page.getByRole("heading", { name: "Bancos" }) }).getByRole("link", { name: "Abrir →" }).click();
   if ((await page.getByRole("cell", { name: "Caixa e2e" }).count()) === 0) {
     await page.getByTestId("bank-ledger-account").selectOption({ label: "1.1.01 Caixa" });
     await page.getByTestId("bank-name").fill("Caixa e2e");
@@ -76,7 +77,7 @@ test("envia um OFX e o aprovador concilia o caso sugerido", async ({ page }) => 
     await page.getByTestId("save-bank-account").click();
     await expect(page.getByRole("cell", { name: "Caixa e2e" })).toBeVisible();
   }
-  await page.getByRole("link", { name: "Conciliação" }).click();
+  await page.locator(".sidebar").getByRole("link", { name: "Conciliação" }).click();
   await page.getByTestId("bank-account-select").selectOption({ label: "Caixa e2e · 4321" });
   await page.getByTestId("statement-file").setInputFiles({
     name: "extrato.ofx",
@@ -91,7 +92,7 @@ test("envia um OFX e o aprovador concilia o caso sugerido", async ({ page }) => 
 
   await login(page, "approver");
   await chooseCompany(page, "Empresa Alfa");
-  await page.getByRole("link", { name: "Conciliação" }).click();
+  await page.locator(".sidebar").getByRole("link", { name: "Conciliação" }).click();
   await page.getByTestId("bank-account-select").selectOption({ label: "Caixa e2e · 4321" });
   const suggested = page.getByTestId("reconciliation-case").filter({ hasText: memo });
   await suggested.getByTestId("approve-case").click();
