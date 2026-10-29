@@ -1,11 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { Suspense, lazy, useEffect, useState } from "react";
 import { ApiError, TENANT_KEY, api } from "./api";
 import { userManager } from "./auth";
-import { PortalPage } from "./pages/PortalPage";
-import { RastroShell } from "./rastro/RastroShell";
 import "./rastro/rastro.css";
 import { Entity, Me, SessionProvider, isClient } from "./session";
+
+const PortalPage = lazy(() => import("./pages/PortalPage").then((m) => ({ default: m.PortalPage })));
+const RastroShell = lazy(() => import("./rastro/RastroShell").then((m) => ({ default: m.RastroShell })));
 
 const ENTITY_KEY = "contabil.entity";
 const PERIOD_KEY = "contabil.periods.v2";
@@ -39,7 +40,11 @@ export function App() {
   if (!signedIn) {
     return <LoginScreen />;
   }
-  return <Shell />;
+  return (
+    <Suspense fallback={<LoginScreen pending />}>
+      <Shell />
+    </Suspense>
+  );
 }
 
 function LoginScreen({ pending = false }: { pending?: boolean }) {
