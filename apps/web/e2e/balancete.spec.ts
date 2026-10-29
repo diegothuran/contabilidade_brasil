@@ -21,6 +21,8 @@ test("o balancete mostra saldos, abre o razão, baixa CSV e imprime sem o menu",
   await page.getByTestId("csv-balancete").click();
   expect((await balanceDownload).suggestedFilename()).toMatch(/^balancete-\d{14}-2026-02\.csv$/);
 
+  // A base da CI pode não ter movimento: mostrar todas as contas garante uma para abrir.
+  await page.getByLabel("Só contas com saldo ou movimento").uncheck();
   await page.locator(".report-link").first().click();
   const ledger = page.getByTestId("ledger-panel");
   await expect(ledger).toContainText("Saldo anterior");
