@@ -13,7 +13,7 @@ ENV VITE_OIDC_AUTHORITY=$VITE_OIDC_AUTHORITY \
     VITE_OIDC_LOGOUT_URL=$VITE_OIDC_LOGOUT_URL \
     VITE_API_URL=$VITE_API_URL \
     VITE_RASTRO_DEMO=$VITE_RASTRO_DEMO
-RUN npm install && npm run build
+RUN npm ci && npm run build
 
 FROM nginxinc/nginx-unprivileged:1.27-alpine
 ENV PORT=8080

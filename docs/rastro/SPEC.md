@@ -1,4 +1,4 @@
-# SPEC — Contrato de interface v0.6.5
+# SPEC — Contrato de interface v0.6.6
 
 > Fonte de verdade da experiência do front-end. Atualizações de comportamento, estado, linguagem visual ou estrutura precisam atualizar este arquivo antes do código.
 
@@ -129,6 +129,7 @@ Nada nesta tela fala em journal, balancete, papéis do escritório, exportação
 
 ## 14. Changelog
 
+- `0.6.6` — Depois do cadastro, a empresa nova fica escolhida na barra, em vez de voltar para a primeira da lista.
 - `0.6.5` — Balancete e razão: saldo anterior e atual, D/C, totais, busca, impressão por relatório e CSV para o Excel. Hoje ganha o atalho.
 - `0.6.4` — O portal mostra o CNPJ formatado e tem o botão Sair, que encerra a sessão no provedor de login.
 - `0.6.3` — O cliente liga ou desliga o aviso por e-mail. O texto leva título, prazo e link.

@@ -61,9 +61,8 @@ jobs:
         with:
           node-version: "22"
 
-      # Não há package-lock.json no repositório, então npm ci não serve.
       - name: Instalar dependências
-        run: npm install
+        run: npm ci
 
       - name: Lint e tipos
         run: npm run lint
@@ -97,3 +96,52 @@ jobs:
       - name: Logs do compose
         if: failure()
         run: docker compose logs --no-color api worker
+
+  e2e:
+    name: Ponta a ponta no navegador
+    needs: []
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Preparar o .env de exemplo
+        run: cp .env.example .env
+
+      # O web só espera a API saudável; o Keycloak e o worker entram no --wait para o login e os lotes.
+      - name: Subir a interface, a API, o Keycloak e o worker
+        run: docker compose up -d --build --wait web api keycloak worker
+
+      - name: Esperar o realm e a interface responderem
+        run: |
+          curl -fsS --retry 30 --retry-delay 2 --retry-all-errors http://localhost:8080/realms/contabil/.well-known/openid-configuration > /dev/null
+          curl -fsS --retry 30 --retry-delay 2 --retry-all-errors http://localhost:5173/ > /dev/null
+
+      - name: Instalar dependências
+        working-directory: apps/web
+        run: npm ci
+
+      - name: Instalar o Chromium do Playwright
+        working-directory: apps/web
+        run: npx playwright install --with-deps chromium
+
+      - name: Testes de ponta a ponta
+        working-directory: apps/web
+        run: npx playwright test
+
+      - name: Guardar o relatório do Playwright
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright
+          path: |
+            apps/web/test-results
+            apps/web/playwright-report
+          if-no-files-found: ignore
+
+      - name: Logs do compose
+        if: failure()
+        run: docker compose logs --no-color api web keycloak worker

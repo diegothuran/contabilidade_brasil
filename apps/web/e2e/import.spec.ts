@@ -23,7 +23,7 @@ test("simula um lote e o aprovador publica o relatório", async ({ page }) => {
 
   await login(page, "preparer");
   await chooseCompany(page, "Empresa Alfa");
-  await page.getByRole("link", { name: "Importação" }).click();
+  await page.locator(".sidebar").getByRole("link", { name: "Migrações" }).click();
   await page.getByTestId("import-source").fill(source);
   await choosePeriod(page, "01/2026");
   await page.getByTestId("import-file").setInputFiles({
@@ -38,7 +38,7 @@ test("simula um lote e o aprovador publica o relatório", async ({ page }) => {
 
   await login(page, "approver");
   await chooseCompany(page, "Empresa Alfa");
-  await page.getByRole("link", { name: "Importação" }).click();
+  await page.locator(".sidebar").getByRole("link", { name: "Migrações" }).click();
   await page.getByRole("link", { name: source }).click();
   await page.getByTestId("publish-batch").click();
   await expect(page.getByTestId("import-report")).toBeVisible({ timeout: 30_000 });
