@@ -1143,7 +1143,28 @@ paths:
           required: true
           schema: { type: string }
       responses:
-        '200': { description: Saldos por conta postável }
+        '200':
+          description: >-
+            Saldos por conta postável. Cada linha traz opening_balance (lançamentos efetivos das competências
+            anteriores, sem zerar contas de resultado no exercício), debit, credit, balance (movimento do mês) e
+            closing_balance (opening_balance + balance). Saldo positivo é devedor; negativo é credor.
+  /v1/legal-entities/{legal_entity_id}/trial-balance.csv:
+    get:
+      summary: Balancete do período em CSV para o Excel
+      description: >-
+        UTF-8 com BOM, separador ponto e vírgula, vírgula decimal com duas casas e datas DD/MM/AAAA. O cabeçalho
+        traz empresa, CNPJ, competência, hora de geração em Brasília e o aviso de relatório gerencial.
+      operationId: getTrialBalanceCsv
+      parameters:
+        - $ref: '#/components/parameters/LegalEntityId'
+        - in: query
+          name: period_id
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Arquivo balancete-<cnpj>-<AAAA-MM>.csv
+          content: { text/csv: { schema: { type: string } } }
   /v1/accounts/{account_id}/lines:
     get:
       summary: Drill-down das linhas publicadas da conta
@@ -1158,7 +1179,25 @@ paths:
           required: true
           schema: { type: string }
       responses:
-        '200': { description: Linhas até o journal de origem }
+        '200': { description: 'Linhas até o journal de origem, com code, name e opening_balance da conta' }
+  /v1/accounts/{account_id}/lines.csv:
+    get:
+      summary: Razão da conta no período em CSV para o Excel
+      description: Mesmo formato do balancete em CSV, com saldo anterior, saldo acumulado por linha e saldo atual.
+      operationId: getAccountLinesCsv
+      parameters:
+        - in: path
+          name: account_id
+          required: true
+          schema: { type: string }
+        - in: query
+          name: period_id
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Arquivo razao-<codigo>-<AAAA-MM>.csv
+          content: { text/csv: { schema: { type: string } } }
   /v1/audit-events:
     get:
       summary: Trilha de auditoria do escritório

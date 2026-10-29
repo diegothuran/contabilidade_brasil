@@ -108,7 +108,7 @@ A conciliação bancária deste corte também adotou regras para poder ser testa
 19. Quais itens do checklist mudam por porte ou regime? A versão `2026.10-2` é a mesma para toda empresa.
 20. A revisão do balancete pode ser feita por quem também publica, ou o escritório exige outra pessoa? Nesta fase, `approver` ou `admin` registra a revisão.
 21. Qual é a retenção por tipo de documento, além da guarda até prescrição ou decadência (Código Civil, art. 1.194; CTN, art. 195, parágrafo único; Lei 9.430/1996, art. 37)?
-22. O pacote precisa de outros relatórios além do balancete, dos lançamentos, da conciliação, dos lotes e dos documentos?
+22. O pacote precisa de outros relatórios além do balancete, dos lançamentos, da conciliação, dos lotes e dos documentos? Em que formato o escritório entrega hoje o balancete e o razão (PDF, Excel, papel), para quem, e quais demonstrações (DRE, Balanço) ele emite todo mês? Hoje o sistema imprime o balancete e o razão pelo navegador e baixa CSV para o Excel, com o aviso de relatório gerencial; DRE e Balanço não existem.
 23. O fechamento precisa de assinatura ICP-Brasil neste corte? A fundação não assina e não trata o pacote como livro autenticado da ECD (IN RFB 2.003/2021, art. 8º).
 
 ## Decisões provisórias do portal
@@ -148,3 +148,7 @@ A Fase E começa por estas respostas ([DISC-002](specs/06-discovery-and-poc-back
 46. **Homologação ou parceiro.** Existe ambiente de teste para essa obrigação, e o escritório já usou? Ou ele prefere que um parceiro transmita?
 47. **Quem transmite.** Quem no escritório pode transmitir? O escritório aceitaria que o sistema só transmitisse depois da aprovação de uma segunda pessoa ([ADR 004](adr/004-aprovacao-humana.md))?
 48. **Cobertura.** Como o contador quer ver o que o sistema cobre e o que não cobre: por obrigação, por UF, por município ou por cliente?
+
+## Decisões provisórias dos relatórios
+
+49. **Saldo anterior.** Hoje o saldo anterior do balancete e do razão soma todos os lançamentos publicados das competências anteriores, desde o primeiro, sem zerar as contas de resultado na virada do exercício. O saldo das contas de resultado deve voltar a zero no início do exercício? Se sim, o zeramento é um lançamento de encerramento que alguém aprova, ou só uma regra de exibição? O CSV usa ponto e vírgula, vírgula decimal e duas casas, e o arquivo diz que não é livro contábil oficial. Esse formato abre direto no Excel do escritório?

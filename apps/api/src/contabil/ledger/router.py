@@ -1,10 +1,11 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Query, Request
+from fastapi import APIRouter, Depends, Query, Request, Response
 
 from contabil.ledger.schemas import JournalCreate, ReasonBody
 from contabil.ledger.service import (
     account_lines,
+    account_lines_csv_export,
     approve_journal,
     create_journal,
     get_journal,
@@ -14,6 +15,7 @@ from contabil.ledger.service import (
     reverse_journal,
     submit_journal,
     trial_balance,
+    trial_balance_csv_export,
 )
 from contabil.platform.deps import Ctx, get_context
 from contabil.platform.idempotency import persist, replay_guard
@@ -86,3 +88,21 @@ def get_trial_balance(legal_entity_id: str, period_id: str = Query(min_length=1)
 @router.get("/accounts/{account_id}/lines")
 def get_account_lines(account_id: str, period_id: str = Query(min_length=1), ctx: Ctx = Depends(get_context)) -> dict:
     return account_lines(ctx.session, ctx.principal, account_id, period_id)
+
+
+def _csv(file_name: str, content: str) -> Response:
+    return Response(
+        content.encode("utf-8"),
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="{file_name}"'},
+    )
+
+
+@router.get("/legal-entities/{legal_entity_id}/trial-balance.csv")
+def get_trial_balance_csv(legal_entity_id: str, period_id: str = Query(min_length=1), ctx: Ctx = Depends(get_context)) -> Response:
+    return _csv(*trial_balance_csv_export(ctx.session, ctx.principal, legal_entity_id, period_id))
+
+
+@router.get("/accounts/{account_id}/lines.csv")
+def get_account_lines_csv(account_id: str, period_id: str = Query(min_length=1), ctx: Ctx = Depends(get_context)) -> Response:
+    return _csv(*account_lines_csv_export(ctx.session, ctx.principal, account_id, period_id))

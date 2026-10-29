@@ -286,3 +286,56 @@
   .rastro .login-panel { padding: 24px 16px 36px; }
 }
 @media (max-width: 760px) { .rastro .demo-banner { padding: 10px 16px; } }
+
+/* Balancete e razão: leitura na tela e impressão (vira PDF pelo navegador). */
+.rastro .report-page { display: grid; gap: 18px; }
+.rastro .report-page .page-header { margin-bottom: 0; }
+.rastro .report-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.rastro .page-header__action.report-actions button { margin-left: 0; }
+.rastro .report-page .metric-strip { margin-bottom: 0; }
+.rastro .routine .report-page .panel--flush { padding: 0; }
+.rastro .report-toolbar { flex-wrap: wrap; }
+.rastro .report-search input { min-width: 16rem; }
+.rastro .routine .report-toggle { display: flex; align-items: center; gap: 8px; font-weight: 600; }
+.rastro .routine .report-toggle input { min-width: 0; }
+.rastro .report-title { margin: 2px 0 0; font-size: 1.15rem; }
+.rastro .routine .report-table { border: 0; border-radius: 0; }
+.rastro .report-table .amount { font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+.rastro .report-table tfoot td { border-top: 2px solid var(--line-dark); background: #f6f9fc; color: var(--ink-900); font-weight: 700; }
+.rastro .data-table.report-table th.amount { text-align: right; }
+.rastro .data-table.report-table tr.report-row--selected td { background: var(--blue-soft); }
+.rastro .data-table.report-table tr.report-row--selected td:first-child { box-shadow: inset 3px 0 0 var(--blue-rastro); }
+.rastro .report-table .report-row--opening td { color: var(--ink-600); font-style: italic; }
+.rastro .report-table .badge { margin-left: 8px; }
+.rastro .routine .report-link { min-height: 0; padding: 0; border: 0; background: transparent; color: var(--blue-rastro); font-size: inherit; font-weight: 650; text-align: left; cursor: pointer; }
+.rastro .routine .report-link:hover { text-decoration: underline; }
+.rastro .routine .report-note { margin: 0; padding: 12px 20px; color: var(--ink-600); font-size: .72rem; }
+.rastro .report-print-heading { display: none; }
+@media (max-width: 760px) {
+  .rastro .report-search, .rastro .report-search input { width: 100%; min-width: 0; }
+  .rastro .report-actions .button { flex: 1; }
+}
+
+@media print {
+  @page { size: A4; margin: 14mm 12mm; }
+  .rastro, .rastro .workspace, .rastro .page-container { background: #fff; }
+  .rastro .sidebar, .rastro .sidebar-scrim, .rastro .topbar, .rastro .context-bar, .rastro .demo-banner,
+  .rastro .report-page > .page-header, .rastro .report-metrics, .rastro .report-toolbar, .rastro .toast { display: none !important; }
+  .rastro .workspace { width: 100%; margin-left: 0; }
+  .rastro .page-container { width: 100%; padding: 0; }
+  .rastro .panel { border: 0; box-shadow: none; }
+  .rastro .table-scroll { overflow: visible; }
+  .rastro .data-table, .rastro .routine .report-table { min-width: 0; font-size: 9pt; }
+  .rastro .data-table th, .rastro .data-table td { padding: 5px 6px; font-size: 9pt; }
+  .rastro .report-table thead { display: table-header-group; }
+  .rastro .report-table tfoot { display: table-row-group; }
+  .rastro .report-table tr { break-inside: avoid; }
+  .rastro .data-table.report-table tr.report-row--selected td { background: none; box-shadow: none; }
+  .rastro .data-table th, .rastro .data-table td, .rastro .report-table strong { color: #000; }
+  .rastro .routine .report-link, .rastro .report-table a { color: #000; font-weight: 400; text-decoration: none; }
+  .rastro .report-print-heading { display: grid; gap: 2px; margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid #000; color: #000; font-size: 9pt; }
+  .rastro .report-print-heading strong { font-size: 14pt; }
+  .rastro .routine .report-note { padding: 8px 0 0; color: #000; font-size: 8pt; }
+  body.print-balancete .rastro .report-razao, body.print-razao .rastro .report-balancete { display: none !important; }
+}
+.rastro .page-header__action .report-shortcut { margin-left: 10px; padding: 0 12px; }

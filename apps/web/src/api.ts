@@ -116,8 +116,8 @@ export async function uploadPortalFile(requestId: string, file: File): Promise<v
   await readPayload(response);
 }
 
-export async function downloadPortalDocument(documentId: string, fileName: string): Promise<void> {
-  const response = await fetch(`${apiUrl}/v1/portal/documents/${documentId}/content`, {
+export async function downloadFile(path: string, fileName: string): Promise<void> {
+  const response = await fetch(`${apiUrl}${path}`, {
     headers: { Authorization: `Bearer ${await accessToken()}`, ...tenantHeaders() },
   });
   if (!response.ok) {
@@ -128,24 +128,20 @@ export async function downloadPortalDocument(documentId: string, fileName: strin
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement("a");
   anchor.href = url;
-  anchor.download = fileName;
+  anchor.download = fileNameFrom(response) ?? fileName;
   anchor.click();
   URL.revokeObjectURL(url);
 }
 
-export async function downloadDocument(documentId: string, fileName: string): Promise<void> {
-  const response = await fetch(`${apiUrl}/v1/documents/${documentId}/content`, {
-    headers: { Authorization: `Bearer ${await accessToken()}`, ...tenantHeaders() },
-  });
-  if (!response.ok) {
-    await readPayload(response);
-    return;
-  }
-  const blob = await response.blob();
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement("a");
-  anchor.href = url;
-  anchor.download = fileName;
-  anchor.click();
-  URL.revokeObjectURL(url);
+function fileNameFrom(response: Response): string | null {
+  const match = /filename="([^"]+)"/.exec(response.headers.get("Content-Disposition") ?? "");
+  return match ? match[1] : null;
+}
+
+export function downloadPortalDocument(documentId: string, fileName: string): Promise<void> {
+  return downloadFile(`/v1/portal/documents/${documentId}/content`, fileName);
+}
+
+export function downloadDocument(documentId: string, fileName: string): Promise<void> {
+  return downloadFile(`/v1/documents/${documentId}/content`, fileName);
 }

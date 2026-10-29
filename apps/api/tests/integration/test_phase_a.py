@@ -337,3 +337,58 @@ def test_group_account_is_rejected(client, tokens, world):
     response = _post(client, tokens["preparer"], "/v1/journals", body)
     assert response.status_code == 400
     assert response.json()["title"] == "Conta inválida"
+
+
+def test_trial_balance_carries_opening_balance_and_exports_csv(client, tokens, world):
+    del world
+    _publish(client, tokens, _journal_body(period_id="le_test-2026-08", entry_date="2026-08-10", description="Agosto"))
+    _publish(client, tokens)
+    balance = client.get(
+        "/v1/legal-entities/le_test/trial-balance",
+        params={"period_id": "le_test-2026-09"},
+        headers=_auth(tokens["preparer"]),
+    )
+    assert balance.status_code == 200
+    rows = {row["account_id"]: row for row in balance.json()["rows"]}
+    assert rows["le_test-5.1.01"]["opening_balance"] == "10"
+    assert rows["le_test-5.1.01"]["balance"] == "10"
+    assert rows["le_test-5.1.01"]["closing_balance"] == "20"
+    assert rows["le_test-2.1.01"]["opening_balance"] == "-10"
+    assert rows["le_test-2.1.01"]["closing_balance"] == "-20"
+    august = client.get(
+        "/v1/legal-entities/le_test/trial-balance",
+        params={"period_id": "le_test-2026-08"},
+        headers=_auth(tokens["preparer"]),
+    )
+    assert {row["account_id"]: row for row in august.json()["rows"]}["le_test-5.1.01"]["opening_balance"] == "0"
+
+    lines = client.get("/v1/accounts/le_test-5.1.01/lines", params={"period_id": "le_test-2026-09"}, headers=_auth(tokens["preparer"]))
+    assert lines.json()["opening_balance"] == "10"
+    assert lines.json()["code"] == "5.1.01"
+
+    exported = client.get(
+        "/v1/legal-entities/le_test/trial-balance.csv",
+        params={"period_id": "le_test-2026-09"},
+        headers=_auth(tokens["preparer"]),
+    )
+    assert exported.status_code == 200
+    assert exported.headers["content-type"].startswith("text/csv")
+    assert 'filename="balancete-' in exported.headers["content-disposition"]
+    assert exported.headers["content-disposition"].endswith('-2026-09.csv"')
+    text_body = exported.content.decode("utf-8")
+    assert text_body.startswith("﻿Balancete")
+    assert "5.1.01;" in text_body and ";10,00;10,00;0,00;20,00" in text_body
+
+    ledger = client.get("/v1/accounts/le_test-5.1.01/lines.csv", params={"period_id": "le_test-2026-09"}, headers=_auth(tokens["preparer"]))
+    assert ledger.status_code == 200
+    assert 'filename="razao-5.1.01-2026-09.csv"' in ledger.headers["content-disposition"]
+    assert ";Saldo anterior;;;;10,00" in ledger.content.decode("utf-8")
+
+    hidden_balance = client.get(
+        "/v1/legal-entities/le_test/trial-balance.csv",
+        params={"period_id": "le_test-2026-09"},
+        headers=_auth(tokens["outsider"]),
+    )
+    assert hidden_balance.status_code == 404
+    hidden_ledger = client.get("/v1/accounts/le_test-5.1.01/lines.csv", params={"period_id": "le_test-2026-09"}, headers=_auth(tokens["outsider"]))
+    assert hidden_ledger.status_code == 404
