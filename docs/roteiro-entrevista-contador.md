@@ -50,13 +50,13 @@ O produto não decide regra contábil nem fiscal sozinho. Tudo o que depende do 
 | 46 | Homologação ou parceiro | E | POC-007 | — |
 | 47 | Quem transmite e quem aprova | E | [ADR 004](adr/004-aprovacao-humana.md) | — |
 | 48 | Como ver a cobertura | E | POC-010 | — |
-| 1 | Quem cria não aprova | Depois | [ADR 004](adr/004-aprovacao-humana.md) | sem exceção para escritório de uma pessoa |
+| 1 | Quem cria não aprova | Depois | [ADR 004](adr/004-aprovacao-humana.md) | sem exceção para escritório de uma pessoa; contador 1 pede CRC ativo em algumas rotinas |
 | 2 | Dimensões obrigatórias | Depois | contrato do lançamento | opcionais |
 | 3 | Conta sintética | Depois | plano de contas | não recebe lançamento |
 | 4 | Fechamento com checklist | Depois | [ADR 020](adr/020-fechamento-com-evidencia.md) | checklist `2026.10-2` |
 | 5 | Reverter em período fechado | Depois | [ADR 001](adr/001-ledger-immutavel.md) | reabre antes |
 | 8 | Lote aprovado dispensa aprovar cada lançamento | Depois | importação | dispensa |
-| 11 | Tolerância de data na conciliação | Depois | [ADR 013](adr/013-conciliacao-por-casos.md) | 3 dias |
+| 11 | Tolerância de data na conciliação | Depois | [ADR 013](adr/013-conciliacao-por-casos.md) | 3 dias; contador 1 diz zero |
 | 13 | Conciliação com uma pessoa só | Depois | [ADR 013](adr/013-conciliacao-por-casos.md) | papel `approver` basta |
 | 14 | Rejeitar e ignorar | Depois | [ADR 013](adr/013-conciliacao-por-casos.md) | dois sentidos distintos |
 | 16 | Publicar resolve o caso | Depois | [ADR 013](adr/013-conciliacao-por-casos.md) | resolve |
@@ -67,13 +67,18 @@ O produto não decide regra contábil nem fiscal sozinho. Tudo o que depende do 
 | 7 | Retenção padrão | Depois | [ADR 011](adr/011-object-storage-s3.md) | `retention_pending` |
 | 9 | Diferença aceitável na importação | Depois | POC-002 | — |
 | 10 | Rollback de lote | Depois | POC-002 | não suportado |
-| 12 | Tarifa, juros e IOF | Depois | POC-003 | — |
+| 12 | Tarifa, juros e IOF | Depois | POC-003 | contador 1: quase sempre despesa financeira |
 | 15 | Bancos e versões de OFX | Depois | POC-003 | — |
 | 17 | Primeiro admin e MFA | Depois | piloto | — |
 | 18 | Plano de contas real | Depois | [ADR 017](adr/017-cadastro-de-empresa.md) | modelo de 11 contas |
 | 21 | Retenção por tipo de documento | Depois | [ADR 011](adr/011-object-storage-s3.md) | — |
 | 22 | Relatórios do pacote e formato | Depois | [ADR 020](adr/020-fechamento-com-evidencia.md) | cinco relatórios; balancete e razão em impressão e CSV |
-| 49 | Saldo anterior e zeramento no exercício | Depois | caderno, relatórios | acumula desde o primeiro lançamento |
+| 49 | Saldo anterior e zeramento no exercício | Depois | caderno, relatórios | acumula; contador 1: encerramento leva o resultado ao PL |
+| 50 | Rotinas que exigem CRC ativo | Depois | [ADR 004](adr/004-aprovacao-humana.md) | — |
+| 51 | Exceções da data na conciliação | Depois | [ADR 013](adr/013-conciliacao-por-casos.md) | — |
+| 52 | Conta da despesa financeira | Depois | POC-003 | — |
+| 53 | DRE e Balanço sempre atualizados | Depois | relatórios | só balancete e razão |
+| 54 | O que precisa ser explicado | Depois | caderno | — |
 | 23 | Assinatura ICP-Brasil | Depois | [ADR 020](adr/020-fechamento-com-evidencia.md) | não assina |
 
 ## Sessão 1 — validar o que o piloto já faz (60 minutos)
@@ -97,7 +102,7 @@ Em cada passo, leia a decisão provisória e peça confirma, muda ou retira. Na 
 
 A resposta da terceira é o critério de saída da Fase D.
 
-**Bloco 3 — razão, conciliação e fechamento (25 min).** Perguntas 1 a 5, 8, 11, 13, 14, 16, 19, 20, 26 e 49. Na 49, abra o Balancete e razão numa competência com saldo anterior, baixe o CSV na frente dele e peça que abra no Excel e imprima. Abra um lançamento, uma conciliação e um fechamento já feitos no piloto. Para cada regra, a pergunta é a mesma: "hoje o sistema faz assim; no seu escritório é assim?". Se o tempo acabar, as que sobrarem passam para a Sessão 3.
+**Bloco 3 — razão, conciliação e fechamento (25 min).** Perguntas 1 a 5, 8, 11, 13, 14, 16, 19, 20, 26, 49 e 50 a 54. Na 49, abra o Balancete e razão numa competência com saldo anterior, baixe o CSV na frente dele e peça que abra no Excel e imprima. Abra um lançamento, uma conciliação e um fechamento já feitos no piloto. Para cada regra, a pergunta é a mesma: "hoje o sistema faz assim; no seu escritório é assim?". Se o tempo acabar, as que sobrarem passam para a Sessão 3.
 
 ## Sessão 2 — escolher a obrigação do piloto (90 minutos)
 
