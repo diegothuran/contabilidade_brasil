@@ -95,7 +95,8 @@ export function TrialBalancePage() {
   });
   useEffect(() => {
     if (accountId) {
-      ledgerRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      ledgerRef.current?.scrollIntoView({ behavior: reducedMotion ? "auto" : "smooth", block: "start" });
     }
   }, [accountId]);
 

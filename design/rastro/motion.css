@@ -1,0 +1,43 @@
+/* Handoff draft: not imported by apps/web. Scope to existing Rastro shell.
+ * Reconcile/review before adoption. Does not implement dialog focus or API states. */
+.rastro {
+  --rastro-motion-feedback: 150ms;
+  --rastro-motion-sidebar: 160ms;
+  --rastro-motion-scrim: 140ms;
+  --rastro-motion-panel: 180ms;
+  --rastro-motion-easing: ease;
+  --rastro-motion-panel-x: 12px;
+}
+@keyframes rastro-handoff-panel {
+  from { opacity: 0; transform: translateX(var(--rastro-motion-panel-x)); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes rastro-handoff-scrim {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.rastro .rastro-motion-panel {
+  animation: rastro-handoff-panel var(--rastro-motion-panel) var(--rastro-motion-easing);
+}
+.rastro .rastro-motion-scrim {
+  animation: rastro-handoff-scrim var(--rastro-motion-scrim) var(--rastro-motion-easing);
+}
+.rastro .rastro-motion-feedback {
+  transition: color var(--rastro-motion-feedback) var(--rastro-motion-easing),
+    background-color var(--rastro-motion-feedback) var(--rastro-motion-easing),
+    border-color var(--rastro-motion-feedback) var(--rastro-motion-easing);
+}
+@media (prefers-reduced-motion: reduce) {
+  .rastro .rastro-motion-panel, .rastro .rastro-motion-scrim, .rastro .rastro-motion-feedback {
+    animation: none;
+    transition: none;
+    transform: none;
+  }
+}
+@media print {
+  .rastro .rastro-motion-panel, .rastro .rastro-motion-scrim, .rastro .rastro-motion-feedback {
+    animation: none;
+    transition: none;
+    transform: none;
+  }
+}

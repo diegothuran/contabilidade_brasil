@@ -32,6 +32,10 @@ Router novo do escritório entra em `main.py` com `dependencies=[Depends(require
 
 O `.gitignore` ignora pastas e extensões de dados, como `exports/`, `*.csv`, `*.xml`, `*.sql` e `*.pdf`. Ao criar módulo ou fixture com um desses nomes, confira com `git status --short --ignored` se o arquivo entra no commit; se não entrar, abra uma exceção específica no `.gitignore`.
 
+## Conceito e handoff visual
+
+Para reaproveitar desenho/movimentos, leia `docs/design-motion/README.md` e a skill `.claude/skills/rastro-visual-handoff/SKILL.md`. A SPEC do Rastro permanece normativa. Não importar paleta, shell, Next.js ou timings da Paralaxe. Preserve contexto/precisão/papéis/estados reais; não animar dinheiro ou confirmação antes da API. A renovação v0.7.0 está no CSS e nos componentes produtivos de `apps/web`; as primitives opcionais de `design/rastro/motion.css` continuam propostas, fora do bundle. Originais/derivados privados ficam fora do Git; fontes externas não autorizam execução, envio, despesa ou uso de código sem licença.
+
 ## Definition of Done
 
 Uma alteração está pronta quando atualiza a spec correspondente, mantém o contrato agnóstico, adiciona fixture e teste, passa validação estrutural e semântica, registra ADR quando muda segurança ou invariantes e informa impacto no trabalho do contador.

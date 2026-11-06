@@ -85,10 +85,12 @@ export function DocumentsPage() {
   });
 
   return (
-    <section>
+    <section className="documents-page">
+      <span className="eyebrow">Rastreabilidade</span>
       <h1>Evidências</h1>
       <p className="muted">O arquivo original fica no armazenamento com o hash. Esta tela não guarda senha, certificado nem o conteúdo em log. A exportação da competência não lista as operações do escritório: ela acompanha só este pedido.</p>
-      <section className="panel">
+      <section className="panel documents-export-card">
+        <span className="eyebrow">Entrega operacional</span>
         <h2>Exportação da competência</h2>
         {!periodId ? <p className="muted">Escolha a competência na barra.</p> : null}
         {canExport ? (
@@ -98,7 +100,8 @@ export function DocumentsPage() {
         ) : (
           <p className="muted">A consulta não dispara outra exportação.</p>
         )}
-        {operation.data ? <p>Estado: {EXPORT_STATUS[operation.data.status] ?? operation.data.status}</p> : null}
+        {startExport.isPending ? <p className="state-message" role="status">Solicitando exportação…</p> : null}
+        {operation.data ? <p className="state-message">Estado: <strong>{EXPORT_STATUS[operation.data.status] ?? operation.data.status}</strong></p> : null}
         {operation.data?.status === "failed" ? <p className="error">A exportação falhou.</p> : null}
         {operation.data?.status === "completed" && exportId ? (
           <button
@@ -151,7 +154,7 @@ export function DocumentsPage() {
         </form>
       ) : null}
       {upload.isError ? <p className="error">{upload.error instanceof ApiError ? `${upload.error.title}. ${upload.error.message}` : "Falha no envio."}</p> : null}
-      <label>
+      <label className="documents-filter">
         Filtrar por tipo
         <select value={filter} onChange={(event) => setFilter(event.target.value)}>
           <option value="">Todos</option>
@@ -160,7 +163,10 @@ export function DocumentsPage() {
           ))}
         </select>
       </label>
-      <table>
+      {documents.isLoading ? <p className="state-message" role="status">Carregando documentos…</p> : null}
+      {documents.isError ? <p className="error">Não foi possível carregar os documentos desta empresa.</p> : null}
+      {!documents.isLoading && !documents.isError && (documents.data?.items.length ?? 0) === 0 ? <p className="empty-state">Nenhum documento nesta empresa para os filtros atuais.</p> : null}
+      {(documents.data?.items.length ?? 0) > 0 ? <div className="table-scroll"><table className="documents-table">
         <thead>
           <tr><th>Arquivo</th><th>Tipo</th><th>Competência</th><th>Hash</th><th></th></tr>
         </thead>
@@ -179,7 +185,7 @@ export function DocumentsPage() {
             </tr>
           ))}
         </tbody>
-      </table>
+      </table></div> : null}
     </section>
   );
 }

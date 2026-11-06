@@ -115,6 +115,8 @@ export function OfficeHome() {
             <tbody>
               {queue.isError ? (
                 <tr><td colSpan={6}>Não foi possível carregar a fila do escritório.</td></tr>
+              ) : queue.isLoading ? (
+                <tr><td colSpan={6}>Carregando pendências…</td></tr>
               ) : (queue.data?.items.length ?? 0) === 0 ? (
                 <tr><td colSpan={6}>Nenhum pedido aberto ou recebido neste escritório.</td></tr>
               ) : queue.data?.items.map((item) => (
@@ -142,7 +144,11 @@ export function OfficeHome() {
               <tr><th>Data</th><th>Descrição</th><th>Estado</th></tr>
             </thead>
             <tbody>
-              {items.length === 0 ? (
+              {journals.isError ? (
+                <tr><td colSpan={3}>Não foi possível carregar os lançamentos recentes.</td></tr>
+              ) : journals.isLoading ? (
+                <tr><td colSpan={3}>Carregando lançamentos…</td></tr>
+              ) : items.length === 0 ? (
                 <tr><td colSpan={3}>Nenhum lançamento nesta empresa.</td></tr>
               ) : items.map((journal) => (
                 <tr key={journal.journal_id}>

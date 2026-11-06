@@ -6,6 +6,10 @@ O repositório tem duas partes. A primeira é a fundação de produto: benchmark
 
 Ainda não é um produto fiscal pronto. Não há regra tributária, obrigação acessória, transmissão a órgão nem plano referencial suficiente para produção.
 
+## Conceito visual e animações
+
+O [complemento de handoff visual do Rastro](docs/design-motion/README.md) preserva a identidade atual e documenta a adoção produtiva v0.7.0: controles live/portal usam tinta `#162536`, azul `#1f5c86`, papel `#f5f8fb`, Inter/Newsreader, tabelas e estados textuais; a cascata bege/verde legada não é mais usada nessas superfícies. Motion contido de 150–160ms cobre interação segura de navegação, painel, toast e sidebar, com reduced-motion no CSS e no scroll JS. As primitives opcionais continuam fora do bundle. A API, o domínio, o piloto, a autorização, o ledger e a precisão contábil não mudam; revisão visual nunca é aprovação contábil.
+
 ## Tese
 
 O produto deve competir por **confiança operacional mensurável**:
