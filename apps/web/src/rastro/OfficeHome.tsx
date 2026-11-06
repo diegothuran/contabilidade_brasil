@@ -99,7 +99,7 @@ export function OfficeHome() {
         </div>
         <div className="page-header__action">
           <Link className="button" to="/app/rastro/pendencias?fila=escritorio">Ver a fila</Link>
-          <Link className="button button--secondary report-shortcut" to="/app/rastro/balancete">Balancete e razão</Link>
+          <Link className="button button--secondary report-shortcut" to="/app/rastro/balancete">Relatórios</Link>
         </div>
       </section>
       <section className="panel panel--flush">
@@ -167,7 +167,7 @@ export function OfficeHome() {
 
 const routines = [
   ["/app/journals/new", "Novo lançamento", "Cria um rascunho equilibrado na empresa da barra."],
-  ["/app/rastro/balancete", "Balancete e razão", "Saldo anterior, movimento e saldo atual, com impressão e CSV."],
+  ["/app/rastro/balancete", "Relatórios", "Balancete, razão, DRE e Balanço, com impressão e CSV. Encerramento do exercício em dezembro."],
   ["/app/accounts", "Plano de contas", "Modelo mínimo e contas da empresa."],
   ["/app/banks", "Bancos", "Conta corrente ligada ao plano."],
   ["/app/audit", "Auditoria", "Eventos do escritório."],

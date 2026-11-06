@@ -1,4 +1,4 @@
-# SPEC — Contrato de interface v0.7.0
+# SPEC — Contrato de interface v0.8.0
 
 > Fonte de verdade da experiência do front-end. Atualizações de comportamento, estado, linguagem visual ou estrutura precisam atualizar este arquivo antes do código.
 
@@ -112,6 +112,9 @@ A sala fica em `/app/rastro` e é a primeira tela depois do login. Ela é a úni
 | Fechamentos | Checklist da competência, fechamento, hash do snapshot e download do pacote. Reabertura continua na lista. |
 | Pendências | Pedidos da competência da barra, a fila do escritório ou os documentos enviados pelo cliente sem pedido. O arquivo entra nas evidências e a confirmação tira o bloqueio do fechamento. Abrir um item da fila troca a empresa e a competência na barra. O pedido recebido pode ser devolvido ao cliente, com motivo. A conversa fica no pedido. Classificar um envio cria um pedido já recebido na competência da barra. |
 | Balancete e razão | Saldo anterior, débito, crédito e saldo atual da competência da barra, com D (devedor) e C (credor), totais e a diferença entre débitos e créditos. A busca filtra por código ou nome; por padrão só aparecem contas com saldo ou movimento. Clicar na conta abre o razão abaixo, do saldo anterior ao saldo atual. Imprimir e Baixar CSV (Excel) ficam no cabeçalho; o razão tem os próprios. A impressão esconde menu, barra e botões, leva empresa, CNPJ, competência, data de emissão e o aviso de relatório gerencial, e imprime só o relatório do botão usado. O cartão em Rotinas do razão e a rota antiga continuam. |
+| DRE | Em Relatórios, ao lado do balancete, pelos links Balancete · DRE · Balanço. Receitas, despesas e resultado do mês e do acumulado no ano, agrupados pela conta raiz do plano, só com contas que têm valor. Os cartões mostram receitas, despesas e lucro ou prejuízo do ano. O encerramento do exercício não entra. Imprimir e Baixar CSV (Excel) no cabeçalho, com o aviso de demonstração gerencial sem layout oficial. |
+| Balanço | Ativo, passivo e patrimônio líquido no fim da competência. Antes do encerramento, o PL mostra a linha "Resultado do exercício não encerrado". O cartão Diferença fica verde quando o ativo é igual ao passivo mais o PL. Imprimir e Baixar CSV (Excel) no cabeçalho. |
+| Encerramento do exercício | Painel no balancete de dezembro, só para preparador e admin. Escolhe a conta do PL (pré-seleciona 3.2.01) e gera o rascunho em 31/12. Abre o lançamento criado, que segue enviar, aprovar e publicar por outro usuário. Recusa com a mensagem da API quando há lançamento pendente no ano, quando o encerramento já existe ou quando não há o que encerrar. |
 | Conciliação | Casos de conciliação. |
 | Migrações | Lotes de importação. |
 | Dados e ledger | Lançamentos. |
@@ -135,6 +138,7 @@ Nada nesta tela fala em journal, balancete, papéis do escritório, exportação
 
 ## 14. Changelog
 
+- `0.8.0` — Relatórios: o menu Balancete e razão vira Relatórios, com DRE e Balanço gerenciais (imprimir e CSV) e o painel de encerramento do exercício no balancete de dezembro.
 - `0.7.0` — Renovação visual produtiva: controles live/portal saem da cascata bege/verde, estados loading/empty/error ficam textuais, foco da navegação móvel é contido/restaurado, painel/toast recebem motion contido e o scroll do razão respeita reduced-motion. API, domínio, dados, papéis e impressão permanecem inalterados.
 - `0.6.6` — Depois do cadastro, a empresa nova fica escolhida na barra, em vez de voltar para a primeira da lista.
 - `0.6.5` — Balancete e razão: saldo anterior e atual, D/C, totais, busca, impressão por relatório e CSV para o Excel. Hoje ganha o atalho.

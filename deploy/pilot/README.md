@@ -167,7 +167,9 @@ heroku run --no-tty --exit-code --app NOME-API -- python -m contabil.pilot_sampl
 
 O seletor da barra lateral só aparece para o administrador geral, que tem o papel admin no escritório do login e acesso a outro escritório. Um login ligado a um escritório só vê esse escritório. O cliente da empresa não vê o seletor. A troca não muda o atributo do login; ela só vale enquanto a sessão do navegador guarda o escritório escolhido.
 
-Em **Balancete e razão** (menu Operação ou atalho em Hoje), o contador vê saldo anterior, movimento e saldo atual da competência da barra. **Imprimir** gera o PDF pelo navegador ("Salvar como PDF"), e **Baixar CSV (Excel)** baixa a planilha. Clicar numa conta abre o razão, com os próprios botões. Os dois arquivos dizem que são relatório gerencial, não livro oficial.
+Em **Relatórios** (menu Operação ou atalho em Hoje), o contador vê saldo anterior, movimento e saldo atual da competência da barra. **Imprimir** gera o PDF pelo navegador ("Salvar como PDF"), e **Baixar CSV (Excel)** baixa a planilha. Clicar numa conta abre o razão, com os próprios botões. Os dois arquivos dizem que são relatório gerencial, não livro oficial.
+
+No topo da página, os links **DRE** e **Balanço** abrem as demonstrações gerenciais da mesma competência, com os mesmos botões. Na competência de dezembro, o balancete mostra o painel **Encerramento do exercício**: o preparador escolhe a conta de lucros ou prejuízos acumulados e gera o rascunho; outro usuário aprova e publica em Dados e ledger. Empresas cadastradas antes desta versão não têm a conta `3.2.01`; crie-a em Plano de contas (tipo patrimônio líquido, recebe lançamento).
 
 Hoje mostra a fila de pedidos que bloqueiam o fechamento. Abrir um item troca a empresa e a competência da barra. Em Evidências, quem prepara gera a exportação da competência e baixa o JSON quando o estado fica pronto. A lista de operações fica na API, em `GET /v1/operations`.
 
