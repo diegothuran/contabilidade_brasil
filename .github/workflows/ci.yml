@@ -145,3 +145,30 @@ jobs:
       - name: Logs do compose
         if: failure()
         run: docker compose logs --no-color api web keycloak worker
+
+  visual-synthetic:
+    name: Acabamento visual sintético
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Instalar dependências
+        run: npm ci
+      - name: Instalar o Chromium do Playwright
+        run: npx playwright install --with-deps chromium
+      - name: Testar acabamento com API e sessão fictícias
+        run: npm run e2e:visual
+      - name: Guardar relatório e capturas sintéticas
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-visual
+          path: |
+            apps/web/test-results
+            apps/web/playwright-report-visual
+          if-no-files-found: warn
