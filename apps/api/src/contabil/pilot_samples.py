@@ -38,6 +38,8 @@ from contabil.tables import (
     ReopenRequest,
     Tenant,
     AppUser,
+    ClientSubmission,
+    OperationalExport,
 )
 from contabil.tenancy.service import create_legal_entity
 
@@ -584,13 +586,89 @@ def _enrich(
         _ensure_open_request(session, preparer, entity_id, name, notes, "Amostra: recibo de frete", "receipt")
         _ensure_returned_request(session, preparer, approver, entity_id, name, notes)
     _ensure_client(session, preparer, entity_id, story, name)
+    if statements and behavior in {"andamento", "banco"}:
+        _ensure_client_submission(session, preparer, entity_id, story, name, notes)
+    if behavior == "fechada":
+        _ensure_export(session, preparer, entity_id, name, notes)
+    elif behavior == "banco":
+        _ensure_year_end_draft(session, preparer, entity_id, year, name, notes)
+
+
+def _ensure_client_submission(
+    session: Session, preparer: Principal, entity_id: str, story: str, name: str, notes: list[str]
+) -> None:
+    """Arquivo enviado pelo cliente sem pedido, para a caixa de entrada do escritório e o portal."""
+    from contabil.submissions.service import create_submission
+
+    apply_tenant(session, preparer.tenant_id)
+    if session.scalar(select(ClientSubmission.id).where(ClientSubmission.legal_entity_id == entity_id).limit(1)):
+        return
+    client = Principal(
+        f"cliente-{story}"[:64],
+        preparer.tenant_id,
+        frozenset({"client"}),
+        f"Cliente de teste {name}"[:200],
+        preparer.tenant_name,
+        legal_entity_id=entity_id,
+    )
+    content = f"Amostra fictícia enviada pelo cliente de {name}.\nNota de compra de material de escritório.\n".encode()
+    try:
+        create_submission(
+            session,
+            client,
+            file_name=f"amostra-envio-cliente-{story}.txt",
+            media_type="text/plain",
+            content=content,
+            note="Amostra: nota de compra que não estava na lista de pedidos.",
+        )
+    except DomainError as exc:
+        notes.append(f"{name}: envio do cliente não gravado ({exc.detail})")
+    apply_tenant(session, preparer.tenant_id)
+
+
+def _ensure_export(session: Session, preparer: Principal, entity_id: str, name: str, notes: list[str]) -> None:
+    """Pacote operacional de uma competência fechada, gerado pelo worker."""
+    from contabil.exports.service import EXPORT_KIND, create_export
+
+    if session.scalar(select(OperationalExport.id).where(OperationalExport.legal_entity_id == entity_id).limit(1)):
+        return
+    period_id = session.scalar(
+        select(AccountingPeriod.id)
+        .where(AccountingPeriod.legal_entity_id == entity_id, AccountingPeriod.status == "closed")
+        .order_by(AccountingPeriod.start_date.desc())
+        .limit(1)
+    )
+    if period_id is None:
+        return
+    try:
+        create_export(session, preparer, legal_entity_id=entity_id, period_id=period_id, kind=EXPORT_KIND)
+    except DomainError as exc:
+        notes.append(f"{name}: exportação não pedida ({exc.detail})")
+
+
+def _ensure_year_end_draft(
+    session: Session, preparer: Principal, entity_id: str, year: int, name: str, notes: list[str]
+) -> None:
+    """Rascunho de encerramento enviado para aprovação: outra pessoa aprova e publica pela tela."""
+    from contabil.ledger.year_end import build_closing_draft
+
+    if session.scalar(
+        select(JournalEntry.id).where(JournalEntry.legal_entity_id == entity_id, JournalEntry.source_type == "closing").limit(1)
+    ):
+        return
+    try:
+        with session.begin_nested():
+            built = build_closing_draft(session, preparer, entity_id, year, f"{entity_id}-3.2.01")
+            submit_journal(session, preparer, built["journal"]["journal_id"])
+    except DomainError as exc:
+        notes.append(f"{name}: encerramento de {year} não montado ({exc.detail})")
 
 
 def _activity_months(year: int, today: date) -> list[int]:
-    months = {2, 4, 6, 8, today.month}
+    """Todo mês do exercício até o atual, para a DRE do mês e o balancete nunca virem vazios."""
     if year < today.year:
-        return sorted(months)
-    return sorted(month for month in months if month <= today.month)
+        return list(range(1, 13))
+    return list(range(1, today.month + 1)) if year == today.year else []
 
 
 def _money(amount: Decimal) -> str:
