@@ -75,6 +75,7 @@ Uma feature só entra no MVP quando o contador fornecer um exemplo, explicar o r
 A fundação local adotou estas regras para poder ser testada. Elas não fecham o desenho contábil:
 
 1. Quem cria um lançamento não o aprova nem o publica. Escritório de uma pessoa ainda não tem exceção.
+   > **Resposta (contador 1, questionário de 05/11/2026):** "Determinadas rotinas só podem ser feitas por contadores com CRC ativo." A segregação continua, e passa a depender também do registro profissional. Quais rotinas, na pergunta 50.
 2. Dimensões são opcionais no contrato. O contador ainda define quais são obrigatórias por plano ou empresa.
 3. Conta sintética não recebe lançamento. O contador confirma quando uma conta pode ser postável.
 4. Fechar a competência exige a execução de fechamento. O checklist vigente é `2026.10-2`. Bloqueio pendente impede o fechamento, inclusive pedido de documento em aberto ou só recebido. Não aplicável exige motivo. O snapshot JSON fica no banco, com SHA-256, e não é editado. O pacote sai no download. O estado `closing` não é usado. Correção depois do fechamento segue a ITG 2000 (R1), itens 31 a 36: reabrir e lançar estorno, transferência ou complementação.
@@ -95,7 +96,9 @@ A importação local também adotou regras para poder ser testada. Elas esperam 
 A conciliação bancária deste corte também adotou regras para poder ser testada. Elas esperam confirmação:
 
 11. A tolerância de data entre o extrato e a linha do razão é de 3 dias. Esse prazo serve para o escritório?
+   > **Resposta (contador 1, questionário de 05/11/2026):** "Não deveria haver" diferença de data. A tolerância de 3 dias deixa de valer como decisão provisória; o ajuste é a configuração `RECONCILIATION_DATE_TOLERANCE_DAYS`. Exceções como compensação no dia seguinte, na pergunta 51.
 12. Diferença pequena de tarifa, juros ou IOF vira conciliação 1:N, N:1 ou parcial? Qual regra separa o que pode ser ligado do que precisa de lançamento?
+   > **Resposta (contador 1, questionário de 05/11/2026):** "Depende da origem, mas quase sempre é despesa financeira." O caso pede um lançamento na conta de despesa financeira, não um vínculo parcial. Qual conta e quais exceções, na pergunta 52.
 13. Quem aprova a conciliação quando o escritório tem uma pessoa só? Nesta fase, quem cria o caso não é impedido de aprová-lo; a barreira é o papel `approver`.
 14. Qual é a diferença operacional entre rejeitar e ignorar? Os dois preservam a transação e tiram o caso da pendência de match. Rejeitar foi tratado como "não é este candidato" e ignorar como "não vou conciliar este movimento".
 15. Quais bancos e quais versões reais de OFX o escritório recebe? O leitor aceita SGML 1.x e XML 2.x, com cp1252 quando o cabeçalho pede, mas layout de banco ainda não foi homologado.
@@ -109,6 +112,7 @@ A conciliação bancária deste corte também adotou regras para poder ser testa
 20. A revisão do balancete pode ser feita por quem também publica, ou o escritório exige outra pessoa? Nesta fase, `approver` ou `admin` registra a revisão.
 21. Qual é a retenção por tipo de documento, além da guarda até prescrição ou decadência (Código Civil, art. 1.194; CTN, art. 195, parágrafo único; Lei 9.430/1996, art. 37)?
 22. O pacote precisa de outros relatórios além do balancete, dos lançamentos, da conciliação, dos lotes e dos documentos? Em que formato o escritório entrega hoje o balancete e o razão (PDF, Excel, papel), para quem, e quais demonstrações (DRE, Balanço) ele emite todo mês? Hoje o sistema imprime o balancete e o razão pelo navegador e baixa CSV para o Excel, com o aviso de relatório gerencial; DRE e Balanço não existem.
+   > **Resposta (contador 1, questionário de 05/11/2026):** "O ideal é ter todas as demonstrações contábeis sempre atualizadas conforme o regime de competência." DRE e Balanço Patrimonial entram como necessidade, além do balancete e do razão. Quando e para quais regimes, na pergunta 53.
 23. O fechamento precisa de assinatura ICP-Brasil neste corte? A fundação não assina e não trata o pacote como livro autenticado da ECD (IN RFB 2.003/2021, art. 8º).
 
 ## Decisões provisórias do portal
@@ -152,3 +156,20 @@ A Fase E começa por estas respostas ([DISC-002](specs/06-discovery-and-poc-back
 ## Decisões provisórias dos relatórios
 
 49. **Saldo anterior.** Hoje o saldo anterior do balancete e do razão soma todos os lançamentos publicados das competências anteriores, desde o primeiro, sem zerar as contas de resultado na virada do exercício. O saldo das contas de resultado deve voltar a zero no início do exercício? Se sim, o zeramento é um lançamento de encerramento que alguém aprova, ou só uma regra de exibição? O CSV usa ponto e vírgula, vírgula decimal e duas casas, e o arquivo diz que não é livro contábil oficial. Esse formato abre direto no Excel do escritório?
+   > **Resposta (contador 1, questionário de 05/11/2026):** "São zeradas e lançadas ao BP com prejuízo ou lucros acumulados." As contas de resultado zeram por um lançamento de encerramento, que leva o resultado ao patrimônio líquido. O balancete já mostra isso quando esse lançamento existe, porque soma os lançamentos publicados; falta a rotina de encerramento do exercício, que prepara o lançamento para alguém aprovar.
+
+## Respostas recebidas
+
+O [questionário anônimo](https://claude.ai/artifact/3QCemad8tRtHsfKse7f4W3) junta as respostas de mais de um contador. Cada resposta entra junto da pergunta, com a origem e a data. Uma resposta só é sinal de investigação: a ADR afetada continua `proposed` até a confirmação, e o código muda num PR próprio.
+
+**Contador 1, 05/11/2026.** Respondeu às perguntas 1, 11, 12, 22 e 49, acima, e a duas perguntas de rotina:
+- Sobre o regime que dá mais trabalho, disse que a pergunta é desnecessária: Lucro Real e Presumido dão trabalho de qualquer jeito. Ela saiu do questionário.
+- Sobre o que precisa ficar provado para o cliente ou numa fiscalização, respondeu "Explicar". O detalhe vai na pergunta 54.
+
+## Perguntas de seguimento
+
+50. **CRC ativo.** Quais rotinas só um contador com CRC ativo pode fazer: aprovar lançamento, revisar o balancete, fechar a competência, assinar as demonstrações? O sistema deve guardar o número e a situação do CRC de cada usuário, e quem confere essa situação?
+51. **Data na conciliação.** A diferença de data zero vale também para cheque compensado, boleto ou transferência que cai no dia seguinte e venda no cartão? Quando a data difere, o caso fica sem sugestão ou recebe sugestão com aviso?
+52. **Despesa financeira.** Que conta do plano recebe tarifa, juros e IOF? Quando não é despesa financeira (juros recebidos, IOF de uma operação específica)?
+53. **Demonstrações atualizadas.** A DRE e o Balanço precisam estar disponíveis a qualquer momento do mês ou só depois do fechamento? Valem para todos os regimes, inclusive o Simples Nacional?
+54. **Explicar.** O que precisa ser explicado, e para quem: cada lançamento até o documento de origem, as diferenças de conciliação, a variação de um saldo entre dois meses?

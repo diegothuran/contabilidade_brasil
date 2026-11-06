@@ -16,6 +16,8 @@ Um lançamento criado a partir do caso nasce rascunho, com `source_type=bank`. P
 
 O modo deste corte é 1:1. Tolerância de data, diferenças pequenas e quem aprova num escritório de uma pessoa continuam perguntas ao contador.
 
+O primeiro contador do questionário (05/11/2026) respondeu que não deveria haver diferença de data, e que tarifa, juros e IOF quase sempre são despesa financeira ([caderno](../accountant-discovery-workbook.md#respostas-recebidas), perguntas 11, 12, 51 e 52). A tolerância segue configurável em `RECONCILIATION_DATE_TOLERANCE_DAYS`, com padrão 3, até as exceções da pergunta 51 serem respondidas. Esta ADR continua `proposed`.
+
 ## Consequências
 
 O worker segue com a conexão administrativa, então a RLS não se aplica a ele. O serviço filtra `tenant_id` e o trigger da transação continua valendo. Candidato fora da lista só entra se a linha for da mesma conta, no lado coerente, com o mesmo valor, publicada e sem vínculo ativo. Não há contas a pagar nem receber neste corte.
