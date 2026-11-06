@@ -1,4 +1,4 @@
-# SPEC — Contrato de interface v0.6.6
+# SPEC — Contrato de interface v0.7.0
 
 > Fonte de verdade da experiência do front-end. Atualizações de comportamento, estado, linguagem visual ou estrutura precisam atualizar este arquivo antes do código.
 
@@ -88,6 +88,12 @@ A IA só aparece como `sugerido`, `revisado`, `aprovado`, `aplicado`, `rejeitado
 
 A tela está pronta quando contém: contexto visível; estado textual além de cor; fonte/frescor quando houver dado; ação com próximo passo; detalhe/evidência navegável; estados vazio/carregando/erro; foco e teclado; layout de desktop e colapso coerente em telas menores; nenhum claim de cobertura fiscal, aceite, assinatura ou segurança sem contrato/evidência.
 
+### 9.1 Adoção visual v0.7.0
+
+A casca produtiva e o portal usam os tokens Rastro desta seção também nos controles genéricos de páginas live. A base bege/verde legada não participa mais da cascata de botões, campos, tabelas, estados de erro ou superfícies do portal. A tipografia segue Inter para interface e Newsreader para títulos; cards usam 10px, controles 8px e badges 999px, com foco visível em links, botões e campos.
+
+As transições de navegação e controles permanecem contidas em 150ms; sidebar móvel usa 160ms; entrada do painel de evidências e toast usa 160ms. `prefers-reduced-motion` remove movimento não essencial e o scroll do razão usa `auto` nessa preferência. Nenhuma transição altera valores, D/C, saldos, totais, hashes, protocolos ou estados materiais; a API, os papéis, o tenant e a casca única permanecem inalterados.
+
 ## 10. Dados sintéticos
 
 Usar somente organizações e empresas fictícias, sem CPF, certificados, documentos reais, segredos, URLs privadas ou dados bancários reais. O front inicial é demonstrativo; ações de aprovar/rejeitar atualizam apenas estado local.
@@ -129,6 +135,7 @@ Nada nesta tela fala em journal, balancete, papéis do escritório, exportação
 
 ## 14. Changelog
 
+- `0.7.0` — Renovação visual produtiva: controles live/portal saem da cascata bege/verde, estados loading/empty/error ficam textuais, foco da navegação móvel é contido/restaurado, painel/toast recebem motion contido e o scroll do razão respeita reduced-motion. API, domínio, dados, papéis e impressão permanecem inalterados.
 - `0.6.6` — Depois do cadastro, a empresa nova fica escolhida na barra, em vez de voltar para a primeira da lista.
 - `0.6.5` — Balancete e razão: saldo anterior e atual, D/C, totais, busca, impressão por relatório e CSV para o Excel. Hoje ganha o atalho.
 - `0.6.4` — O portal mostra o CNPJ formatado e tem o botão Sair, que encerra a sessão no provedor de login.
@@ -153,3 +160,7 @@ Nada nesta tela fala em journal, balancete, papéis do escritório, exportação
 - `0.2.0` — sala vira a entrada do produto, no serviço de interface separado da API.
 - `0.1.1` — sala montada em `/app/rastro`, com demonstração explícita e rollback pelas rotas antigas.
 - `0.1.0` — contrato inicial aprovado junto ao plano “Sala de fechamento”.
+
+## 15. Ferramenta de handoff visual
+
+O [complemento de conceito e motion](../design-motion/README.md) registra a linhagem e o inventário histórico. A adoção v0.7.0 está no CSS produtivo da casca e nos componentes live/portal; as primitives opcionais em `design/rastro/motion.css` continuam fora do bundle. Esta mudança não altera API, papéis, estados de domínio, contexto, tenant, ledger, upload, OIDC, RLS ou piloto material. Aprovação visual não substitui aprovação humana/material ou teste de precisão/isolamento.

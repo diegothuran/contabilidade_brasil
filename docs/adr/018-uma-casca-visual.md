@@ -25,3 +25,9 @@ Não existe segunda navegação. Um item do menu não devolve o usuário ao dese
 A demonstração deixa de ocupar Hoje. Quem entra vê a empresa selecionada e os lançamentos dela. Regime e UF só aparecem na demonstração, porque o cadastro da empresa ainda não guarda esses campos.
 
 Publicar esta decisão é uma mudança de interface. A API não muda.
+
+## Aditivo visual v0.7.0 — 06 de novembro de 2026
+
+A renovação visual aplica a decisão de casca única também às páginas live e ao portal: tokens Rastro, Inter/Newsreader, tabelas legíveis, estados textuais e foco consistente substituem a cascata bege/verde legada nos controles genéricos. O portal continua sendo uma superfície própria, sem menu do escritório, seletor de empresa/competência, razão ou aprovação.
+
+O motion produtivo limita-se a 150ms em navegação/controles, 160ms na sidebar móvel, painel e toast, sempre com `prefers-reduced-motion`; o scroll do razão usa `auto` nessa preferência. Não há count-up, interpolação de dinheiro/D/C/hash ou confirmação por animação. Não houve alteração de rota, estado material, papel, API, autorização, RLS, ledger ou impressão.

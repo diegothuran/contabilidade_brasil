@@ -173,3 +173,9 @@ O [questionário anônimo](https://claude.ai/artifact/3QCemad8tRtHsfKse7f4W3) ju
 52. **Despesa financeira.** Que conta do plano recebe tarifa, juros e IOF? Quando não é despesa financeira (juros recebidos, IOF de uma operação específica)?
 53. **Demonstrações atualizadas.** A DRE e o Balanço precisam estar disponíveis a qualquer momento do mês ou só depois do fechamento? Valem para todos os regimes, inclusive o Simples Nacional?
 54. **Explicar.** O que precisa ser explicado, e para quem: cada lançamento até o documento de origem, as diferenças de conciliação, a variação de um saldo entre dois meses?
+
+## Aditivo visual v0.7.0 — 06/11/2026
+
+A renovação visual foi aplicada sem mudar o ciclo de fechamento, os dados sintéticos, os papéis ou os contratos. Na rodada com contador, observar especificamente: leitura da fila e dos estados loading/erro/vazio; localização do cliente/CNPJ e competência; leitura de D/C, saldos e diferença sem animação; foco por teclado na sidebar móvel e no painel de evidências; e legibilidade do portal sem menu do escritório. O verde continua acompanhado de texto/critério, e recebido, protocolo e aceite continuam distintos.
+
+Este aditivo não cria rotina fiscal, relatório novo, endpoint, aprovação ou regra de negócio. API, RLS, segregação de funções, upload OIDC, impressão do balancete/razão e rastreabilidade permanecem os mesmos.

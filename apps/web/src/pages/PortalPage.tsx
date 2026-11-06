@@ -95,7 +95,7 @@ export function PortalPage({ me }: { me: Me }) {
   const summary = requests.data?.summary;
 
   return (
-    <main className="rastro">
+    <main className="rastro portal-page">
       <section className="page-container">
         <section className="page-header">
           <div>
@@ -103,8 +103,8 @@ export function PortalPage({ me }: { me: Me }) {
             <h1>{me.legal_entity_name ?? "Sua empresa"}</h1>
             <p>{me.legal_entity_cnpj ? `CNPJ ${formatCnpj(me.legal_entity_cnpj)}` : "Pedidos desta empresa."}</p>
           </div>
-          <div className="page-header__action">
-            <label>
+          <div className="page-header__action portal-page__actions">
+            <label className="portal-notify-toggle">
               <input
                 type="checkbox"
                 checked={preference.data?.notify_client ?? true}
@@ -123,7 +123,8 @@ export function PortalPage({ me }: { me: Me }) {
             <article className="metric metric--neutral"><span>Próximo prazo</span><strong>{summary.next_due_on ? day(summary.next_due_on) : "—"}</strong><small>entre os pedidos em aberto</small></article>
           </section>
         ) : null}
-        <section className="panel">
+        <section className="panel portal-upload-card">
+          <span className="eyebrow">Envio avulso</span>
           <h2>Enviar documento sem pedido</h2>
           <p className="muted">O escritório classifica o arquivo. Este envio não bloqueia o fechamento.</p>
           <form
@@ -133,26 +134,26 @@ export function PortalPage({ me }: { me: Me }) {
               loose.mutate();
             }}
           >
-            <input type="file" aria-label="Documento sem pedido" onChange={(event) => setLooseFile(event.target.files?.[0] ?? null)} />
-            <input value={note} maxLength={500} placeholder="Nota, se quiser" aria-label="Nota do documento" onChange={(event) => setNote(event.target.value)} />
-            <button type="submit" disabled={!looseFile || loose.isPending}>Enviar documento</button>
+            <label className="portal-file-field">Arquivo<input type="file" aria-label="Documento sem pedido" onChange={(event) => setLooseFile(event.target.files?.[0] ?? null)} /></label>
+            <label>Nota <input value={note} maxLength={500} placeholder="Opcional" aria-label="Nota do documento" onChange={(event) => setNote(event.target.value)} /></label>
+            <button type="submit" disabled={!looseFile || loose.isPending}>{loose.isPending ? "Enviando…" : "Enviar documento"}</button>
           </form>
         </section>
-        <section className="panel">
-          <div className="row">
-            <button type="button" className={tab === "open" ? "" : "secondary"} onClick={() => setTab("open")}>Em aberto</button>
-            <button type="button" className={tab === "history" ? "" : "secondary"} onClick={() => setTab("history")}>Histórico</button>
+        <section className="panel portal-requests-card">
+          <div className="portal-tabs" role="group" aria-label="Filtros de pedidos do cliente">
+            <button type="button" aria-pressed={tab === "open"} className={tab === "open" ? "portal-tab portal-tab--active" : "portal-tab"} onClick={() => setTab("open")}>Em aberto</button>
+            <button type="button" aria-pressed={tab === "history"} className={tab === "history" ? "portal-tab portal-tab--active" : "portal-tab"} onClick={() => setTab("history")}>Histórico</button>
           </div>
           <h2>{tab === "open" ? "Pedidos" : "Histórico"}</h2>
           <p className="muted">Envie o arquivo pedido. Confirmar fica com o escritório. Esta tela não mostra lançamentos.</p>
-          {requests.isLoading ? <p className="muted">Carregando pedidos.</p> : null}
+          {requests.isLoading ? <p className="state-message" role="status">Carregando pedidos.</p> : null}
           {requests.isError ? <p className="error">Não foi possível carregar os pedidos.</p> : null}
           {errorText ? <p className="error">{errorText}</p> : null}
           {requests.data && requests.data.items.length === 0 ? (
             <p className="muted">{tab === "open" ? "Nenhum pedido aberto." : "Nenhum pedido confirmado ou cancelado."}</p>
           ) : null}
           {requests.data && requests.data.items.length > 0 ? (
-            <table>
+            <div className="table-scroll"><table className="portal-table">
               <thead>
                 <tr><th>Pedido</th><th>Mês de referência</th><th>Prazo</th><th>Estado</th><th></th></tr>
               </thead>
@@ -204,7 +205,7 @@ export function PortalPage({ me }: { me: Me }) {
                   </tr>
                 ))}
               </tbody>
-            </table>
+            </table></div>
           ) : null}
           {openId ? (
             <RequestThread

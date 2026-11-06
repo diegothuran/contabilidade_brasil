@@ -2,7 +2,7 @@ openapi: 3.1.0
 info:
   title: Contabilidade Brasil API
   version: 0.1.0
-  description: Contrato inicial da plataforma contábil; regras fiscais e schema físico são adaptadores versionados.
+  description: "Contrato inicial da plataforma contábil; regras fiscais e schema físico são adaptadores versionados. A renovação visual Rastro v0.7.0 é frontend-only e não altera endpoints, payloads, autenticação, papéis ou invariantes."
 servers:
   - url: http://localhost:8000
     description: Fundação local

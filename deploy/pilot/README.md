@@ -9,6 +9,12 @@ O piloto roda em dois apps Heroku Basic, como no [ADR 016](../../docs/adr/016-fr
 
 O app da API atende `/v1`, `/healthz` e `/readyz` e roda o ciclo do outbox. O banco é Postgres Essential-0. O dado fica nos Estados Unidos. Documento de cliente real continua fora deste ambiente, como no [ADR 015](../../docs/adr/015-piloto-barato-heroku.md).
 
+## Renovação visual v0.7.0
+
+A renovação visual é frontend-only: substitui a cascata bege/verde legada por tokens Rastro nos controles live/portal, adiciona estados textuais, foco de teclado e motion contido com reduced-motion. Não exige migração, variável nova, alteração de API, rebuild da API, mudança de OIDC/RLS, seed, ledger ou fluxo de upload. Antes de qualquer piloto com dados fictícios, validar a interface em desktop/mobile e a impressão do balancete/razão; não usar screenshots para aprovar dados, permissões, fechamento, protocolo ou aceite.
+
+As capturas desta alteração devem ser feitas apenas com fixtures sintéticas locais. Não executar este roteiro para anexar credenciais, enviar documentos reais ou escrever no piloto como parte da revisão visual.
+
 O `build.config` em [apps/web/heroku.yml](../../apps/web/heroku.yml) aponta para o grupo Cognito em Ohio, para o client público `contabil-web` e para a URL da API. A interface grava esses valores na hora do build. Trocar o grupo, o client ou a URL da API exige um build novo da interface.
 
 ## Apps e banco

@@ -128,25 +128,25 @@ function Shell() {
 
   if (me.isError) {
     const detail = me.error instanceof ApiError ? me.error.message : "Não foi possível carregar o escritório.";
-    return <p className="error">{detail}</p>;
+    return <main className="rastro app-status"><section className="panel app-status__card"><span className="eyebrow">Sessão</span><h1>Não foi possível abrir o escritório.</h1><p className="error">{detail}</p></section></main>;
   }
   if (me.isLoading || !me.data) {
-    return <p className="muted">Carregando escritório…</p>;
+    return <main className="rastro app-status"><section className="panel app-status__card" aria-busy="true"><span className="eyebrow">Sessão</span><h1>Carregando escritório…</h1><p className="muted">A sala está preparando o contexto autorizado.</p></section></main>;
   }
   if (client) {
     return <PortalPage me={me.data} />;
   }
   if (entities.isError) {
     const detail = entities.error instanceof ApiError ? entities.error.message : "Não foi possível carregar o escritório.";
-    return <p className="error">{detail}</p>;
+    return <main className="rastro app-status"><section className="panel app-status__card"><span className="eyebrow">Contexto</span><h1>Não foi possível carregar as empresas.</h1><p className="error">{detail}</p></section></main>;
   }
   if (entities.isLoading || !entities.data) {
-    return <p className="muted">Carregando escritório…</p>;
+    return <main className="rastro app-status"><section className="panel app-status__card" aria-busy="true"><span className="eyebrow">Contexto</span><h1>Carregando escritório…</h1><p className="muted">A sala está preparando as empresas disponíveis para este usuário.</p></section></main>;
   }
   const items = entities.data.items;
   const selectedId = items.some((item) => item.legal_entity_id === entityId) ? entityId : "";
   if (items.length > 0 && !selectedId) {
-    return <p className="muted">Carregando escritório…</p>;
+    return <main className="rastro app-status"><section className="panel app-status__card" aria-busy="true"><span className="eyebrow">Contexto</span><h1>Carregando empresa…</h1><p className="muted">A seleção da empresa será exibida na barra de contexto.</p></section></main>;
   }
   const periodId = selectedId ? periodsByEntity[selectedId] ?? "" : "";
   function setPeriodId(next: string) {

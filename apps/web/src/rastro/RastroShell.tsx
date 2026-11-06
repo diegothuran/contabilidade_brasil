@@ -180,6 +180,9 @@ export function RastroShell() {
   const [toast, setToast] = useState<Toast>(null);
   const [obligationState, setObligationState] = useState<ObligationState>("validada");
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const sidebarRef = useRef<HTMLElement>(null);
+  const sidebarCloseRef = useRef<HTMLButtonElement>(null);
+  const previousSidebarFocus = useRef<HTMLElement | null>(null);
 
   const company = companies.find((item) => item.id === companyId) ?? companies[0];
   const demonstration = location.pathname.startsWith("/app/rastro/demonstracao");
@@ -246,17 +249,42 @@ export function RastroShell() {
 
   const selectedEvidence = useMemo(() => evidence, [evidence]);
 
+  useEffect(() => {
+    if (!sidebarOpen) {
+      previousSidebarFocus.current?.focus();
+      previousSidebarFocus.current = null;
+      return;
+    }
+    previousSidebarFocus.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    sidebarCloseRef.current?.focus();
+    const onEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setSidebarOpen(false);
+    };
+    document.addEventListener("keydown", onEscape);
+    return () => document.removeEventListener("keydown", onEscape);
+  }, [sidebarOpen]);
+
+  const trapSidebarFocus = (event: ReactKeyboardEvent<HTMLElement>) => {
+    if (!sidebarOpen || event.key !== "Tab") return;
+    const focusable = Array.from(sidebarRef.current?.querySelectorAll<HTMLElement>("button, [href], input, select, textarea, [tabindex]:not([tabindex='-1'])") ?? []).filter((item) => !item.hasAttribute("disabled") && item.getClientRects().length > 0);
+    if (focusable.length === 0) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+    if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+  };
+
   return (
     <div className="rastro">
     <div className="app-frame">
-      <aside className={`sidebar ${sidebarOpen ? "sidebar--open" : ""}`} aria-label="Navegação principal">
+      <aside ref={sidebarRef} className={`sidebar ${sidebarOpen ? "sidebar--open" : ""}`} aria-label="Navegação principal" onKeyDown={trapSidebarFocus}>
         <div className="brand-lockup">
           <div className="brand-mark" aria-hidden="true"><span>R</span><i /></div>
           <div>
             <strong>Rastro</strong>
             <small>fechamento com evidência</small>
           </div>
-          <button className="icon-button sidebar-close" type="button" onClick={() => setSidebarOpen(false)} aria-label="Fechar navegação">×</button>
+          <button ref={sidebarCloseRef} className="icon-button sidebar-close" type="button" onClick={() => setSidebarOpen(false)} aria-label="Fechar navegação">×</button>
         </div>
 
         <div className="office-summary">

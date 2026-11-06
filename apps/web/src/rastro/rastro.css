@@ -15,7 +15,7 @@
   --surface-muted: #f8fafc;
   --line: #dfe7ee;
   --line-dark: #cbd8e2;
-  --info: #2876c5;
+  --info: #2f80ed;
   --info-soft: #ebf4ff;
   --attention: #b7791f;
   --attention-soft: #fff6df;
@@ -79,7 +79,7 @@
 .rastro .more-button { margin-left: auto; border: 0; background: transparent; color: #91aabd; font-size: .9rem; }
 
 .rastro .workspace { width: calc(100% - 260px); margin-left: 260px; }
-.rastro .topbar { position: sticky; z-index: 10; top: 0; display: flex; align-items: center; justify-content: space-between; height: 58px; padding: 0 34px; border-bottom: 1px solid var(--line); background: rgba(255, 255, 255, .94); backdrop-filter: blur(9px); }
+.rastro .topbar { position: sticky; z-index: 10; top: 0; display: flex; align-items: center; justify-content: space-between; height: 58px; padding: 0 34px; border-bottom: 1px solid var(--line); background: rgba(255, 255, 255, .98); }
 .rastro .breadcrumb { display: flex; align-items: center; gap: 8px; color: var(--ink-600); font-size: .77rem; }
 .rastro .breadcrumb i { color: var(--line-dark); font-style: normal; }
 .rastro .breadcrumb strong { color: var(--ink-800); font-weight: 650; }
@@ -122,7 +122,7 @@
 .rastro .page-header__action { display: flex; flex: 0 0 auto; align-items: center; padding-top: 8px; }
 .rastro .page-header__action button { margin-left: 14px; }
 
-.rastro .button { display: inline-flex; min-height: 35px; align-items: center; justify-content: center; border: 1px solid var(--blue-rastro); border-radius: 7px; background: var(--blue-rastro); color: #fff; font-size: .74rem; font-weight: 650; line-height: 1; transition: background-color 150ms ease, border-color 150ms ease, transform 150ms ease; }
+.rastro .button { display: inline-flex; min-height: 35px; align-items: center; justify-content: center; border: 1px solid var(--blue-rastro); border-radius: 8px; background: var(--blue-rastro); color: #fff; font-size: .74rem; font-weight: 650; line-height: 1; transition: background-color 150ms ease, border-color 150ms ease, transform 150ms ease; }
 .rastro .button:hover:not(:disabled) { border-color: var(--blue-deep); background: var(--blue-deep); transform: translateY(-1px); }
 .rastro .button--secondary { border-color: var(--line-dark); background: #fff; color: var(--ink-800); }
 .rastro .button--secondary:hover:not(:disabled) { border-color: #aec1d0; background: var(--surface-muted); }
@@ -131,7 +131,7 @@
 .rastro .text-button:hover, .rastro .inline-action:hover { color: var(--blue-deep); text-decoration: underline; }
 .rastro .inline-action:disabled { color: var(--ink-500); text-decoration: none; }
 
-.rastro .panel { border: 1px solid var(--line); border-radius: 11px; background: var(--surface); box-shadow: var(--shadow-sm); }
+.rastro .panel { border: 1px solid var(--line); border-radius: 10px; background: var(--surface); box-shadow: var(--shadow-sm); }
 .rastro .panel--flush { overflow: hidden; }
 .rastro .panel-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
 .rastro .panel-heading--roomy { padding: 20px 22px 15px; }
@@ -243,14 +243,14 @@
 .rastro .routine a { color: var(--blue-rastro); font-weight: 650; text-decoration: none; }
 .rastro .routine button, .rastro .routine .button {
   display: inline-flex; min-height: 35px; align-items: center; justify-content: center;
-  border: 1px solid var(--blue-rastro); border-radius: 7px; background: var(--blue-rastro);
+  border: 1px solid var(--blue-rastro); border-radius: 8px; background: var(--blue-rastro);
   color: #fff; padding: 0 12px; font-size: .74rem; font-weight: 650; text-decoration: none;
 }
 .rastro .routine button.secondary, .rastro .routine a.secondary {
   background: #fff; color: var(--ink-800); border-color: var(--line-dark);
 }
 .rastro .routine input, .rastro .routine select, .rastro .routine textarea {
-  background: #fff; border: 1px solid var(--line-dark); border-radius: 7px;
+  background: #fff; border: 1px solid var(--line-dark); border-radius: 8px;
   padding: 8px 10px; color: var(--ink-900); min-width: 8rem;
 }
 .rastro .routine label { display: grid; gap: 6px; color: var(--ink-700); font-size: .78rem; font-weight: 650; }
@@ -339,3 +339,87 @@
   body.print-balancete .rastro .report-razao, body.print-razao .rastro .report-balancete { display: none !important; }
 }
 .rastro .page-header__action .report-shortcut { margin-left: 10px; padding: 0 12px; }
+
+/* Renovação visual v0.7: superfícies compartilhadas, portal e estados. */
+.rastro input, .rastro select, .rastro textarea { font-family: inherit; }
+.rastro input[type="checkbox"] { min-width: 0; accent-color: var(--blue-rastro); }
+.rastro .app-status { display: grid; min-height: 100vh; place-items: center; padding: 24px; background: var(--paper); }
+.rastro .app-status__card { width: min(560px, 100%); padding: 30px; }
+.rastro .app-status__card h1 { margin: 7px 0 12px; font-size: clamp(1.8rem, 4vw, 2.6rem); }
+.rastro .app-status__card p { margin-bottom: 0; }
+.rastro .app-status__card .error { margin: 0; }
+.rastro .state-message, .rastro .empty-state { margin: 0; padding: 16px; border: 1px dashed var(--line-dark); border-radius: 8px; background: var(--surface-muted); color: var(--ink-600); }
+.rastro .state-message strong { color: var(--ink-800); }
+.rastro .empty-state { font-size: .85rem; }
+.rastro .table-scroll { border-radius: 0 0 10px 10px; }
+.rastro .table-scroll:focus-within { outline: 2px solid rgb(31 92 134 / 18%); outline-offset: -2px; }
+.rastro .data-table td, .rastro .data-table th { white-space: normal; }
+.rastro .data-table td:last-child { white-space: nowrap; }
+.rastro .button, .rastro button, .rastro a { transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease, box-shadow 150ms ease, transform 150ms ease; }
+.rastro .button:hover:not(:disabled), .rastro button:hover:not(:disabled) { transform: translateY(-1px); }
+.rastro .button:active:not(:disabled), .rastro button:active:not(:disabled) { transform: translateY(0); }
+.rastro .evidence-drawer { animation: rastro-panel-in 160ms ease-out both; }
+.rastro .toast { animation: rastro-toast-in 160ms ease-out both; }
+@keyframes rastro-panel-in { from { opacity: 0; transform: translateX(12px); } to { opacity: 1; transform: translateX(0); } }
+@keyframes rastro-toast-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+.rastro .sidebar-close:focus-visible, .rastro .sidebar-logout:focus-visible, .rastro .more-button:focus-visible { outline-color: #a4ddff; }
+
+/* O controle móvel não deve reaparecer pela cascata genérica de botões. */
+.rastro .icon-button.sidebar-close { display: none; }
+@media (max-width: 760px) { .rastro .icon-button.sidebar-close { display: inline-grid; } }
+
+/* O portal compartilha tokens, mas não a navegação do escritório. */
+.rastro.portal-page { min-height: 100vh; background: var(--paper); }
+.portal-page .page-container { width: min(1180px, 100%); }
+.portal-page .page-header { align-items: center; }
+.portal-page .page-header h1 { max-width: 860px; }
+.portal-page__actions { display: flex; align-items: center; gap: 12px; }
+.portal-notify-toggle { display: flex; grid-template-columns: auto 1fr; align-items: center; gap: 8px; color: var(--ink-700); font-size: .78rem; white-space: nowrap; }
+.portal-notify-toggle input { width: 17px; height: 17px; }
+.portal-page__actions > button { min-height: 35px; }
+.portal-upload-card, .portal-requests-card { display: grid; gap: 14px; }
+.portal-upload-card h2, .portal-requests-card h2 { margin: 0; font-family: Newsreader, Georgia, serif; font-size: 1.45rem; }
+.portal-upload-card .muted, .portal-requests-card .muted { margin: 0; font-size: .85rem; }
+.portal-upload-card .row { align-items: end; gap: 12px; }
+.portal-upload-card .row > label { flex: 1 1 240px; color: var(--ink-700); font-size: .76rem; font-weight: 650; }
+.portal-upload-card .row > button { flex: 0 0 auto; }
+.portal-file-field input[type="file"] { width: 100%; }
+.portal-tabs { display: flex; gap: 4px; padding-bottom: 10px; border-bottom: 1px solid var(--line); }
+.portal-tab { min-height: 33px; border-color: transparent; background: transparent; color: var(--ink-600); }
+.portal-tab:hover:not(:disabled) { border-color: var(--line); background: var(--surface-muted); color: var(--ink-800); }
+.portal-tab--active { border-color: var(--blue-rastro); background: var(--blue-soft); color: var(--blue-deep); }
+.portal-requests-card > h2 { margin-top: 2px; }
+.portal-table { min-width: 760px; }
+.portal-table th { background: #fbfdff; }
+.portal-table td { font-size: .82rem; }
+.portal-table td:last-child { min-width: 230px; }
+.portal-table .row { align-items: center; gap: 8px; }
+.portal-table input[type="file"] { max-width: 210px; min-width: 0; padding: 6px; font-size: .76rem; }
+.portal-table button { min-height: 31px; padding: 0 10px; font-size: .72rem; }
+.portal-table button.secondary { border-color: var(--line-dark); }
+.portal-table p { margin: 5px 0 0; font-size: .72rem; }
+.portal-requests-card > .error { margin: 0; }
+
+.documents-page { display: grid; gap: 18px; }
+.documents-page > h1 { margin: 0; }
+.documents-page > p { max-width: 850px; margin: -8px 0 0; color: var(--ink-700); }
+.documents-export-card { display: grid; gap: 10px; }
+.documents-export-card h2 { margin: 0; font-family: Newsreader, Georgia, serif; font-size: 1.4rem; }
+.documents-export-card p { margin: 0; }
+.documents-filter { width: min(280px, 100%); color: var(--ink-700); font-size: .76rem; font-weight: 650; }
+.documents-table { border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.documents-table th { background: #fbfdff; }
+.documents-table td { font-size: .8rem; }
+.documents-table .secondary { min-height: 31px; padding: 0 10px; font-size: .72rem; }
+
+@media (max-width: 760px) {
+  .portal-page .page-header__action { align-items: flex-start; }
+  .portal-page__actions { width: 100%; flex-wrap: wrap; justify-content: space-between; }
+  .portal-upload-card .row > button { width: 100%; }
+  .documents-page > p { margin-top: -6px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rastro .evidence-drawer, .rastro .toast { animation: none; }
+  .rastro .button:hover:not(:disabled), .rastro button:hover:not(:disabled) { transform: none; }
+}

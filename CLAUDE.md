@@ -31,3 +31,7 @@ O [mapa do código](docs/mapa-do-codigo.md) liga cada módulo de `apps/api/src/c
 ## Operação
 
 Use os schemas como fonte normativa para payloads. Mudança que a tela precisa entender atualiza, no mesmo commit, a SPEC do Rastro, as ADRs, o README, o caderno do contador, o OpenAPI e o README do piloto. Execute todos os validadores antes de concluir. Dados reais de clientes, XML, certificados e credenciais não entram neste repositório.
+
+## Handoff visual
+
+Usar `/rastro-visual-handoff` para analisar CSS/HTML/imagens/PDF/vídeo e produzir motion map sobre o [conceito Rastro](docs/design-motion/README.md). Não migrar para Next, importar a identidade Paralaxe ou confirmar efeito contábil por animação. Fontes/derivados privados ficam fora do Git. A skill e o CSS opcional não alteram o aplicativo/piloto; evals de browser/Claude/integração precisam de execução própria. Aprovação visual não é autorização de ledger, dados, gasto ou transmissão.
