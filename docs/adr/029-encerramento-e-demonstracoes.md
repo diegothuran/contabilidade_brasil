@@ -38,4 +38,4 @@ O contador respondeu que as contas de resultado "são zeradas e lançadas ao BP 
 
 - **Layout oficial:** o layout da Lei 6.404 (circulante e não circulante, linhas da DRE) depende do plano de contas real e fica para as perguntas 18 e 53.
 - **Passagem pelo encerramento:** se ela usa uma conta de apuração do resultado ou vai direto para lucros acumulados é a pergunta 55. O que bloqueia o encerramento é a pergunta 56.
-- **Empresas existentes:** a migração `0014_closing_source` amplia a check constraint de `journal_entries.source_type`. As empresas criadas antes dela não ganham a conta `3.2.01` automaticamente. O admin cria a conta em Plano de contas.
+- **Empresas existentes:** a migração `0014_closing_source` amplia a check constraint de `journal_entries.source_type`. Nas empresas do modelo mínimo criadas antes dela, a conta `3.2.01` é criada pelo seed de demonstração e pelas amostras do piloto (`ensure_retained_earnings`). Em plano importado, o admin cria a conta em Plano de contas.

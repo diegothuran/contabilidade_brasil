@@ -4,6 +4,7 @@ import calendar
 from collections.abc import Callable
 from datetime import date
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from contabil.tables import Account, AccountingPeriod, ChartOfAccounts
@@ -87,3 +88,31 @@ def _add_account(session: Session, tenant_id: str, legal_entity_id: str, chart_i
             active=True,
         )
     )
+
+
+def ensure_retained_earnings(session: Session, tenant_id: str, entity_id: str) -> None:
+    """Cria 3.2.01 nas empresas do modelo mínimo criadas antes da ADR 029. Não mexe em plano importado."""
+    account_id = f"{entity_id}-3.2.01"
+    if session.get(Account, account_id) is not None:
+        return
+    chart = session.scalar(
+        select(ChartOfAccounts).where(ChartOfAccounts.tenant_id == tenant_id, ChartOfAccounts.legal_entity_id == entity_id)
+    )
+    parent = session.get(Account, f"{entity_id}-3")
+    if chart is None or parent is None or parent.account_type != "equity":
+        return
+    session.add(
+        Account(
+            id=account_id,
+            tenant_id=tenant_id,
+            legal_entity_id=entity_id,
+            chart_id=chart.id,
+            parent_id=parent.id,
+            code="3.2.01",
+            name="Lucros ou prejuízos acumulados",
+            account_type="equity",
+            postable=True,
+            active=True,
+        )
+    )
+    session.flush()
