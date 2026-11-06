@@ -30,3 +30,4 @@
 | [026](026-devolucao-e-conversa.md) | O escritório devolve o arquivo com motivo. O pedido aceita vários arquivos e uma conversa. |
 | [027](027-envio-sem-pedido.md) | O cliente envia um documento sem pedido. O escritório classifica ou descarta. |
 | [028](028-aviso-por-email.md) | O cliente recebe aviso pelo SES. O e-mail é lido no Cognito e não fica no banco. |
+| [029](029-encerramento-e-demonstracoes.md) | O encerramento do exercício nasce como rascunho para aprovação. DRE e Balanço são gerenciais. |

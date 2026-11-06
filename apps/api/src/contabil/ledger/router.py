@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, Query, Request, Response
 
-from contabil.ledger.schemas import JournalCreate, ReasonBody
+from contabil.ledger.schemas import JournalCreate, ReasonBody, YearEndClosingCreate
 from contabil.ledger.service import (
     account_lines,
     account_lines_csv_export,
@@ -17,6 +17,8 @@ from contabil.ledger.service import (
     trial_balance,
     trial_balance_csv_export,
 )
+from contabil.ledger.statements import balance_sheet, balance_sheet_csv_export, income_statement, income_statement_csv_export
+from contabil.ledger.year_end import build_closing_draft
 from contabil.platform.deps import Ctx, get_context
 from contabil.platform.idempotency import persist, replay_guard
 
@@ -106,3 +108,29 @@ def get_trial_balance_csv(legal_entity_id: str, period_id: str = Query(min_lengt
 @router.get("/accounts/{account_id}/lines.csv")
 def get_account_lines_csv(account_id: str, period_id: str = Query(min_length=1), ctx: Ctx = Depends(get_context)) -> Response:
     return _csv(*account_lines_csv_export(ctx.session, ctx.principal, account_id, period_id))
+
+
+@router.get("/legal-entities/{legal_entity_id}/income-statement")
+def get_income_statement(legal_entity_id: str, period_id: str = Query(min_length=1), ctx: Ctx = Depends(get_context)) -> dict:
+    return income_statement(ctx.session, ctx.principal, legal_entity_id, period_id)
+
+
+@router.get("/legal-entities/{legal_entity_id}/income-statement.csv")
+def get_income_statement_csv(legal_entity_id: str, period_id: str = Query(min_length=1), ctx: Ctx = Depends(get_context)) -> Response:
+    return _csv(*income_statement_csv_export(ctx.session, ctx.principal, legal_entity_id, period_id))
+
+
+@router.get("/legal-entities/{legal_entity_id}/balance-sheet")
+def get_balance_sheet(legal_entity_id: str, period_id: str = Query(min_length=1), ctx: Ctx = Depends(get_context)) -> dict:
+    return balance_sheet(ctx.session, ctx.principal, legal_entity_id, period_id)
+
+
+@router.get("/legal-entities/{legal_entity_id}/balance-sheet.csv")
+def get_balance_sheet_csv(legal_entity_id: str, period_id: str = Query(min_length=1), ctx: Ctx = Depends(get_context)) -> Response:
+    return _csv(*balance_sheet_csv_export(ctx.session, ctx.principal, legal_entity_id, period_id))
+
+
+@router.post("/legal-entities/{legal_entity_id}/year-end-closing", status_code=201)
+def post_year_end_closing(legal_entity_id: str, body: YearEndClosingCreate, request: Request, ctx: Ctx = Depends(replay_guard)):
+    result = build_closing_draft(ctx.session, ctx.principal, legal_entity_id, body.fiscal_year, body.retained_earnings_account_id)
+    return persist(ctx, request, 201, result)

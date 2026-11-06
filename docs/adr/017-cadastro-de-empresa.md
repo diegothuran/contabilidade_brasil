@@ -13,7 +13,7 @@ O plano de contas real ainda é decisão do contador. Um modelo mínimo já exis
 Só o papel `admin` cadastra empresa, por `POST /v1/legal-entities`, com idempotency key.
 
 - O corpo traz nome, CNPJ e ano. A moeda é BRL. O CNPJ é normalizado para 14 dígitos, com os dois dígitos verificadores conferidos. O par escritório e CNPJ é único.
-- A mesma transação cria a matriz, o plano "Modelo mínimo de teste (não referencial)" com as 11 contas do seed e os 12 períodos abertos do ano informado. A auditoria registra `legal_entity_created`.
+- A mesma transação cria a matriz, o plano "Modelo mínimo de teste (não referencial)" com as 12 contas do seed (a 12ª, `3.2.01 Lucros ou prejuízos acumulados`, veio com a [ADR 029](029-encerramento-e-demonstracoes.md)) e os 12 períodos abertos do ano informado. A auditoria registra `legal_entity_created`.
 - O papel `contabil_app` passa a poder inserir em `legal_entities`, `establishments` e `charts_of_accounts`. No piloto a credencial dona continua sujeita ao RLS.
 - Empresas fictícias de teste nascem do comando `python -m contabil.pilot_samples`, que não é o seed de demonstração. Ele pode ser repetido. Sem `OBJECT_STORAGE_BUCKET`, o comando não grava extrato.
 

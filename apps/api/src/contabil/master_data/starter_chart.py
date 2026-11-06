@@ -18,6 +18,7 @@ ACCOUNT_SPECS = (
     ("2.1.01", "Fornecedores", "liability", True, "2"),
     ("3", "Patrimônio líquido", "equity", False, None),
     ("3.1.01", "Capital social", "equity", True, "3"),
+    ("3.2.01", "Lucros ou prejuízos acumulados", "equity", True, "3"),
     ("4", "Receitas", "revenue", False, None),
     ("4.1.01", "Receita de serviços", "revenue", True, "4"),
     ("5", "Despesas", "expense", False, None),

@@ -21,14 +21,14 @@ def test_admin_creates_company_with_chart_periods_and_audit(client, tokens, worl
     )
     assert created.status_code == 201, created.text
     body = created.json()
-    assert body["accounts_created"] == 11
+    assert body["accounts_created"] == 12
     assert body["periods_created"] == 12
     assert body["cnpj"] == number
     entity_id = body["legal_entity_id"]
     accounts = client.get(f"/v1/legal-entities/{entity_id}/accounts", headers=_auth(tokens["admin"]))
     periods = client.get(f"/v1/legal-entities/{entity_id}/periods", headers=_auth(tokens["admin"]))
     assert accounts.status_code == 200
-    assert len(accounts.json()["items"]) == 11
+    assert len(accounts.json()["items"]) == 12
     assert periods.status_code == 200
     assert len(periods.json()["items"]) == 12
     session = session_factory(admin=True)()
@@ -111,7 +111,7 @@ def test_other_office_does_not_see_the_company(client, tokens, world):
         periods = session.scalar(
             select(func.count()).select_from(AccountingPeriod).where(AccountingPeriod.legal_entity_id == created.json()["legal_entity_id"])
         )
-        assert accounts == 11
+        assert accounts == 12
         assert periods == 12
     finally:
         session.close()

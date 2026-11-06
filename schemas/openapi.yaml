@@ -1146,7 +1146,7 @@ paths:
         '200':
           description: >-
             Saldos por conta postável. Cada linha traz opening_balance (lançamentos efetivos das competências
-            anteriores, sem zerar contas de resultado no exercício), debit, credit, balance (movimento do mês) e
+            anteriores; as contas de resultado voltam a zero quando o encerramento do exercício é publicado), debit, credit, balance (movimento do mês) e
             closing_balance (opening_balance + balance). Saldo positivo é devedor; negativo é credor.
   /v1/legal-entities/{legal_entity_id}/trial-balance.csv:
     get:
@@ -1165,6 +1165,95 @@ paths:
         '200':
           description: Arquivo balancete-<cnpj>-<AAAA-MM>.csv
           content: { text/csv: { schema: { type: string } } }
+  /v1/legal-entities/{legal_entity_id}/income-statement:
+    get:
+      summary: DRE gerencial da competência
+      description: >-
+        Receitas e despesas do mês e do acumulado no ano até a competência, agrupadas pela conta raiz do plano.
+        Receita e despesa vêm em valor positivo; result é receita menos despesa. Exclui o encerramento do exercício
+        e a reversão dele. Não segue layout oficial (ADR 029).
+      operationId: getIncomeStatement
+      parameters:
+        - $ref: '#/components/parameters/LegalEntityId'
+        - in: query
+          name: period_id
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: 'sections (revenue, expense) com groups, rows, month e year_to_date; result com month e year_to_date' }
+  /v1/legal-entities/{legal_entity_id}/income-statement.csv:
+    get:
+      summary: DRE gerencial em CSV para o Excel
+      description: Mesmo formato do balancete em CSV, com as colunas Mês e Acumulado no ano.
+      operationId: getIncomeStatementCsv
+      parameters:
+        - $ref: '#/components/parameters/LegalEntityId'
+        - in: query
+          name: period_id
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Arquivo dre-<cnpj>-<AAAA-MM>.csv
+          content: { text/csv: { schema: { type: string } } }
+  /v1/legal-entities/{legal_entity_id}/balance-sheet:
+    get:
+      summary: Balanço gerencial no fim da competência
+      description: >-
+        Saldo de ativo, passivo e patrimônio líquido na natureza da conta, agrupado pela conta raiz do plano. O PL traz
+        unclosed_result (receita menos despesa ainda não encerrada). difference é ativo menos passivo e PL.
+      operationId: getBalanceSheet
+      parameters:
+        - $ref: '#/components/parameters/LegalEntityId'
+        - in: query
+          name: period_id
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: 'sections (asset, liability, equity) com groups, rows e balance; total_assets, total_liabilities_and_equity e difference' }
+  /v1/legal-entities/{legal_entity_id}/balance-sheet.csv:
+    get:
+      summary: Balanço gerencial em CSV para o Excel
+      description: Mesmo formato do balancete em CSV, com a coluna Saldo, os totais e a diferença.
+      operationId: getBalanceSheetCsv
+      parameters:
+        - $ref: '#/components/parameters/LegalEntityId'
+        - in: query
+          name: period_id
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Arquivo balanco-<cnpj>-<AAAA-MM>.csv
+          content: { text/csv: { schema: { type: string } } }
+  /v1/legal-entities/{legal_entity_id}/year-end-closing:
+    post:
+      summary: Gera o rascunho do encerramento do exercício
+      description: >-
+        Preparador ou admin. Cria em 31/12 um journal em rascunho com source_type closing, que zera receitas e despesas
+        contra a conta do patrimônio líquido informada. O journal segue enviar, aprovar e publicar, com outro usuário
+        aprovando. Recusa com 409 quando há lançamento do exercício em rascunho, pendente ou aprovado, quando já existe
+        encerramento não rejeitado nem revertido, quando não há saldo de resultado ou quando dezembro está fechado.
+      operationId: createYearEndClosing
+      parameters:
+        - $ref: '#/components/parameters/LegalEntityId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [fiscal_year, retained_earnings_account_id]
+              properties:
+                fiscal_year: { type: integer, minimum: 1900, maximum: 2999 }
+                retained_earnings_account_id: { type: string, minLength: 1, maxLength: 160 }
+      responses:
+        '201':
+          description: 'journal (JournalEntry em rascunho), fiscal_year, result (lucro positivo, prejuízo negativo) e warnings'
+        '400': { description: 'Conta de destino fora do patrimônio líquido, inativa ou não postável' }
+        '409': { description: 'Lançamento pendente, encerramento existente, nada a encerrar ou dezembro fechado' }
   /v1/accounts/{account_id}/lines:
     get:
       summary: Drill-down das linhas publicadas da conta

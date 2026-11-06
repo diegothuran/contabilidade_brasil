@@ -39,7 +39,7 @@
       "additionalProperties": false,
       "required": ["source_type", "source_id"],
       "properties": {
-        "source_type": { "type": "string", "enum": ["manual", "import", "payable", "receivable", "bank", "inventory", "asset", "fiscal_document", "adjustment", "reversal"] },
+        "source_type": { "type": "string", "enum": ["manual", "import", "payable", "receivable", "bank", "inventory", "asset", "fiscal_document", "adjustment", "reversal", "closing"] },
         "source_id": { "type": "string", "maxLength": 200 },
         "source_hash": { "type": ["string", "null"], "maxLength": 128 },
         "reverses_journal_id": { "type": ["string", "null"], "maxLength": 160 }
