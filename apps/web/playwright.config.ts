@@ -2,6 +2,8 @@ import { defineConfig, devices } from "@playwright/test";
 
 export default defineConfig({
   testDir: "./e2e",
+  // Executada separadamente por playwright.visual.config.ts e pelo job visual-synthetic.
+  testIgnore: "**/visual-refresh.spec.ts",
   timeout: 120_000,
   expect: { timeout: 15_000 },
   // Os specs dividem a Empresa Alfa e o mesmo compose; na CI rodam um de cada vez.

@@ -29,5 +29,6 @@ dist/
 .vite/
 *.tsbuildinfo
 playwright-report/
+playwright-report-visual/
 test-results/
 blob-report/
