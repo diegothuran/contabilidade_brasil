@@ -125,7 +125,7 @@ def test_closing_draft_moves_profit_to_retained_earnings_and_statements_follow(c
 
     repeated = _closing(client, tokens["preparer"], entity)
     assert repeated.status_code == 409
-    assert repeated.json()["title"] == "Encerramento já existe"
+    assert repeated.json()["title"] == "Exercício já encerrado"
 
     reversal = _post(client, tokens["preparer"], f"/v1/journals/{journal['journal_id']}/reverse")
     assert reversal.status_code == 201, reversal.text
@@ -197,3 +197,35 @@ def test_closing_needs_an_open_december(client, tokens, world):
     refused = _closing(client, tokens["preparer"], entity)
     assert refused.status_code == 409
     assert refused.json()["title"] == "Período fechado"
+
+
+def test_result_posted_after_the_closing_gets_a_complementary_closing(client, tokens, world):
+    del world
+    entity = _company(client, tokens, "910000000104")
+    _publish(client, tokens, _entry(entity, 5, "1.1.02", "4.1.01", "900.00", "Receita de maio"))
+    first = _closing(client, tokens["preparer"], entity)
+    assert first.status_code == 201, first.text
+    assert first.json()["complementary"] is False
+    _approve_and_publish(client, tokens, first.json()["journal"]["journal_id"])
+
+    _publish(client, tokens, _entry(entity, 12, "5.1.01", "1.1.02", "200.00", "Despesa lançada depois do encerramento"))
+    second = _closing(client, tokens["preparer"], entity)
+    assert second.status_code == 201, second.text
+    body = second.json()
+    assert body["complementary"] is True
+    assert body["result"] == "-200"
+    assert body["journal"]["source"]["source_id"] == f"{entity}-2026-c2"
+    assert body["journal"]["description"] == "Encerramento complementar do exercício 2026"
+    assert any("complementa" in warning for warning in body["warnings"])
+    lines = {(line["account_id"].removeprefix(f"{entity}-"), line["side"]): line["amount"] for line in body["journal"]["lines"]}
+    assert lines == {("5.1.01", "credit"): "200", ("3.2.01", "debit"): "200"}
+    _approve_and_publish(client, tokens, body["journal"]["journal_id"])
+
+    statement = _get(client, tokens, f"/v1/legal-entities/{entity}/income-statement", f"{entity}-2026-12").json()
+    assert statement["result"]["year_to_date"] == "700"
+    sheet = _get(client, tokens, f"/v1/legal-entities/{entity}/balance-sheet", f"{entity}-2026-12").json()
+    assert sheet["sections"][2]["unclosed_result"] == "0"
+    assert _rows(sheet, "balance")["3.2.01"] == "700"
+    done = _closing(client, tokens["preparer"], entity)
+    assert done.status_code == 409
+    assert done.json()["title"] == "Exercício já encerrado"

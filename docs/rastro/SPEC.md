@@ -1,4 +1,4 @@
-# SPEC — Contrato de interface v0.8.0
+# SPEC — Contrato de interface v0.8.1
 
 > Fonte de verdade da experiência do front-end. Atualizações de comportamento, estado, linguagem visual ou estrutura precisam atualizar este arquivo antes do código.
 
@@ -138,6 +138,7 @@ Nada nesta tela fala em journal, balancete, papéis do escritório, exportação
 
 ## 14. Changelog
 
+- `0.8.1` — O detalhe do lançamento mostra a origem por extenso. O encerramento traz uma nota sobre o tipo E e o registro I355 da ECD. O painel de encerramento avisa que resultado lançado depois do encerramento gera um encerramento complementar.
 - `0.8.0` — Relatórios: o menu Balancete e razão vira Relatórios, com DRE e Balanço gerenciais (imprimir e CSV) e o painel de encerramento do exercício no balancete de dezembro.
 - `0.7.0` — Renovação visual produtiva: controles live/portal saem da cascata bege/verde, estados loading/empty/error ficam textuais, foco da navegação móvel é contido/restaurado, painel/toast recebem motion contido e o scroll do razão respeita reduced-motion. API, domínio, dados, papéis e impressão permanecem inalterados.
 - `0.6.6` — Depois do cadastro, a empresa nova fica escolhida na barra, em vez de voltar para a primeira da lista.

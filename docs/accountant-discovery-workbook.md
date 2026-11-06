@@ -176,7 +176,31 @@ O [questionário anônimo](https://claude.ai/artifact/3QCemad8tRtHsfKse7f4W3) ju
 53. **Demonstrações atualizadas.** A DRE e o Balanço precisam estar disponíveis a qualquer momento do mês ou só depois do fechamento? Valem para todos os regimes, inclusive o Simples Nacional?
 54. **Explicar.** O que precisa ser explicado, e para quem: cada lançamento até o documento de origem, as diferenças de conciliação, a variação de um saldo entre dois meses?
 55. **Apuração do resultado.** O encerramento passa por uma conta de apuração do resultado (ARE) antes de chegar a lucros ou prejuízos acumulados, ou vai direto? Hoje o rascunho vai direto para a conta do PL escolhida. O saldo final é o mesmo; muda o que o razão mostra.
-56. **O que bloqueia o encerramento.** Hoje qualquer lançamento do ano em rascunho, pendente ou aprovado impede gerar o encerramento, e dezembro precisa estar aberto. Basta isso, ou o fechamento de dezembro precisa estar concluído antes? Lançamento feito em dezembro depois do encerramento pede um encerramento complementar ou refazer o encerramento?
+56. **O que bloqueia o encerramento.** Hoje qualquer lançamento do ano em rascunho, pendente ou aprovado impede gerar o encerramento, e dezembro precisa estar aberto. Basta isso, ou o fechamento de dezembro e a provisão de IRPJ e CSLL precisam estar concluídos antes? Resultado lançado depois do encerramento publicado gera um encerramento complementar, como na complementação da ITG 2000; isso serve ao escritório?
+
+## O que as normas já respondem (pesquisa de 06/11/2026)
+
+As regras abaixo são nacionais. O CRC-PE aplica as resoluções do CFC, e a pesquisa não achou regra própria de Pernambuco para estes pontos. Cada item diz o que a norma decide e o que continua sendo escolha do escritório. A pergunta continua aberta até o contador confirmar.
+
+- **50, CRC ativo.**
+  - **O que a norma diz:** as atribuições privativas do contador estão no Decreto-Lei 9.295/1946 (arts. 25 e 26) e na Resolução CFC 1.640/2021, que substituiu a 560/1983 ([CFC, prerrogativas](https://cfc.org.br/fiscalizacao-etica-e-disciplina/perguntas-frequentes/prerrogativas-de-contadores-e-tecnicos-em-contabilidade/)).
+  - **DHP:** a Declaração de Habilitação Profissional comprova que o profissional e a organização contábil estão regulares no CRC e acompanha as demonstrações contábeis. A versão eletrônica sai pelo site do CRC de origem e vale em todo o país (Resoluções CFC 871/2000 e 1.363/2011).
+  - **O que falta decidir:** o sistema guarda o nome, a categoria e o número do CRC (por exemplo, CRC-PE) de quem assina? Quais rotinas internas, além de assinar as demonstrações, o escritório reserva ao contador?
+- **51, data na conciliação.** Nenhuma norma contábil fixa tolerância de data entre o extrato e o lançamento. Compensação em D+1 de cheque, boleto ou cartão é prática bancária. A resposta é do escritório; a tolerância segue configurável.
+- **53, demonstrações.**
+  - **Microempresa e pequeno porte:** a ITG 1000 (Resolução CFC 1.418/2012, revista em 2022) exige balanço, DRE e notas explicativas ao fim de cada exercício, e intermediárias quando necessário ([CFC, ITG 1000](https://cfc.org.br/wp-content/uploads/2023/01/ITG-1000.pdf)).
+  - **ECD no Simples Nacional:** o optante é dispensado de entregar a ECD (IN RFB 2.003/2021), salvo se recebeu aporte de investidor-anjo ou distribuiu lucro isento acima da base de cálculo ([Contábeis](https://www.contabeis.com.br/noticias/57172/ecd-veja-quem-esta-dispensado-da-entrega/)). A dispensa é da entrega, não da escrituração.
+  - **O que falta decidir:** se o escritório quer DRE e Balanço todo mês ou só no fechamento anual.
+- **55, apuração do resultado.**
+  - **O que a norma diz:** nada obriga a conta transitória de Apuração do Resultado do Exercício (ARE). Ela é prática comum de ensino e de sistemas como Domínio, Omie e Senior. As receitas e despesas são zeradas contra a ARE, e o saldo dela vai para lucros ou prejuízos acumulados.
+  - **ECD:** a ECD exige que o lançamento de encerramento seja marcado como tipo **E** no registro I200 e que os saldos das contas de resultado antes do encerramento estejam no registro I355 ([Vri, I200](https://vriconsulting.com.br/guias/guiasIndex.php?idGuia=678); [Alterdata, I355](https://ajuda.alterdata.com.br/x/DlzKAw)). Os dois caminhos atendem a isso.
+  - **No sistema:** o encerramento vai direto para a conta do PL escolhida, tem origem `closing` (que corresponde ao tipo E), e a DRE sem o encerramento traz os saldos do I355.
+  - **O que falta decidir:** se o escritório quer ver a ARE no razão.
+- **56, o que bloqueia o encerramento.**
+  - **O que a norma diz:** a ITG 2000 (R1) corrige lançamentos por estorno, transferência ou complementação. Lançamento extemporâneo, depois de transmitida a ECD, não pode ir para conta de resultado e precisa citar no histórico o motivo, a data e o lançamento de origem (itens 31 a 36) ([Alterdata, extemporâneos](https://ajuda.alterdata.com.br/bdcc/sped-ecd-tudo-o-que-voce-precisa-saber-sobre-lancamentos-extemporaneos-95068789.html)).
+  - **Implementado:** um resultado lançado no ano depois do encerramento publicado gera um **encerramento complementar** ([ADR 029](adr/029-encerramento-e-demonstracoes.md)). Refazer continua possível por reversão.
+  - **O que falta decidir:** o fechamento de dezembro deve estar concluído antes do encerramento? A provisão de IRPJ e CSLL precisa existir antes dele?
+- **18, plano de contas.** A ECD liga cada conta analítica ao plano referencial da Receita Federal. A ITG 1000 de 2022 traz modelo de plano de contas para micro e pequenas. O modelo do contador continua sendo a referência; a pergunta segue aberta.
 
 ## Aditivo visual v0.7.0 — 06/11/2026
 

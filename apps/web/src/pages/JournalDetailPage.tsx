@@ -4,6 +4,14 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { ApiError, api } from "../api";
 import { STATUS_LABEL, can, useSession } from "../session";
 
+const SOURCE_LABEL: Record<string, string> = {
+  manual: "manual",
+  import: "importação",
+  bank: "conciliação bancária",
+  reversal: "reversão",
+  closing: "encerramento do exercício",
+};
+
 type JournalLine = { line_id: string; account_id: string; side: string; amount: string; description: string };
 type Journal = {
   journal_id: string;
@@ -59,7 +67,12 @@ export function JournalDetailPage() {
         <span className="badge" data-testid="journal-status">{STATUS_LABEL[current.status] ?? current.status}</span>
         {" "}{current.entry_date} · {current.currency} · {current.period_id} · criado por {current.created_by}
       </p>
-      <p className="muted">Origem {current.source.source_type} · {current.source.source_id}</p>
+      <p className="muted">Origem {SOURCE_LABEL[current.source.source_type] ?? current.source.source_type} · {current.source.source_id}</p>
+      {current.source.source_type === "closing" ? (
+        <p className="muted" data-testid="closing-note">
+          Lançamento de encerramento: zera as contas de resultado contra o patrimônio líquido. Na ECD ele é do tipo E, e os saldos de resultado anteriores a ele são os do registro I355.
+        </p>
+      ) : null}
       {current.source.source_type === "bank" ? (
         <p>
           Caso de conciliação <Link to={`/app/reconciliation?case=${current.source.source_id}`}>{current.source.source_id}</Link>

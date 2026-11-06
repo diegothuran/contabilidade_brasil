@@ -18,10 +18,12 @@ O contador respondeu que as contas de resultado "são zeradas e lançadas ao BP 
 - O lançamento segue o fluxo normal (ADR 004): enviar, aprovar e publicar, e quem criou não aprova. Nada é publicado pela rotina.
 - A rotina recusa nestes casos:
   - há lançamento do exercício em rascunho, pendente ou aprovado;
-  - já existe encerramento do ano que não foi rejeitado nem revertido;
+  - o ano já foi encerrado e as contas de resultado estão zeradas ("Exercício já encerrado");
   - as contas de resultado estão zeradas;
   - dezembro está fechado.
 - Para refazer o encerramento, o usuário reverte o lançamento e gera outro.
+- Se o ano já tem encerramento publicado e alguma conta de resultado recebeu lançamento depois dele, a rotina gera um **encerramento complementar** (`source_id` `<empresa>-<ano>-c2`, `-c3` e assim por diante). Isso segue a retificação por complementação da ITG 2000 (R1).
+- Na ECD, todo lançamento `closing` corresponde ao tipo **E** do registro I200. Os saldos de resultado anteriores a ele, os do registro I355, são os que a DRE mostra sem o encerramento.
 - O saldo considerado vai até 31/12 e inclui exercícios anteriores não encerrados. Nesse caso, a resposta avisa.
 - `POST /v1/journals` recusa `source_type = closing`. O balancete não muda de cálculo: o saldo volta a zero porque o lançamento existe, e não por uma regra de exibição.
 

@@ -80,7 +80,7 @@ O produto não decide regra contábil nem fiscal sozinho. Tudo o que depende do 
 | 53 | DRE e Balanço sempre atualizados | Depois | [ADR 029](adr/029-encerramento-e-demonstracoes.md) | DRE e Balanço gerenciais, a qualquer momento |
 | 54 | O que precisa ser explicado | Depois | caderno | — |
 | 55 | Apuração do resultado no encerramento | Depois | [ADR 029](adr/029-encerramento-e-demonstracoes.md) | direto para o PL |
-| 56 | O que bloqueia o encerramento | Depois | [ADR 029](adr/029-encerramento-e-demonstracoes.md) | lançamento pendente no ano; dezembro aberto |
+| 56 | O que bloqueia o encerramento | Depois | [ADR 029](adr/029-encerramento-e-demonstracoes.md) | lançamento pendente no ano; dezembro aberto; resultado posterior gera encerramento complementar |
 | 23 | Assinatura ICP-Brasil | Depois | [ADR 020](adr/020-fechamento-com-evidencia.md) | não assina |
 
 ## Sessão 1 — validar o que o piloto já faz (60 minutos)
