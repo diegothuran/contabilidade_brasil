@@ -52,7 +52,7 @@ export function YearEndClosingPanel({ fiscalYear }: { fiscalYear: number }) {
         <h2 className="report-title">Zerar receitas e despesas</h2>
         <p>
           O sistema monta um rascunho em 31/12 que leva o saldo das contas de resultado para a conta do patrimônio líquido escolhida.
-          Nada é publicado agora: outro usuário revisa, aprova e publica. Depois disso, janeiro abre com o resultado no PL.
+          Nada é publicado agora: outro usuário revisa, aprova e publica. Depois disso, janeiro abre com o resultado no PL. Se algum resultado for lançado no ano depois do encerramento publicado, o mesmo botão gera um encerramento complementar.
         </p>
       </div>
       <div className="report-closing__form">

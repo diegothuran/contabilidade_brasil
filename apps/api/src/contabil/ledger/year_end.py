@@ -75,22 +75,22 @@ def _ensure_nothing_pending(session: Session, tenant_id: str, legal_entity_id: s
         )
 
 
-def _ensure_not_closed(session: Session, tenant_id: str, legal_entity_id: str, fiscal_year: int) -> None:
-    existing = session.scalar(
-        select(JournalEntry.id).where(
-            JournalEntry.tenant_id == tenant_id,
-            JournalEntry.legal_entity_id == legal_entity_id,
-            JournalEntry.source_type == CLOSING_SOURCE,
-            JournalEntry.source_id == closing_source_id(legal_entity_id, fiscal_year),
-            JournalEntry.status.not_in(("rejected", "reversed")),
-        )
+def _published_closings(session: Session, tenant_id: str, legal_entity_id: str, fiscal_year: int) -> list[str]:
+    """Encerramentos do ano ainda em vigor: publicados e não revertidos. Rascunhos caem na regra de pendentes."""
+    base = closing_source_id(legal_entity_id, fiscal_year)
+    return list(
+        session.scalars(
+            select(JournalEntry.id)
+            .where(
+                JournalEntry.tenant_id == tenant_id,
+                JournalEntry.legal_entity_id == legal_entity_id,
+                JournalEntry.source_type == CLOSING_SOURCE,
+                (JournalEntry.source_id == base) | JournalEntry.source_id.startswith(f"{base}-c", autoescape=True),
+                JournalEntry.status == "published",
+            )
+            .order_by(JournalEntry.created_at)
+        ).all()
     )
-    if existing is not None:
-        raise DomainError(
-            409,
-            "Encerramento já existe",
-            f"O exercício {fiscal_year} já tem o encerramento {existing}. Para refazer, reverta esse lançamento.",
-        )
 
 
 def build_closing_draft(
@@ -100,8 +100,8 @@ def build_closing_draft(
     entity = require_entity(session, principal.tenant_id, legal_entity_id)
     retained = _retained_earnings_account(session, principal.tenant_id, entity.id, retained_earnings_account_id)
     december = _december(session, principal.tenant_id, entity.id, fiscal_year)
-    _ensure_not_closed(session, principal.tenant_id, entity.id, fiscal_year)
     _ensure_nothing_pending(session, principal.tenant_id, entity.id, fiscal_year)
+    previous = _published_closings(session, principal.tenant_id, entity.id, fiscal_year)
 
     result_accounts = session.execute(
         select(Account.id, Account.code)
@@ -117,14 +117,28 @@ def build_closing_draft(
     balances = [(account_id, sums.get(account_id, Decimal("0"))) for account_id, _ in result_accounts]
     balances = [(account_id, amount) for account_id, amount in balances if amount != 0]
     if not balances:
+        if previous:
+            raise DomainError(
+                409,
+                "Exercício já encerrado",
+                f"O exercício {fiscal_year} já foi encerrado ({previous[-1]}) e as contas de resultado estão zeradas.",
+            )
         raise DomainError(409, "Nada a encerrar", f"As contas de resultado não têm saldo em {fiscal_year}.")
 
     warnings: list[str] = []
+    source_id = closing_source_id(entity.id, fiscal_year)
+    description = f"Encerramento do exercício {fiscal_year}"
+    if previous:
+        # Resultado lançado depois de um encerramento publicado: retificação por complementação (ITG 2000).
+        source_id = f"{source_id}-c{len(previous) + 1}"
+        description = f"Encerramento complementar do exercício {fiscal_year}"
+        warnings.append(
+            f"O exercício já tem encerramento publicado ({previous[-1]}). Este rascunho complementa com o resultado lançado depois dele."
+        )
     before = account_sums(session, principal.tenant_id, entity.id, AccountingPeriod.end_date < date(fiscal_year, 1, 1))
     if any(before.get(account_id, Decimal("0")) != 0 for account_id, _ in result_accounts):
         warnings.append("O resultado de exercícios anteriores não foi encerrado e entra neste lançamento.")
 
-    description = f"Encerramento do exercício {fiscal_year}"
     lines = [
         LineIn(
             account_id=account_id,
@@ -157,9 +171,15 @@ def build_closing_draft(
             entry_date=year_end,
             description=description,
             source_type=CLOSING_SOURCE,
-            source_id=closing_source_id(entity.id, fiscal_year),
+            source_id=source_id,
             lines=lines,
         ),
         system_source=True,
     )
-    return {"journal": journal, "fiscal_year": fiscal_year, "result": format_signed(profit), "warnings": warnings}
+    return {
+        "journal": journal,
+        "fiscal_year": fiscal_year,
+        "result": format_signed(profit),
+        "complementary": bool(previous),
+        "warnings": warnings,
+    }

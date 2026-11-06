@@ -1232,8 +1232,9 @@ paths:
       description: >-
         Preparador ou admin. Cria em 31/12 um journal em rascunho com source_type closing, que zera receitas e despesas
         contra a conta do patrimônio líquido informada. O journal segue enviar, aprovar e publicar, com outro usuário
-        aprovando. Recusa com 409 quando há lançamento do exercício em rascunho, pendente ou aprovado, quando já existe
-        encerramento não rejeitado nem revertido, quando não há saldo de resultado ou quando dezembro está fechado.
+        aprovando. Recusa com 409 quando há lançamento do exercício em rascunho, pendente ou aprovado, quando não há saldo
+        de resultado (Nada a encerrar ou Exercício já encerrado) ou quando dezembro está fechado. Com encerramento já
+        publicado e resultado lançado depois dele, gera um encerramento complementar (complementary = true).
       operationId: createYearEndClosing
       parameters:
         - $ref: '#/components/parameters/LegalEntityId'
@@ -1251,9 +1252,9 @@ paths:
                 retained_earnings_account_id: { type: string, minLength: 1, maxLength: 160 }
       responses:
         '201':
-          description: 'journal (JournalEntry em rascunho), fiscal_year, result (lucro positivo, prejuízo negativo) e warnings'
+          description: 'journal (JournalEntry em rascunho), fiscal_year, result (lucro positivo, prejuízo negativo), complementary e warnings'
         '400': { description: 'Conta de destino fora do patrimônio líquido, inativa ou não postável' }
-        '409': { description: 'Lançamento pendente, encerramento existente, nada a encerrar ou dezembro fechado' }
+        '409': { description: 'Lançamento pendente, exercício já encerrado, nada a encerrar ou dezembro fechado' }
   /v1/accounts/{account_id}/lines:
     get:
       summary: Drill-down das linhas publicadas da conta
