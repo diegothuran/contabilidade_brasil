@@ -132,6 +132,19 @@ jobs:
         working-directory: apps/web
         run: npx playwright test
 
+      # Vite dedicado, sem API real: OIDC fictício e respostas da API simuladas pelo próprio teste.
+      - name: Testes visuais com OIDC fictício
+        working-directory: apps/web
+        env:
+          VITE_OIDC_AUTHORITY: http://synthetic.invalid
+          VITE_OIDC_CLIENT_ID: rastro-visual
+          VITE_API_URL: ""
+          VITE_RASTRO_DEMO: "true"
+        run: |
+          npx vite --host 127.0.0.1 --port 5174 --strictPort > /tmp/vite-visual.log 2>&1 &
+          curl -fsS --retry 30 --retry-delay 1 --retry-all-errors http://127.0.0.1:5174/ > /dev/null
+          RASTRO_VISUAL=1 PLAYWRIGHT_BASE_URL=http://127.0.0.1:5174 npx playwright test
+
       - name: Guardar o relatório do Playwright
         if: failure()
         uses: actions/upload-artifact@v4
