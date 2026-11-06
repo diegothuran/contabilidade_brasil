@@ -287,7 +287,7 @@
 }
 @media (max-width: 760px) { .rastro .demo-banner { padding: 10px 16px; } }
 
-/* Balancete e razão: leitura na tela e impressão (vira PDF pelo navegador). */
+/* Relatórios (balancete, razão, DRE, balanço): leitura na tela e impressão (vira PDF pelo navegador). */
 .rastro .report-page { display: grid; gap: 18px; }
 .rastro .report-page .page-header { margin-bottom: 0; }
 .rastro .report-actions { display: flex; flex-wrap: wrap; gap: 10px; }
@@ -311,6 +311,17 @@
 .rastro .routine .report-link:hover { text-decoration: underline; }
 .rastro .routine .report-note { margin: 0; padding: 12px 20px; color: var(--ink-600); font-size: .72rem; }
 .rastro .report-print-heading { display: none; }
+.rastro .report-switcher { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+.rastro .report-switcher a { padding: 6px 14px; border: 1px solid var(--line-dark); border-radius: 999px; color: var(--ink-700); font-weight: 650; text-decoration: none; }
+.rastro .report-switcher a:hover { border-color: var(--blue-rastro); color: var(--blue-rastro); }
+.rastro .report-switcher a[aria-current="page"] { border-color: var(--blue-rastro); background: var(--blue-rastro); color: #fff; }
+.rastro .report-table .report-row--section td { background: #f6f9fc; color: var(--ink-900); font-weight: 700; text-transform: uppercase; letter-spacing: .02em; }
+.rastro .report-table .report-row--group td { font-weight: 650; }
+.rastro .report-closing { display: grid; gap: 14px; }
+.rastro .report-closing p { margin: 6px 0 0; max-width: 62rem; }
+.rastro .report-closing__form { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px; }
+.rastro .report-closing__form label { display: grid; gap: 4px; font-weight: 600; }
+.rastro .report-closing__form select { min-width: 18rem; }
 @media (max-width: 760px) {
   .rastro .report-search, .rastro .report-search input { width: 100%; min-width: 0; }
   .rastro .report-actions .button { flex: 1; }
@@ -320,7 +331,8 @@
   @page { size: A4; margin: 14mm 12mm; }
   .rastro, .rastro .workspace, .rastro .page-container { background: #fff; }
   .rastro .sidebar, .rastro .sidebar-scrim, .rastro .topbar, .rastro .context-bar, .rastro .demo-banner,
-  .rastro .report-page > .page-header, .rastro .report-metrics, .rastro .report-toolbar, .rastro .toast { display: none !important; }
+  .rastro .report-page > .page-header, .rastro .report-metrics, .rastro .report-toolbar, .rastro .report-closing, .rastro .toast { display: none !important; }
+  .rastro .report-table .report-row--section td { background: none; color: #000; }
   .rastro .workspace { width: 100%; margin-left: 0; }
   .rastro .page-container { width: 100%; padding: 0; }
   .rastro .panel { border: 0; box-shadow: none; }

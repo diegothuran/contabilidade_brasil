@@ -3,8 +3,8 @@ from __future__ import annotations
 from datetime import date, datetime, timezone
 from decimal import Decimal
 
-from sqlalchemy import func, select
-from sqlalchemy.orm import Session
+from sqlalchemy import func, or_, select
+from sqlalchemy.orm import Session, aliased
 
 from contabil.audit.service import append_event
 from contabil.ledger.csv_export import account_ledger_csv, period_label, trial_balance_csv
@@ -12,7 +12,7 @@ from contabil.ledger.presenter import journal_dict, totals
 from contabil.ledger.schemas import JournalCreate
 from contabil.master_data.service import require_cost_center, require_postable_accounts
 from contabil.periods.service import require_period
-from contabil.platform.constants import EFFECTIVE_JOURNAL_STATUSES, SCHEMA_VERSION
+from contabil.platform.constants import CLOSING_SOURCE, EFFECTIVE_JOURNAL_STATUSES, SCHEMA_VERSION
 from contabil.platform.errors import DomainError
 from contabil.platform.ids import new_id
 from contabil.platform.money import format_amount, format_signed, parse_amount
@@ -66,10 +66,12 @@ def _ready(session: Session, journal: JournalEntry, lines: list[JournalLine]) ->
         raise DomainError(400, "Data inválida", "O lançamento precisa de data.")
 
 
-def create_journal(session: Session, principal: Principal, body: JournalCreate) -> dict:
+def create_journal(session: Session, principal: Principal, body: JournalCreate, *, system_source: bool = False) -> dict:
     ensure_role(principal, "preparer", "admin")
     if body.source_type == "reversal":
         raise DomainError(400, "Origem inválida", "Reversão é criada pela operação de reverter.")
+    if body.source_type == CLOSING_SOURCE and not system_source:
+        raise DomainError(400, "Origem inválida", "O encerramento do exercício é criado pela rotina de encerramento.")
     entity = require_entity(session, principal.tenant_id, body.legal_entity_id)
     if body.currency != entity.currency:
         raise DomainError(400, "Moeda inválida", "A moeda do lançamento deve ser a moeda da empresa.")
@@ -357,13 +359,18 @@ def reverse_journal(session: Session, principal: Principal, journal_id: str) -> 
     return journal_dict(reversal, lines)
 
 
-def _opening_balances(
-    session: Session, tenant_id: str, legal_entity_id: str, period: AccountingPeriod, account_id: str | None = None
+def account_sums(
+    session: Session,
+    tenant_id: str,
+    legal_entity_id: str,
+    *period_conditions,
+    account_id: str | None = None,
+    exclude_closing: bool = False,
 ) -> dict[str, Decimal]:
-    """Débito menos crédito dos lançamentos efetivos das competências anteriores, por conta.
+    """Débito menos crédito dos lançamentos efetivos por conta, nas competências que atendem às condições.
 
-    Acumula desde o primeiro lançamento, sem zerar contas de resultado na virada do exercício
-    (decisão provisória; pergunta 49 do caderno do contador).
+    Com exclude_closing, deixa de fora o encerramento do exercício e a reversão dele: a DRE mostra
+    o resultado que o encerramento transferiu para o patrimônio líquido.
     """
     debit_sum = func.coalesce(func.sum(JournalLine.amount).filter(JournalLine.side == "debit"), 0)
     credit_sum = func.coalesce(func.sum(JournalLine.amount).filter(JournalLine.side == "credit"), 0)
@@ -376,13 +383,31 @@ def _opening_balances(
             JournalEntry.tenant_id == tenant_id,
             JournalEntry.legal_entity_id == legal_entity_id,
             JournalEntry.status.in_(EFFECTIVE_JOURNAL_STATUSES),
-            AccountingPeriod.end_date < period.start_date,
+            *period_conditions,
         )
         .group_by(JournalLine.account_id)
     )
     if account_id is not None:
         query = query.where(JournalLine.account_id == account_id)
+    if exclude_closing:
+        closing = aliased(JournalEntry)
+        closing_ids = select(closing.id).where(closing.tenant_id == tenant_id, closing.source_type == CLOSING_SOURCE)
+        query = query.where(
+            JournalEntry.source_type != CLOSING_SOURCE,
+            or_(JournalEntry.reverses_journal_id.is_(None), JournalEntry.reverses_journal_id.not_in(closing_ids)),
+        )
     return {row[0]: Decimal(row[1] or 0) - Decimal(row[2] or 0) for row in session.execute(query).all()}
+
+
+def _opening_balances(
+    session: Session, tenant_id: str, legal_entity_id: str, period: AccountingPeriod, account_id: str | None = None
+) -> dict[str, Decimal]:
+    """Saldo das competências anteriores, por conta, desde o primeiro lançamento.
+
+    As contas de resultado voltam a zero quando o encerramento do exercício é publicado
+    (ledger/year_end.py, ADR 029): o saldo não é zerado por regra de exibição.
+    """
+    return account_sums(session, tenant_id, legal_entity_id, AccountingPeriod.end_date < period.start_date, account_id=account_id)
 
 
 def trial_balance(session: Session, principal: Principal, legal_entity_id: str, period_id: str) -> dict:

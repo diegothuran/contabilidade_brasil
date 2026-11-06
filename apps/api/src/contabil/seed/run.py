@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 from datetime import date
+from decimal import Decimal
 
 from contabil.ledger.posting import publish_balanced
 from contabil.ledger.schemas import JournalCreate, LineIn
 from contabil.ledger.service import approve_journal, publish_journal, reverse_journal, submit_journal
-from contabil.master_data.starter_chart import add_open_year, add_starter_chart
+from contabil.master_data.starter_chart import add_open_year, add_starter_chart, ensure_retained_earnings
 from contabil.platform.db import session_factory
 from contabil.platform.principal import Principal
 from contabil.seed.cnpj import cnpj_digits
@@ -48,6 +49,7 @@ def seed() -> None:
             _seed_foundation(session)
         _seed_phase_b(session)
         _seed_phase_c(session)
+        _seed_reports(session)
         session.commit()
     except Exception:
         session.rollback()
@@ -249,6 +251,67 @@ def _seed_phase_c(session) -> None:
     )
     operation = create_statement(session, preparer, account["bank_account_id"], stored["document_id"])
     import_statement(session, "tenant_demo", {"statement_id": operation["statement_id"], "operation_id": operation["operation_id"]})
+
+
+# Movimento fictício do ano para a DRE, o Balanço e o encerramento terem o que mostrar.
+# Usa o caixa e fornecedores, fora de setembro, para não mexer na conciliação de exemplo.
+REPORT_MONTHS = {
+    1: ("8200.00", "5100.00"),
+    2: ("7600.00", "4800.00"),
+    3: ("9100.00", "5350.00"),
+    4: ("8800.00", "6900.00"),
+    5: ("9900.00", "5700.00"),
+    6: ("10400.00", "6100.00"),
+    7: ("9700.00", "11200.00"),
+    8: ("11300.00", "6400.00"),
+    10: ("12100.00", "7050.00"),
+    11: ("11800.00", "6800.00"),
+}
+
+
+def _seed_reports(session) -> None:
+    from sqlalchemy import select
+
+    from contabil.tables import AccountingPeriod, JournalEntry
+
+    for entity_id in ("le_alfa", "le_beta"):
+        ensure_retained_earnings(session, "tenant_demo", entity_id)
+    done = session.scalar(
+        select(JournalEntry.id).where(JournalEntry.tenant_id == "tenant_demo", JournalEntry.source_id == "seed-relatorios-capital")
+    )
+    if done is not None:
+        return
+    preparer = Principal("preparer", "tenant_demo", frozenset({"preparer"}), "Preparador", "Escritório Demo")
+    approver = Principal("approver", "tenant_demo", frozenset({"approver"}), "Aprovador", "Escritório Demo")
+
+    def post(month: int, day: int, key: str, description: str, debit: str, credit: str, amount: str) -> None:
+        period = session.get(AccountingPeriod, f"le_alfa-2026-{month:02d}")
+        if period is None or period.status not in {"open", "reopened"}:
+            return
+        _publish(
+            session,
+            preparer,
+            approver,
+            JournalCreate(
+                legal_entity_id="le_alfa",
+                period_id=period.id,
+                currency="BRL",
+                entry_date=date(2026, month, day),
+                description=description,
+                source_id=f"seed-relatorios-{key}",
+                lines=[
+                    LineIn(account_id=f"le_alfa-{debit}", side="debit", amount=amount, description=description),
+                    LineIn(account_id=f"le_alfa-{credit}", side="credit", amount=amount, description=description),
+                ],
+            ),
+        )
+
+    post(1, 2, "capital", "Integralização de capital", "1.1.01", "3.1.01", "20000.00")
+    for month, (revenue, expense) in REPORT_MONTHS.items():
+        post(month, 10, f"receita-{month:02d}", f"Serviços prestados em {month:02d}/2026", "1.1.01", "4.1.01", revenue)
+        post(month, 20, f"despesa-{month:02d}", f"Despesas do mês {month:02d}/2026", "5.1.01", "2.1.01", expense)
+        paid = format(Decimal(expense) * Decimal("0.8"), ".2f")
+        post(month, 25, f"pagamento-{month:02d}", f"Pagamento a fornecedores {month:02d}/2026", "2.1.01", "1.1.01", paid)
 
 
 if __name__ == "__main__":

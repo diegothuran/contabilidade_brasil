@@ -7,7 +7,9 @@ from datetime import datetime, timezone
 from contabil.ledger.csv_export import (
     DISCLAIMER,
     account_ledger_csv,
+    balance_sheet_csv,
     cnpj_br,
+    income_statement_csv,
     money_br,
     period_label,
     safe_text,
@@ -102,3 +104,61 @@ def test_account_ledger_runs_from_opening_balance() -> None:
     assert rows[header + 2] == ["05/09/2026", "'=cmd", "jnl_1", "50,00", "", "150,00"]
     assert rows[header + 3] == ["20/09/2026", "Tarifa", "jnl_2", "", "30,25", "119,75"]
     assert rows[header + 4] == ["", "Saldo atual", "", "", "", "119,75"]
+
+
+def test_income_statement_csv_lists_sections_groups_and_result() -> None:
+    report = {
+        "sections": [
+            {
+                "title": "Receitas",
+                "month": "1000",
+                "year_to_date": "5000",
+                "groups": [
+                    {"code": "4", "name": "Receitas", "month": "1000", "year_to_date": "5000",
+                     "rows": [{"code": "4.1.01", "name": "Receita de serviços", "month": "1000", "year_to_date": "5000"}]},
+                ],
+            },
+            {
+                "title": "Despesas",
+                "month": "400",
+                "year_to_date": "6000",
+                "groups": [
+                    {"code": "5", "name": "Despesas", "month": "400", "year_to_date": "6000",
+                     "rows": [{"code": "5.1.01", "name": "Despesas de serviços", "month": "400", "year_to_date": "6000"}]},
+                ],
+            },
+        ],
+        "result": {"month": "600", "year_to_date": "-1000"},
+    }
+    rows = _rows(
+        income_statement_csv(entity_name="Empresa Alfa", cnpj="12345678000195", period="dezembro de 2026", generated_at=GENERATED, report=report)
+    )
+    assert rows[0] == ["Demonstração do resultado (gerencial)"]
+    assert [DISCLAIMER] in rows
+    header = rows.index(["Código", "Conta", "Mês", "Acumulado no ano"])
+    assert rows[header + 1] == ["", "RECEITAS", "1000,00", "5000,00"]
+    assert rows[header + 3] == ["4.1.01", "Receita de serviços", "1000,00", "5000,00"]
+    assert ["", "Resultado do período", "600,00", "-1000,00"] in rows
+
+
+def test_balance_sheet_csv_shows_unclosed_result_and_difference() -> None:
+    report = {
+        "sections": [
+            {"title": "Ativo", "balance": "1500", "groups": [
+                {"code": "1", "name": "Ativo", "balance": "1500", "rows": [{"code": "1.1.02", "name": "Bancos", "balance": "1500"}]}]},
+            {"title": "Passivo", "balance": "0", "groups": []},
+            {"title": "Patrimônio líquido", "balance": "1500", "unclosed_result": "500", "groups": [
+                {"code": "3", "name": "Patrimônio líquido", "balance": "1000",
+                 "rows": [{"code": "3.1.01", "name": "Capital social", "balance": "1000"}]}]},
+        ],
+        "total_assets": "1500",
+        "total_liabilities_and_equity": "1500",
+        "difference": "0",
+    }
+    rows = _rows(
+        balance_sheet_csv(entity_name="Empresa Alfa", cnpj="12345678000195", period="dezembro de 2026", generated_at=GENERATED, report=report)
+    )
+    assert rows[0] == ["Balanço patrimonial (gerencial)"]
+    assert ["", "Resultado do exercício não encerrado", "500,00"] in rows
+    assert ["", "Total do passivo e patrimônio líquido", "1500,00"] in rows
+    assert ["", "Diferença", "0,00"] in rows

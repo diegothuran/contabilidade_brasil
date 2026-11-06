@@ -47,9 +47,17 @@ class JournalCreate(BaseModel):
         "fiscal_document",
         "adjustment",
         "reversal",
+        "closing",
     ] = "manual"
     source_id: str | None = Field(default=None, max_length=200)
     source_hash: str | None = Field(default=None, max_length=128)
+
+
+class YearEndClosingCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    fiscal_year: int = Field(ge=1900, le=2999)
+    retained_earnings_account_id: str = Field(min_length=1, max_length=160)
 
 
 class AccountCreate(BaseModel):

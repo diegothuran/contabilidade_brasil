@@ -1,4 +1,4 @@
-"""Balancete e razão em CSV para o Excel brasileiro: BOM, ponto e vírgula, vírgula decimal."""
+"""Balancete, razão, DRE e Balanço em CSV para o Excel brasileiro: BOM, ponto e vírgula, vírgula decimal."""
 
 from __future__ import annotations
 
@@ -133,5 +133,44 @@ def account_ledger_csv(*, entity_name: str, cnpj: str, period: str, generated_at
         writer.writerow(["", "Saldo atual", "", "", "", money_br(running)])
         writer.writerow([])
         writer.writerow(["Saldos positivos são devedores; negativos são credores."])
+
+    return _render(write)
+
+
+def income_statement_csv(*, entity_name: str, cnpj: str, period: str, generated_at: datetime, report: dict) -> str:
+    def write(writer) -> None:
+        _header(writer, "Demonstração do resultado (gerencial)", entity_name, cnpj, period, generated_at)
+        writer.writerow(["Código", "Conta", "Mês", "Acumulado no ano"])
+        for section in report["sections"]:
+            writer.writerow(["", section["title"].upper(), money_br(section["month"]), money_br(section["year_to_date"])])
+            for group in section["groups"]:
+                writer.writerow([safe_text(group["code"]), safe_text(group["name"]), money_br(group["month"]), money_br(group["year_to_date"])])
+                for row in group["rows"]:
+                    writer.writerow([safe_text(row["code"]), safe_text(row["name"]), money_br(row["month"]), money_br(row["year_to_date"])])
+        writer.writerow(["", "Resultado do período", money_br(report["result"]["month"]), money_br(report["result"]["year_to_date"])])
+        writer.writerow([])
+        writer.writerow(["Receitas e despesas em valor positivo; resultado negativo é prejuízo. O encerramento do exercício não entra."])
+
+    return _render(write)
+
+
+def balance_sheet_csv(*, entity_name: str, cnpj: str, period: str, generated_at: datetime, report: dict) -> str:
+    def write(writer) -> None:
+        _header(writer, "Balanço patrimonial (gerencial)", entity_name, cnpj, period, generated_at)
+        writer.writerow(["Código", "Conta", "Saldo"])
+        for section in report["sections"]:
+            writer.writerow(["", section["title"].upper(), money_br(section["balance"])])
+            for group in section["groups"]:
+                writer.writerow([safe_text(group["code"]), safe_text(group["name"]), money_br(group["balance"])])
+                for row in group["rows"]:
+                    writer.writerow([safe_text(row["code"]), safe_text(row["name"]), money_br(row["balance"])])
+            if "unclosed_result" in section and Decimal(section["unclosed_result"]) != 0:
+                writer.writerow(["", "Resultado do exercício não encerrado", money_br(section["unclosed_result"])])
+        writer.writerow([])
+        writer.writerow(["", "Total do ativo", money_br(report["total_assets"])])
+        writer.writerow(["", "Total do passivo e patrimônio líquido", money_br(report["total_liabilities_and_equity"])])
+        writer.writerow(["", "Diferença", money_br(report["difference"])])
+        writer.writerow([])
+        writer.writerow(["Saldos na natureza da conta: ativo devedor; passivo e patrimônio líquido credores."])
 
     return _render(write)

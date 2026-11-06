@@ -107,11 +107,11 @@ A conciliação bancária deste corte também adotou regras para poder ser testa
 ## Decisões provisórias do piloto hospedado
 
 17. Quem é o primeiro usuário administrador do escritório no ambiente hospedado, e esse usuário aceita MFA por aplicativo? O piloto usa um dyno para a API e outro para a interface, e não guarda documento de cliente real.
-18. Qual plano de contas substitui o modelo mínimo de teste, e a empresa deve nascer com o ano corrente? O cadastro atual cria 11 contas sintéticas e os 12 períodos do ano informado. Nenhuma delas é referencial.
+18. Qual plano de contas substitui o modelo mínimo de teste, e a empresa deve nascer com o ano corrente? O cadastro atual cria 12 contas sintéticas, incluindo `3.2.01 Lucros ou prejuízos acumulados`, e os 12 períodos do ano informado. Nenhuma delas é referencial.
 19. Quais itens do checklist mudam por porte ou regime? A versão `2026.10-2` é a mesma para toda empresa.
 20. A revisão do balancete pode ser feita por quem também publica, ou o escritório exige outra pessoa? Nesta fase, `approver` ou `admin` registra a revisão.
 21. Qual é a retenção por tipo de documento, além da guarda até prescrição ou decadência (Código Civil, art. 1.194; CTN, art. 195, parágrafo único; Lei 9.430/1996, art. 37)?
-22. O pacote precisa de outros relatórios além do balancete, dos lançamentos, da conciliação, dos lotes e dos documentos? Em que formato o escritório entrega hoje o balancete e o razão (PDF, Excel, papel), para quem, e quais demonstrações (DRE, Balanço) ele emite todo mês? Hoje o sistema imprime o balancete e o razão pelo navegador e baixa CSV para o Excel, com o aviso de relatório gerencial; DRE e Balanço não existem.
+22. O pacote precisa de outros relatórios além do balancete, dos lançamentos, da conciliação, dos lotes e dos documentos? Em que formato o escritório entrega hoje o balancete e o razão (PDF, Excel, papel), para quem, e quais demonstrações (DRE, Balanço) ele emite todo mês? Hoje o sistema imprime o balancete, o razão, a DRE e o Balanço pelo navegador e baixa CSV para o Excel, com o aviso de relatório gerencial. DRE e Balanço são gerenciais: os grupos são as contas raiz do plano, sem o layout oficial, que depende das perguntas 18 e 53 ([ADR 029](adr/029-encerramento-e-demonstracoes.md)).
    > **Resposta (contador 1, questionário de 05/11/2026):** "O ideal é ter todas as demonstrações contábeis sempre atualizadas conforme o regime de competência." DRE e Balanço Patrimonial entram como necessidade, além do balancete e do razão. Quando e para quais regimes, na pergunta 53.
 23. O fechamento precisa de assinatura ICP-Brasil neste corte? A fundação não assina e não trata o pacote como livro autenticado da ECD (IN RFB 2.003/2021, art. 8º).
 
@@ -157,6 +157,8 @@ A Fase E começa por estas respostas ([DISC-002](specs/06-discovery-and-poc-back
 
 49. **Saldo anterior.** Hoje o saldo anterior do balancete e do razão soma todos os lançamentos publicados das competências anteriores, desde o primeiro, sem zerar as contas de resultado na virada do exercício. O saldo das contas de resultado deve voltar a zero no início do exercício? Se sim, o zeramento é um lançamento de encerramento que alguém aprova, ou só uma regra de exibição? O CSV usa ponto e vírgula, vírgula decimal e duas casas, e o arquivo diz que não é livro contábil oficial. Esse formato abre direto no Excel do escritório?
    > **Resposta (contador 1, questionário de 05/11/2026):** "São zeradas e lançadas ao BP com prejuízo ou lucros acumulados." As contas de resultado zeram por um lançamento de encerramento, que leva o resultado ao patrimônio líquido. O balancete já mostra isso quando esse lançamento existe, porque soma os lançamentos publicados; falta a rotina de encerramento do exercício, que prepara o lançamento para alguém aprovar.
+   >
+   > **Implementado ([ADR 029](adr/029-encerramento-e-demonstracoes.md)):** no balancete de dezembro, o preparador gera o rascunho do encerramento, que zera receitas e despesas contra a conta do PL escolhida. Outro usuário aprova e publica. A forma do lançamento e o que bloqueia o encerramento continuam nas perguntas 55 e 56.
 
 ## Respostas recebidas
 
@@ -173,6 +175,8 @@ O [questionário anônimo](https://claude.ai/artifact/3QCemad8tRtHsfKse7f4W3) ju
 52. **Despesa financeira.** Que conta do plano recebe tarifa, juros e IOF? Quando não é despesa financeira (juros recebidos, IOF de uma operação específica)?
 53. **Demonstrações atualizadas.** A DRE e o Balanço precisam estar disponíveis a qualquer momento do mês ou só depois do fechamento? Valem para todos os regimes, inclusive o Simples Nacional?
 54. **Explicar.** O que precisa ser explicado, e para quem: cada lançamento até o documento de origem, as diferenças de conciliação, a variação de um saldo entre dois meses?
+55. **Apuração do resultado.** O encerramento passa por uma conta de apuração do resultado (ARE) antes de chegar a lucros ou prejuízos acumulados, ou vai direto? Hoje o rascunho vai direto para a conta do PL escolhida. O saldo final é o mesmo; muda o que o razão mostra.
+56. **O que bloqueia o encerramento.** Hoje qualquer lançamento do ano em rascunho, pendente ou aprovado impede gerar o encerramento, e dezembro precisa estar aberto. Basta isso, ou o fechamento de dezembro precisa estar concluído antes? Lançamento feito em dezembro depois do encerramento pede um encerramento complementar ou refazer o encerramento?
 
 ## Aditivo visual v0.7.0 — 06/11/2026
 

@@ -70,15 +70,17 @@ O produto não decide regra contábil nem fiscal sozinho. Tudo o que depende do 
 | 12 | Tarifa, juros e IOF | Depois | POC-003 | contador 1: quase sempre despesa financeira |
 | 15 | Bancos e versões de OFX | Depois | POC-003 | — |
 | 17 | Primeiro admin e MFA | Depois | piloto | — |
-| 18 | Plano de contas real | Depois | [ADR 017](adr/017-cadastro-de-empresa.md) | modelo de 11 contas |
+| 18 | Plano de contas real | Depois | [ADR 017](adr/017-cadastro-de-empresa.md) | modelo de 12 contas |
 | 21 | Retenção por tipo de documento | Depois | [ADR 011](adr/011-object-storage-s3.md) | — |
 | 22 | Relatórios do pacote e formato | Depois | [ADR 020](adr/020-fechamento-com-evidencia.md) | cinco relatórios; balancete e razão em impressão e CSV |
-| 49 | Saldo anterior e zeramento no exercício | Depois | caderno, relatórios | acumula; contador 1: encerramento leva o resultado ao PL |
+| 49 | Saldo anterior e zeramento no exercício | Depois | [ADR 029](adr/029-encerramento-e-demonstracoes.md) | encerramento em rascunho, aprovado por outro usuário |
 | 50 | Rotinas que exigem CRC ativo | Depois | [ADR 004](adr/004-aprovacao-humana.md) | — |
 | 51 | Exceções da data na conciliação | Depois | [ADR 013](adr/013-conciliacao-por-casos.md) | — |
 | 52 | Conta da despesa financeira | Depois | POC-003 | — |
-| 53 | DRE e Balanço sempre atualizados | Depois | relatórios | só balancete e razão |
+| 53 | DRE e Balanço sempre atualizados | Depois | [ADR 029](adr/029-encerramento-e-demonstracoes.md) | DRE e Balanço gerenciais, a qualquer momento |
 | 54 | O que precisa ser explicado | Depois | caderno | — |
+| 55 | Apuração do resultado no encerramento | Depois | [ADR 029](adr/029-encerramento-e-demonstracoes.md) | direto para o PL |
+| 56 | O que bloqueia o encerramento | Depois | [ADR 029](adr/029-encerramento-e-demonstracoes.md) | lançamento pendente no ano; dezembro aberto |
 | 23 | Assinatura ICP-Brasil | Depois | [ADR 020](adr/020-fechamento-com-evidencia.md) | não assina |
 
 ## Sessão 1 — validar o que o piloto já faz (60 minutos)
@@ -102,7 +104,7 @@ Em cada passo, leia a decisão provisória e peça confirma, muda ou retira. Na 
 
 A resposta da terceira é o critério de saída da Fase D.
 
-**Bloco 3 — razão, conciliação e fechamento (25 min).** Perguntas 1 a 5, 8, 11, 13, 14, 16, 19, 20, 26, 49 e 50 a 54. Na 49, abra o Balancete e razão numa competência com saldo anterior, baixe o CSV na frente dele e peça que abra no Excel e imprima. Abra um lançamento, uma conciliação e um fechamento já feitos no piloto. Para cada regra, a pergunta é a mesma: "hoje o sistema faz assim; no seu escritório é assim?". Se o tempo acabar, as que sobrarem passam para a Sessão 3.
+**Bloco 3 — razão, conciliação e fechamento (25 min).** Perguntas 1 a 5, 8, 11, 13, 14, 16, 19, 20, 26, 49 e 50 a 56. Na 49, abra Relatórios numa competência com saldo anterior, baixe o CSV na frente dele e peça que abra no Excel e imprima. Na 53 e na 55, abra a DRE e o Balanço de dezembro e gere o rascunho do encerramento com ele olhando o lançamento. Abra um lançamento, uma conciliação e um fechamento já feitos no piloto. Para cada regra, a pergunta é a mesma: "hoje o sistema faz assim; no seu escritório é assim?". Se o tempo acabar, as que sobrarem passam para a Sessão 3.
 
 ## Sessão 2 — escolher a obrigação do piloto (90 minutos)
 

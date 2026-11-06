@@ -19,6 +19,7 @@ from contabil.platform.db import session_factory
 from contabil.platform.principal import Principal
 from contabil.reconciliation.router import BankAccountCreate
 from contabil.reconciliation.service import approve_case, create_bank_account, create_statement, ignore_case, import_statement
+from contabil.master_data.starter_chart import ensure_retained_earnings
 from contabil.seed.cnpj import cnpj_digits
 from contabil.platform.errors import DomainError
 from contabil.tables import (
@@ -565,6 +566,7 @@ def _enrich(
                 f"{entity_id}-5.1.01", f"{entity_id}-2.1.01", _phrase(story, "pending_amount", "15.00"),
                 _phrase(story, "pending", "Pedágio aguardando aprovação"), _phrase(story, "pending_line", "Fornecedor"),
             )
+    ensure_retained_earnings(session, preparer.tenant_id, entity_id)
     _ensure_activity(session, preparer, approver, entity_id, year, today, story, name, notes)
     if statements:
         _ensure_files(

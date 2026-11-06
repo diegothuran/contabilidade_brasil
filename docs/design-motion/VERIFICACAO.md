@@ -41,10 +41,10 @@ No segundo terminal:
 ```bash
 cd apps/web
 npx playwright install chromium
-npx playwright test e2e/visual-refresh.spec.ts --workers=1
+RASTRO_VISUAL=1 npx playwright test --workers=1
 ```
 
-As capturas são escritas em `apps/web/test-results/visual-refresh`, fora do Git. Para utilizar Chromium já instalado, pode-se definir `PLAYWRIGHT_EXECUTABLE_PATH`; para outro diretório de capturas, `RASTRO_VISUAL_OUTPUT`.
+Sem `RASTRO_VISUAL=1`, o Playwright ignora este arquivo, porque os demais testes rodam contra o compose. Na CI, o job de ponta a ponta sobe um Vite dedicado na porta 5174 e roda estes quatro testes depois dos do compose (`PLAYWRIGHT_BASE_URL`). As capturas são escritas em `apps/web/test-results/visual-refresh`, fora do Git. Para utilizar Chromium já instalado, pode-se definir `PLAYWRIGHT_EXECUTABLE_PATH`; para outro diretório de capturas, `RASTRO_VISUAL_OUTPUT`.
 
 ## Limites
 

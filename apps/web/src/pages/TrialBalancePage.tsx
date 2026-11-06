@@ -2,8 +2,10 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { api, downloadFile } from "../api";
-import { formatBalance, formatCnpj, formatDate, formatMoney, formatPeriod } from "../format";
-import { STATUS_LABEL, useSession } from "../session";
+import { formatBalance, formatDate, formatMoney } from "../format";
+import { STATUS_LABEL } from "../session";
+import { DISCLAIMER, ReportHeading, ReportSwitcher, isZero, printOnly, sum, useReportContext } from "./reports";
+import { YearEndClosingPanel } from "./YearEndClosingPanel";
 
 type BalanceRow = {
   account_id: string;
@@ -18,52 +20,8 @@ type BalanceRow = {
 type Balance = { rows: BalanceRow[]; debit_total: string; credit_total: string };
 type DrillLine = { journal_id: string; line_id: string; entry_date: string; side: string; amount: string; description: string; journal_status: string };
 type Ledger = { code: string; name: string; opening_balance: string; lines: DrillLine[] };
-type Period = { period_id: string; fiscal_year: number; month: number };
-type PrintTarget = "balancete" | "razao";
-
-const DISCLAIMER = "Relatório gerencial gerado pelo sistema. Não é livro contábil oficial.";
-
-// Soma de strings decimais em micros (6 casas, como a API), sem float.
-function sum(values: string[]): string {
-  const micros = values.reduce((total, value) => {
-    const negative = value.startsWith("-");
-    const [whole, fraction = ""] = value.replace("-", "").split(".");
-    const amount = BigInt((whole || "0") + (fraction + "000000").slice(0, 6));
-    return total + (negative ? -amount : amount);
-  }, 0n);
-  const negative = micros < 0n;
-  const absolute = negative ? -micros : micros;
-  const text = `${absolute / 1000000n}.${(absolute % 1000000n).toString().padStart(6, "0")}`;
-  return negative ? `-${text}` : text;
-}
-
-function isZero(value: string): boolean {
-  return /^-?0*(\.0*)?$/.test(value);
-}
-
-function printOnly(target: PrintTarget) {
-  const className = `print-${target}`;
-  document.body.classList.add(className);
-  const cleanup = () => {
-    document.body.classList.remove(className);
-    window.removeEventListener("afterprint", cleanup);
-  };
-  window.addEventListener("afterprint", cleanup);
-  window.print();
-}
-
-function ReportHeading({ title, entity, period, issuedAt }: { title: string; entity: string; period: string; issuedAt: string }) {
-  return (
-    <div className="report-print-heading">
-      <strong>{title}</strong>
-      <span>{entity}</span>
-      <span>Competência: {period} · Emitido em {issuedAt}</span>
-    </div>
-  );
-}
-
 export function TrialBalancePage() {
-  const { entityId, periodId, entities } = useSession();
+  const { entityId, periodId, period, entityText, periodText, issuedAt } = useReportContext();
   const [accountId, setAccountId] = useState("");
   const [search, setSearch] = useState("");
   const [onlyActive, setOnlyActive] = useState(true);
@@ -71,17 +29,6 @@ export function TrialBalancePage() {
   useEffect(() => {
     setAccountId("");
   }, [periodId]);
-
-  const entity = entities.find((item) => item.legal_entity_id === entityId);
-  const periods = useQuery({
-    queryKey: ["periods", entityId],
-    enabled: Boolean(entityId),
-    queryFn: () => api<{ items: Period[] }>(`/v1/legal-entities/${entityId}/periods`),
-  });
-  const period = periods.data?.items.find((item) => item.period_id === periodId);
-  const periodText = period ? formatPeriod(period.fiscal_year, period.month) : "competência escolhida";
-  const entityText = entity ? `${entity.name} · CNPJ ${formatCnpj(entity.cnpj)}` : "Empresa";
-  const issuedAt = new Date().toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
 
   const balance = useQuery({
     queryKey: ["trial", entityId, periodId],
@@ -133,6 +80,7 @@ export function TrialBalancePage() {
           <span className="eyebrow">Relatórios · {entityText} · {periodText}</span>
           <h1>Balancete</h1>
           <p>Saldo anterior, movimento do mês e saldo atual de cada conta. Clique numa conta para ver o razão.</p>
+          <ReportSwitcher />
         </div>
         <div className="page-header__action report-actions">
           <button type="button" className="button" data-testid="print-balancete" disabled={!balance.data} onClick={() => printOnly("balancete")}>
@@ -216,6 +164,8 @@ export function TrialBalancePage() {
         </div>
         <p className="report-note">D = saldo devedor · C = saldo credor. {DISCLAIMER}</p>
       </section>
+
+      {period?.month === 12 ? <YearEndClosingPanel fiscalYear={period.fiscal_year} /> : null}
 
       {accountId ? (
         <section className="panel panel--flush report-razao" ref={ledgerRef} data-testid="ledger-panel">

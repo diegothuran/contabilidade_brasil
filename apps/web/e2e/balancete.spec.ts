@@ -11,7 +11,7 @@ test("o balancete mostra saldos, abre o razão, baixa CSV e imprime sem o menu",
   await chooseCompany(page, "Empresa Alfa");
   await choosePeriod(page, "02/2026");
 
-  await page.locator(".sidebar").getByRole("link", { name: "Balancete e razão" }).click();
+  await page.locator(".sidebar").getByRole("link", { name: "Relatórios" }).click();
   await expect(page.getByRole("heading", { name: "Balancete" })).toBeVisible();
   await expect(page.getByTestId("print-balancete")).toBeVisible();
   await expect(page.getByTestId("csv-balancete")).toBeVisible();
