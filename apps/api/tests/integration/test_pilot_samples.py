@@ -1,12 +1,13 @@
 from __future__ import annotations
 
+from datetime import date
 from decimal import Decimal
 
 from sqlalchemy import func, select
 
 from contabil.platform.auth import apply_tenant
 from contabil.platform.db import session_factory
-from contabil.tables import JournalEntry, JournalLine, LegalEntity, Membership
+from contabil.tables import AccountingPeriod, JournalEntry, JournalLine, LegalEntity, Membership, OperationalExport
 
 
 def test_pilot_samples_are_idempotent_and_skip_statements_without_storage(monkeypatch, world):
@@ -51,5 +52,31 @@ def test_pilot_samples_are_idempotent_and_skip_statements_without_storage(monkey
             )
             assert Decimal(debit) == Decimal(credit)
             assert Decimal(debit) > 0
+            months = set(
+                session.scalars(
+                    select(AccountingPeriod.month)
+                    .join(JournalEntry, JournalEntry.period_id == AccountingPeriod.id)
+                    .where(JournalEntry.legal_entity_id == company["legal_entity_id"], JournalEntry.status == "published")
+                ).all()
+            )
+            today = date.today()
+            open_months = set(
+                session.scalars(
+                    select(AccountingPeriod.month).where(
+                        AccountingPeriod.legal_entity_id == company["legal_entity_id"],
+                        AccountingPeriod.fiscal_year == today.year,
+                        AccountingPeriod.month <= today.month,
+                        AccountingPeriod.status.in_(("open", "reopened")),
+                    )
+                ).all()
+            )
+            assert open_months <= months, company["name"]
+        by_story = {company["story"]: company["legal_entity_id"] for company in first["created"]}
+        closing = session.scalars(
+            select(JournalEntry.status).where(JournalEntry.legal_entity_id == by_story["banco"], JournalEntry.source_type == "closing")
+        ).all()
+        assert closing == ["pending_approval"], first["notes"]
+        exports = session.scalar(select(func.count()).select_from(OperationalExport).where(OperationalExport.legal_entity_id == by_story["fechada"]))
+        assert exports == 1, first["notes"]
     finally:
         session.close()

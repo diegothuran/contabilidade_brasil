@@ -152,14 +152,14 @@ heroku run --no-tty --exit-code --app NOME-API -- python -m contabil.pilot_sampl
 Ele deixa cinco empresas fictícias, cada uma com um caso diferente:
 
 - Padaria Aurora: lançamentos publicados da padaria, um estorno, um rascunho, um pendente e um aprovado ainda não publicado. O checklist fica bloqueado.
-- Studio Norte: competência do mês anterior fechada, com snapshot, e um pedido de reabertura feito por outra pessoa. Os outros meses abertos têm o movimento do estúdio.
-- Comercial Vale Azul: livros da loja e conta bancária.
-- Ateliê Brisa: plano, períodos e encomendas publicadas em alguns meses do ano.
+- Studio Norte: competência do mês anterior fechada, com snapshot, um pedido de reabertura feito por outra pessoa e o pacote de exportação operacional dessa competência. Os outros meses abertos têm o movimento do estúdio.
+- Comercial Vale Azul: livros da loja, conta bancária e o rascunho de encerramento do exercício enviado para aprovação, contra a conta `3.2.01`. Outro usuário aprova e publica.
+- Ateliê Brisa: plano, períodos e encomendas publicadas.
 - Transportes Rio Claro: fretes publicados, mais um rascunho e um lançamento pendente no mês corrente.
 
-O movimento copiado igual em todas as empresas é estornado quando o período ainda está aberto, e no lugar entra o lançamento do ramo. Com o bucket configurado, cada empresa ganha recibo, nota, contrato, um arquivo com o nome do ramo, um lote de diário em simulação e um extrato OFX. A Padaria Aurora também fica com um pedido de recibo já confirmado em outubro de 2026. O Ateliê Brisa fica com um pedido de contrato aberto nessa competência, com prazo em 31/10, e o fechamento de outubro permanece bloqueado até confirmar ou cancelar. O Studio Norte (extrato), o Comercial Vale Azul (nota) e a Transportes Rio Claro (recibo de frete) ficam com pedidos abertos com prazo em 20/10, para a fila ter itens vencidos. Sem o bucket, o comando imprime `extrato=skipped` e não grava arquivo; os pedidos abertos ainda são criados.
+Toda empresa recebe movimento do ramo em cada mês aberto, de janeiro até o mês corrente, para a DRE do mês, o Balanço e o balancete terem números. O movimento copiado igual em todas as empresas é estornado quando o período ainda está aberto, e no lugar entra o lançamento do ramo. Com o bucket configurado, cada empresa ganha recibo, nota, contrato, um arquivo com o nome do ramo, um lote de diário em simulação e um extrato OFX. A Padaria Aurora e o Comercial Vale Azul também recebem um arquivo enviado pelo cliente no portal, sem pedido, para a caixa de entrada do escritório classificar ou descartar. A Padaria Aurora também fica com um pedido de recibo já confirmado em outubro de 2026. O Ateliê Brisa fica com um pedido de contrato aberto nessa competência, com prazo em 31/10, e o fechamento de outubro permanece bloqueado até confirmar ou cancelar. O Studio Norte (extrato), o Comercial Vale Azul (nota) e a Transportes Rio Claro (recibo de frete) ficam com pedidos abertos com prazo em 20/10, para a fila ter itens vencidos. Sem o bucket, o comando imprime `extrato=skipped` e não grava arquivo; os pedidos abertos ainda são criados.
 
-O segundo escritório fictício é o Litoral. O comando cria o escritório, copia os administradores do escritório de origem e carrega outra carteira: Pousada Maré Alta, Oficina Serra Dourada, Mercado Bom Preço, Clínica Verde Vale e Gráfica Norte Sul.
+O segundo escritório fictício é o Litoral. O comando cria o escritório, copia os administradores do escritório de origem e carrega outra carteira: Pousada Maré Alta, Oficina Serra Dourada, Mercado Bom Preço, Clínica Verde Vale e Gráfica Norte Sul. Cada uma repete o caso da empresa na mesma posição da primeira carteira: a Oficina tem a exportação e o Mercado tem o encerramento para aprovar.
 
 ```bash
 heroku run --no-tty --exit-code --app NOME-API -- python -m contabil.pilot_samples --tenant-id litoral --catalog litoral --copy-admins-from escritorio
