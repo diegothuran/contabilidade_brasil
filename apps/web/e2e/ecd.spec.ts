@@ -25,7 +25,7 @@ test("a prévia da ECD da Empresa Alfa sai marcada e lista o que falta", async (
   await expect(issues).toBeVisible({ timeout: 30_000 });
   await expect(issues).toContainText("Preencha os dados da escrituração");
   await expect(issues).toContainText("Fora da prévia");
-  await expect(issues.getByRole("link", { name: "Preencher os dados da escrituração" })).toBeVisible();
+  await expect(issues.getByRole("link", { name: "Preencher os dados da escrituração" }).first()).toBeVisible();
 
   const download = page.waitForEvent("download");
   await page.getByTestId("ecd-download").click();
