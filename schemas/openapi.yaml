@@ -1180,11 +1180,14 @@ paths:
           required: true
           schema: { type: string }
       responses:
-        '200': { description: 'sections (revenue, expense) com groups, rows, month e year_to_date; result com month e year_to_date' }
+        '200': { description: 'sections (revenue, expense) com groups, rows, month e year_to_date; result com month e year_to_date; signatories (ADR 030)' }
   /v1/legal-entities/{legal_entity_id}/income-statement.csv:
     get:
       summary: DRE gerencial em CSV para o Excel
-      description: Mesmo formato do balancete em CSV, com as colunas Mês e Acumulado no ano.
+      description: >-
+        Mesmo formato do balancete em CSV, com as colunas Mês e Acumulado no ano. Com contador definido, o cabeçalho traz a
+        linha Responsável técnico. O arquivo termina com o bloco Assinaturas; sem cadastro, a linha diz Responsável técnico não
+        cadastrado (ADR 030).
       operationId: getIncomeStatementCsv
       parameters:
         - $ref: '#/components/parameters/LegalEntityId'
@@ -1210,11 +1213,13 @@ paths:
           required: true
           schema: { type: string }
       responses:
-        '200': { description: 'sections (asset, liability, equity) com groups, rows e balance; total_assets, total_liabilities_and_equity e difference' }
+        '200': { description: 'sections (asset, liability, equity) com groups, rows e balance; total_assets, total_liabilities_and_equity e difference; signatories (ADR 030)' }
   /v1/legal-entities/{legal_entity_id}/balance-sheet.csv:
     get:
       summary: Balanço gerencial em CSV para o Excel
-      description: Mesmo formato do balancete em CSV, com a coluna Saldo, os totais e a diferença.
+      description: >-
+        Mesmo formato do balancete em CSV, com a coluna Saldo, os totais e a diferença. Cabeçalho e bloco de assinaturas
+        como na DRE em CSV (ADR 030).
       operationId: getBalanceSheetCsv
       parameters:
         - $ref: '#/components/parameters/LegalEntityId'
@@ -1226,6 +1231,96 @@ paths:
         '200':
           description: Arquivo balanco-<cnpj>-<AAAA-MM>.csv
           content: { text/csv: { schema: { type: string } } }
+  /v1/me/professional-registration:
+    get:
+      summary: Registro profissional (CRC) de quem está logado, no escritório ativo
+      description: Qualquer papel do escritório. O cliente da empresa recebe 403. registration é null antes do cadastro (ADR 030).
+      operationId: getMyProfessionalRegistration
+      responses:
+        '200':
+          description: Registro da pessoa
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MyProfessionalRegistration' }
+        '403': { description: Cliente da empresa }
+    put:
+      summary: Cadastra ou atualiza o próprio CRC
+      description: >-
+        O CPF passa pelos dígitos verificadores, a UF pela lista das 27 e o número segue o formato do CRC (012345/O-8). O
+        sistema não consulta o CRC. Grava auditoria professional_registration_updated, sem o CPF.
+      operationId: putMyProfessionalRegistration
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [cpf, crc_uf, crc_number, crc_category]
+              properties:
+                cpf: { type: string, minLength: 1, maxLength: 14 }
+                crc_uf: { type: string, minLength: 1, maxLength: 2 }
+                crc_number: { type: string, minLength: 1, maxLength: 20 }
+                crc_category: { type: string, enum: [contador, tecnico] }
+                regularity_number: { type: [string, 'null'], maxLength: 40 }
+                regularity_valid_until: { type: [string, 'null'], format: date }
+      responses:
+        '200':
+          description: Registro salvo
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MyProfessionalRegistration' }
+        '400': { description: 'CPF, UF, número ou categoria inválidos' }
+        '403': { description: Cliente da empresa }
+  /v1/legal-entities/{legal_entity_id}/signatories:
+    get:
+      summary: Signatários da DRE e do Balanço da empresa
+      description: >-
+        Qualquer papel do escritório. Para quem não é admin, o CPF do representante sai mascarado e accountant_options
+        não vem. Empresa de outro escritório devolve 404 (ADR 030).
+      operationId: getEntitySignatories
+      parameters:
+        - $ref: '#/components/parameters/LegalEntityId'
+      responses:
+        '200':
+          description: Contador e representante legal
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/EntitySignatories' }
+        '403': { description: Cliente da empresa }
+        '404': { description: Empresa não encontrada no escritório }
+    put:
+      summary: Define o contador responsável e o representante legal
+      description: >-
+        Só admin. O contador precisa ser do escritório, ter registro e categoria contador; senão 400. O representante
+        precisa de nome, CPF válido e cargo. Enviar tudo null limpa o cadastro. Grava auditoria entity_signatories_updated.
+      operationId: putEntitySignatories
+      parameters:
+        - $ref: '#/components/parameters/LegalEntityId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                accountant_user_id: { type: [string, 'null'], maxLength: 160 }
+                legal_rep_name: { type: [string, 'null'], maxLength: 200 }
+                legal_rep_cpf: { type: [string, 'null'], maxLength: 14 }
+                legal_rep_role: { type: [string, 'null'], enum: [socio_administrador, administrador, diretor, titular, null] }
+      responses:
+        '200':
+          description: Signatários salvos
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/EntitySignatories' }
+        '400': { description: 'Contador fora do escritório, sem registro ou técnico; CPF ou cargo do representante inválidos' }
+        '403': { description: Quem não é admin }
+        '404': { description: Empresa não encontrada no escritório }
   /v1/legal-entities/{legal_entity_id}/year-end-closing:
     post:
       summary: Gera o rascunho do encerramento do exercício
@@ -1388,3 +1483,69 @@ components:
         status: { type: string, enum: [accepted, running, completed, failed, cancelled] }
         correlation_id: { type: string }
         error_code: { type: [string, 'null'] }
+    MyProfessionalRegistration:
+      type: object
+      required: [user_id, display_name, registration]
+      properties:
+        user_id: { type: string }
+        display_name: { type: string }
+        registration:
+          type: [object, 'null']
+          properties:
+            cpf: { type: string, description: CPF formatado da própria pessoa }
+            crc_uf: { type: string }
+            crc_number: { type: string }
+            crc_category: { type: string, enum: [contador, tecnico] }
+            crc: { type: string, description: 'Rótulo, como CRC-PE 012345/O' }
+            caption: { type: string, description: 'Legenda da assinatura, como Contador, CRC-PE 012345/O' }
+            regularity_number: { type: [string, 'null'] }
+            regularity_valid_until: { type: [string, 'null'], format: date }
+            updated_at: { type: [string, 'null'], format: date-time }
+    EntitySignatories:
+      type: object
+      required: [legal_entity_id, accountant, legal_representative]
+      properties:
+        legal_entity_id: { type: string }
+        accountant:
+          type: [object, 'null']
+          properties:
+            user_id: { type: string }
+            name: { type: string }
+            crc: { type: string }
+            caption: { type: string }
+            regularity_number: { type: [string, 'null'] }
+            regularity_valid_until: { type: [string, 'null'], format: date }
+        legal_representative:
+          type: [object, 'null']
+          properties:
+            name: { type: string }
+            cpf: { type: [string, 'null'], description: 'Formatado para o admin; mascarado (***.456.789-**) para os outros papéis' }
+            role: { type: [string, 'null'] }
+            caption: { type: string }
+        updated_at: { type: [string, 'null'], format: date-time }
+        accountant_options:
+          type: array
+          description: Só para o admin. Pessoas do escritório com registro; eligible é false para o técnico.
+          items:
+            type: object
+            properties:
+              user_id: { type: string }
+              display_name: { type: string }
+              crc: { type: string }
+              crc_category: { type: string }
+              eligible: { type: boolean }
+              regularity_valid_until: { type: [string, 'null'], format: date }
+    StatementSignatories:
+      type: [object, 'null']
+      description: Campo signatories da DRE e do Balanço. Sem CPF. null quando a empresa não tem signatários.
+      properties:
+        accountant:
+          type: [object, 'null']
+          properties:
+            name: { type: string }
+            caption: { type: string }
+        legal_representative:
+          type: [object, 'null']
+          properties:
+            name: { type: string }
+            caption: { type: string }

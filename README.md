@@ -30,6 +30,8 @@ O primeiro público é um escritório com cerca de **20 a 200 CNPJs**, em dois o
 | Plano de contas | Contas sintéticas e analíticas por empresa. Só conta analítica (postável) recebe lançamento. | Rotinas do razão › Plano de contas |
 | Lançamentos | Rascunho equilibrado, envio, aprovação e publicação. Quem cria não aprova nem publica. Publicado não se edita: corrige-se por estorno vinculado. | Hoje, Dados e ledger, Rotinas do razão › Novo lançamento |
 | Balancete | Débito, crédito e saldo por conta e competência, com drill-down até a linha. | Rotinas do razão › Balancete |
+| Demonstrações | DRE e Balanço gerenciais da competência, com impressão e CSV. Terminam com as assinaturas do contador responsável (nome e CRC) e do representante legal; sem cadastro, a linha diz que falta. | Relatórios › DRE e Balanço |
+| Signatários | Cada pessoa do escritório cadastra o próprio CRC. O admin escolhe o contador e o representante legal de cada empresa. | Perfil; Administração › Assinaturas |
 | Períodos | O checklist bloqueia o fechamento. O snapshot fica gravado com SHA-256. Reabrir pede motivo e aprovação de outra pessoa e não altera o snapshot. | Fechamentos |
 | Pendências | Pedido de documento na competência. Aberto ou recebido bloqueia o fechamento. Hoje mostra a fila do escritório. | Hoje e Pendências |
 | Importação | Lote CSV em simulação, relatório de diferenças e publicação por outra pessoa. Identificador já importado não entra de novo. | Migrações |
@@ -114,6 +116,7 @@ flowchart LR
 | Pedidos de documento | `document_requests/` | Pedido na competência, envio, confirmação, cancelamento e a fila do escritório. |
 | Exportação | `exports/` | Pacote JSON da competência, gerado pelo outbox, com SHA-256 e auditoria. |
 | Portal do cliente | `portal/` | Rotas do cliente: os pedidos da própria empresa e o envio do arquivo. |
+| Signatários | `signatories/` | Registro profissional (CRC) por escritório, signatários da empresa e a leitura que as demonstrações e a ECD usam. |
 | Auditoria | `audit/` | Eventos encadeados por hash e verificação. |
 | Plataforma | `platform/` | Autenticação, escopo do cliente (`require_office`), RLS, idempotência, correlation ID, outbox, storage, dinheiro em decimal. |
 

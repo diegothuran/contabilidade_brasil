@@ -31,3 +31,4 @@
 | [027](027-envio-sem-pedido.md) | O cliente envia um documento sem pedido. O escritório classifica ou descarta. |
 | [028](028-aviso-por-email.md) | O cliente recebe aviso pelo SES. O e-mail é lido no Cognito e não fica no banco. |
 | [029](029-encerramento-e-demonstracoes.md) | O encerramento do exercício nasce como rascunho para aprovação. DRE e Balanço são gerenciais. |
+| [030](030-signatarios-das-demonstracoes.md) | O CRC fica no perfil de cada pessoa do escritório. O admin escolhe o contador e o representante legal de cada empresa, e a DRE e o Balanço saem assinados. |

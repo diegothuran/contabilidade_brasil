@@ -29,6 +29,7 @@ Cada módulo fica em `apps/api/src/contabil/<módulo>/`, com `router.py` (HTTP) 
 | `submissions` | `/client-submissions` | `client_submissions` | Pendências (envios sem pedido) | [027](adr/027-envio-sem-pedido.md) |
 | `exports` | `/legal-entities/{id}/exports`, `/exports` | `operational_exports` | Evidências | [023](adr/023-exportacao-operacional.md) |
 | `portal` | `/portal/...` | usa as de `document_requests`, `submissions` e `identity` | Portal do cliente | [025](adr/025-portal-do-cliente.md) |
+| `signatories` | `/me/professional-registration`, `/legal-entities/{id}/signatories` (GET e PUT). A leitura `signatories_for` em `signatories/service.py` alimenta `ledger/statements.py` e o J930 da ECD; a escrita fica em `signatories/editing.py` | `professional_registrations`, `entity_signatories` | Perfil; Administração › Assinaturas; assinaturas da DRE e do Balanço | [030](adr/030-signatarios-das-demonstracoes.md) |
 | `audit` | `/audit-events`, `/audit-events/verify` | `audit_events` | Rotinas › Auditoria | [010](adr/010-rls-e-triggers.md) |
 | `platform` | `/healthz`, `/readyz` | `idempotency_keys`, `outbox_events` | — | [006](adr/006-adaptadores-e-idempotencia.md), [008](adr/008-outbox-postgresql.md) |
 
@@ -175,7 +176,7 @@ flowchart TB
     app -->|"papel client"| portal["PortalPage + RequestThread"]
     app -->|"escritório"| shell["RastroShell: barra lateral, barra de contexto, rotas"]
     shell --> home["OfficeHome (Hoje)"]
-    shell --> pages["pages/*: Fechamentos, Pendências, Relatórios,<br/>Conciliação, Migrações, Ledger, Evidências, Administração"]
+    shell --> pages["pages/*: Fechamentos, Pendências, Relatórios,<br/>Conciliação, Migrações, Ledger, Evidências, Administração,<br/>Perfil, Assinaturas da empresa"]
     shell --> rotinas["Rotinas do razão: contas, lançamento, bancos, auditoria, nova empresa"]
     shell --> demo["Demonstração (dados fixos de rastro/data/mockData.ts)"]
     pages --> apits["api.ts: Bearer, Idempotency-Key, X-Tenant-Id"]
@@ -209,6 +210,9 @@ flowchart TB
 - **O Heroku guarda só as últimas 1500 linhas de log.** Para investigar um erro, peça a ação de novo com `heroku logs --tail` aberto. O `X-Correlation-Id` da resposta liga a tela à linha do log.
 - **`heroku run` no Windows quebra comando de várias linhas.** Mande o script pela entrada padrão: `heroku run --no-tty --app NOME -- python - < script.py`.
 - **No OpenAPI, descrição com vírgula dentro de `{ ... }` vai entre aspas.**
+- **O CRC é por escritório.** `professional_registrations` tem `tenant_id`; quem troca de escritório não leva o registro. Signatário de empresa sem registro no escritório ativo some da DRE, e `signatories_for` devolve o contador como `None`.
+- **CPF não vai para a trilha nem para a demonstração.** A auditoria do perfil guarda só UF e categoria; a DRE e o Balanço levam nome e legenda. O CPF do representante sai mascarado para quem não é admin.
+- **Rotas com PUT.** O perfil e os signatários usam `PUT`; o CORS de `main.py` libera o método.
 
 ## Mapa gerado
 
