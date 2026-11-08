@@ -81,6 +81,9 @@ export function TrialBalancePage() {
           <h1>Balancete</h1>
           <p>Saldo anterior, movimento do mês e saldo atual de cada conta. Clique numa conta para ver o razão.</p>
           <ReportSwitcher />
+          <p className="muted">
+            <Link to="/app/rastro/ecd" data-testid="link-ecd">Prévia da ECD</Link>: o arquivo do ano para conferir no PVA, sem transmissão.
+          </p>
         </div>
         <div className="page-header__action report-actions">
           <button type="button" className="button" data-testid="print-balancete" disabled={!balance.data} onClick={() => printOnly("balancete")}>
