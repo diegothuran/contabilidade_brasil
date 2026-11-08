@@ -113,7 +113,63 @@ def main() -> None:
         if marker in examples_text:
             raise SystemExit(f"example contains possible secret field: {marker}")
 
+    if config.get("regulatory", {}).get("production_transmission") is not False:
+        raise SystemExit("production_transmission must stay false while the ECD is a preview")
+    validate_ecd_preview(EXAMPLES / "ecd-preview.example.txt", ROOT / "apps/api/src/contabil/regulatory/data/ecd/leiaute-9.json")
+
     print(f"OK: {len(schemas)} JSON schemas, fixtures and accounting invariants are valid")
+
+
+def _ecd_number(text: str) -> Decimal:
+    return Decimal(text.replace(",", ".")) if text else Decimal("0")
+
+
+def validate_ecd_preview(path: Path, layout_path: Path) -> None:
+    """Checagem semântica da prévia da ECD (ADR 031): campos do leiaute, bloco 9 e I200 contra I250."""
+    layout = load_json(layout_path)
+    if layout["constants"]["COD_VER_LC"] != "9.00" or layout["file"]["encoding"] != "ISO-8859-1":
+        raise SystemExit("ECD layout constants changed without review")
+    raw = path.read_bytes()
+    if not raw.endswith(b"\r\n"):
+        raise SystemExit("ECD preview must end every line with CR+LF")
+    text = raw.decode(layout["file"]["encoding"])
+    lines = text.split("\r\n")[:-1]
+    names = {code: [field["name"] for field in data["fields"]] for code, data in layout["registers"].items()}
+    records: list[dict[str, str]] = []
+    for number, line in enumerate(lines, start=1):
+        if not (line.startswith("|") and line.endswith("|")):
+            raise SystemExit(f"ECD preview line {number} is not delimited by |")
+        cells = line[1:-1].split("|")
+        fields = names.get(cells[0])
+        if fields is None or len(cells) != len(fields):
+            raise SystemExit(f"ECD preview line {number} does not match register {cells[0]} of the layout")
+        records.append(dict(zip(fields, cells)))
+    counted: dict[str, int] = {}
+    for record in records:
+        counted[record["REG"]] = counted.get(record["REG"], 0) + 1
+    declared = {record["REG_BLC"]: int(record["QTD_REG_BLC"]) for record in records if record["REG"] == "9900"}
+    if declared != counted:
+        raise SystemExit("ECD preview 9900 counts do not match the lines")
+    total = int(next(record["QTD_LIN"] for record in records if record["REG"] == "9999"))
+    if total != len(records):
+        raise SystemExit("ECD preview 9999 does not match the number of lines")
+    for register, field in layout["structure"]["total_line_fields"]:
+        if any(int(record[field]) != total for record in records if record["REG"] == register):
+            raise SystemExit(f"ECD preview {register}.{field} does not match 9999")
+    for block, spec in layout["structure"]["blocks"].items():
+        closing = next(record for record in records if record["REG"] == spec["close"])
+        if int(closing[spec["count_field"]]) != sum(1 for record in records if record["REG"][0] == block):
+            raise SystemExit(f"ECD preview block {block} count does not match")
+    entries: list[list[Decimal]] = []
+    for record in records:
+        if record["REG"] == "I200":
+            entries.append([_ecd_number(record["VL_LCTO"]), Decimal("0"), Decimal("0")])
+        elif record["REG"] == "I250":
+            entries[-1][1 if record["IND_DC"] == "D" else 2] += _ecd_number(record["VL_DC"])
+    if any(debit != total_value or credit != total_value for total_value, debit, credit in entries):
+        raise SystemExit("ECD preview has an I200 that does not match its I250 lines")
+    if "PREVIA" not in next(record["NAT_LIVR"] for record in records if record["REG"] == "I030"):
+        raise SystemExit("ECD preview must be marked as preview in I030.NAT_LIVR")
 
 
 if __name__ == "__main__":
