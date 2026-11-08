@@ -27,6 +27,7 @@ from contabil.periods.router import router as periods_router
 from contabil.portal.router import router as portal_router
 from contabil.reconciliation.router import router as reconciliation_router
 from contabil.signatories.router import router as signatories_router
+from contabil.regulatory.router import router as regulatory_router
 from contabil.submissions.router import router as submissions_router
 from contabil.platform.correlation import correlation_id
 from contabil.platform.db import get_engine
@@ -175,6 +176,7 @@ def create_app() -> FastAPI:
     app.include_router(reconciliation_router, prefix="/v1", dependencies=office)
     app.include_router(audit_router, prefix="/v1", dependencies=office)
     app.include_router(signatories_router, prefix="/v1", dependencies=office)
+    app.include_router(regulatory_router, prefix="/v1", dependencies=office)
     app.include_router(portal_router, prefix="/v1")
     if settings.static_dir:
         _mount_spa(app, settings.static_dir)
