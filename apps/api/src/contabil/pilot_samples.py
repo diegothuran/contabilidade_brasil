@@ -620,6 +620,46 @@ def _enrich(
         _ensure_export(session, preparer, entity_id, name, notes)
     elif behavior == "banco":
         _ensure_year_end_draft(session, preparer, entity_id, year, name, notes)
+        _ensure_ecd(session, preparer, entity_id, story, year, name, notes, storage=statements)
+
+
+# Cadastro fictício da ECD (ADR 031): sede em Recife-PE. O NIRE é inventado e só começa com 26,
+# o código da JUCEPE; a outra empresa é sociedade simples registrada em cartório, sem NIRE.
+ECD_SAMPLES = {
+    "banco": {"registry_kind": "junta", "nire": "26299990001", "registry_date": date(2019, 3, 12), "book_number": 1},
+    "mercado": {"registry_kind": "cartorio", "nire": None, "registry_date": date(2018, 8, 20), "book_number": 1},
+}
+
+
+def _ensure_ecd(
+    session: Session, preparer: Principal, entity_id: str, story: str, year: int, name: str, notes: list[str], *, storage: bool
+) -> None:
+    """Dados da escrituração em Recife-PE e, com storage, uma prévia da ECD já gerada pelo worker."""
+    from contabil.exports.service import ECD_PREVIEW_KIND, create_export
+    from contabil.regulatory.registration import RegistrationInput, registration_row, save_registration
+
+    sample = ECD_SAMPLES.get(story)
+    if sample is None:
+        return
+    apply_tenant(session, preparer.tenant_id)
+    if registration_row(session, preparer.tenant_id, entity_id) is None:
+        save_registration(
+            session,
+            preparer.tenant_id,
+            entity_id,
+            preparer.user_id,
+            RegistrationInput(uf="PE", municipality_ibge="2611606", special_situation=None, **sample),
+        )
+    if not storage:
+        return
+    if session.scalar(
+        select(OperationalExport.id).where(OperationalExport.legal_entity_id == entity_id, OperationalExport.kind == ECD_PREVIEW_KIND).limit(1)
+    ):
+        return
+    try:
+        create_export(session, preparer, legal_entity_id=entity_id, period_id=None, kind=ECD_PREVIEW_KIND, fiscal_year=year)
+    except DomainError as exc:
+        notes.append(f"{name}: prévia da ECD não pedida ({exc.detail})")
 
 
 def _ensure_client_submission(

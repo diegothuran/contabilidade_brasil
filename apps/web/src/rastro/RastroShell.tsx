@@ -11,6 +11,7 @@ import { CompanyFormPage } from "../pages/CompanyFormPage";
 import { CompanySignatoriesPage } from "../pages/CompanySignatoriesPage";
 import { DocumentRequestsPage } from "../pages/DocumentRequestsPage";
 import { DocumentsPage } from "../pages/DocumentsPage";
+import { EcdPage } from "../pages/EcdPage";
 import { ImportDetailPage, ImportsPage } from "../pages/ImportsPage";
 import { JournalDetailPage } from "../pages/JournalDetailPage";
 import { JournalFormPage } from "../pages/JournalFormPage";
@@ -64,7 +65,7 @@ const navGroups = [
       { to: "/app/rastro", label: "Hoje", mark: "H" },
       { to: "/app/rastro/fechamentos", label: "Fechamentos", mark: "F" },
       { to: "/app/rastro/pendencias", label: "Pendências", mark: "P" },
-      { to: "/app/rastro/balancete", label: "Relatórios", mark: "R", also: ["/app/rastro/dre", "/app/rastro/balanco"] },
+      { to: "/app/rastro/balancete", label: "Relatórios", mark: "R", also: ["/app/rastro/dre", "/app/rastro/balanco", "/app/rastro/ecd"] },
       { to: "/app/rastro/conciliacao", label: "Conciliação", mark: "C" },
       { to: "/app/rastro/migracoes", label: "Migrações", mark: "M" },
     ],
@@ -92,6 +93,7 @@ const routeMeta: Record<string, { crumb: string; label: string }> = {
   "/app/rastro/balancete": { crumb: "Relatórios", label: "Balancete e razão" },
   "/app/rastro/dre": { crumb: "Relatórios", label: "DRE" },
   "/app/rastro/balanco": { crumb: "Relatórios", label: "Balanço" },
+  "/app/rastro/ecd": { crumb: "Relatórios", label: "Prévia da ECD" },
   "/app/rastro/conciliacao": { crumb: "Operação", label: "Conciliação" },
   "/app/rastro/migracoes": { crumb: "Operação", label: "Migrações" },
   "/app/rastro/ledger": { crumb: "Rastreabilidade", label: "Dados e ledger" },
@@ -430,6 +432,7 @@ export function RastroShell() {
             <Route path="/app/rastro/balancete" element={<Routine><TrialBalancePage /></Routine>} />
             <Route path="/app/rastro/dre" element={<Routine><IncomeStatementPage /></Routine>} />
             <Route path="/app/rastro/balanco" element={<Routine><BalanceSheetPage /></Routine>} />
+            <Route path="/app/rastro/ecd" element={<Routine><EcdPage /></Routine>} />
             <Route path="/app/rastro/conciliacao" element={<Routine><LedgerReconciliationPage /></Routine>} />
             <Route path="/app/rastro/migracoes" element={<Routine><ImportsPage /></Routine>} />
             <Route path="/app/rastro/migracoes/:batchId" element={<Routine><ImportDetailPage /></Routine>} />

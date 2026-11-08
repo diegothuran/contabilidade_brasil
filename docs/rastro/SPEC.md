@@ -1,4 +1,4 @@
-# SPEC — Contrato de interface v0.9.0
+# SPEC — Contrato de interface v0.10.0
 
 > Fonte de verdade da experiência do front-end. Atualizações de comportamento, estado, linguagem visual ou estrutura precisam atualizar este arquivo antes do código.
 
@@ -115,6 +115,7 @@ A sala fica em `/app/rastro` e é a primeira tela depois do login. Ela é a úni
 | DRE | Em Relatórios, ao lado do balancete, pelos links Balancete · DRE · Balanço. Receitas, despesas e resultado do mês e do acumulado no ano, agrupados pela conta raiz do plano, só com contas que têm valor. Os cartões mostram receitas, despesas e lucro ou prejuízo do ano. O encerramento do exercício não entra. Imprimir e Baixar CSV (Excel) no cabeçalho, com o aviso de demonstração gerencial sem layout oficial. |
 | Balanço | Ativo, passivo e patrimônio líquido no fim da competência. Antes do encerramento, o PL mostra a linha "Resultado do exercício não encerrado". O cartão Diferença fica verde quando o ativo é igual ao passivo mais o PL. Imprimir e Baixar CSV (Excel) no cabeçalho. |
 | Assinaturas da DRE e do Balanço | Depois da tabela, as duas demonstrações mostram e imprimem duas linhas de assinatura: "Nome — Contador, CRC-PE 012345/O" e "Nome — Sócio-administrador". O CPF não aparece. Sem cadastro, a linha diz "Responsável técnico não cadastrado" (ou "Representante legal não cadastrado") e a impressão não é bloqueada. Na tela, um aviso com a palavra "Aviso" e a cor de atenção diz o que falta; para o admin ele traz o link "Definir as assinaturas da empresa", para os outros pede que falem com o admin. O aviso não sai no papel. O CSV traz "Responsável técnico" no cabeçalho e o bloco "Assinaturas" no fim ([ADR 030](../adr/030-signatarios-das-demonstracoes.md)). |
+| Prévia da ECD | `/app/rastro/ecd`, em Relatórios, pelo link "Prévia da ECD" no balancete. No topo, o aviso fixo "Prévia para conferência no PVA. Não transmitir." Dados da escrituração (UF, município IBGE, Junta com NIRE ou cartório sem NIRE, data do arquivamento, situação especial e número do livro): todos leem, só o admin salva, e a recusa da API aparece em texto. Ano-calendário (pré-seleciona o da competência da barra) e o botão "Gerar prévia" para preparador, aprovador e admin. Enquanto o worker trabalha, "Gerando a prévia…". Pronto, mostra o nome `ECD-PREVIA-<cnpj>-<ano>.txt`, o SHA-256, o botão "Baixar arquivo (.txt)", a lista de pendências por severidade (Falta, Atenção, Suposição, Fora da prévia), com link para onde corrigir, e as conferências internas em texto ("Fecha" ou "Não fecha"). Nada é transmitido ou assinado ([ADR 031](../adr/031-registry-minimo-e-previa-ecd.md)). |
 | Encerramento do exercício | Painel no balancete de dezembro, só para preparador e admin. Escolhe a conta do PL (pré-seleciona 3.2.01) e gera o rascunho em 31/12. Abre o lançamento criado, que segue enviar, aprovar e publicar por outro usuário. Recusa com a mensagem da API quando há lançamento pendente no ano, quando o encerramento já existe ou quando não há o que encerrar. |
 | Conciliação | Casos de conciliação. |
 | Migrações | Lotes de importação. |
@@ -141,6 +142,7 @@ Nada nesta tela fala em journal, balancete, papéis do escritório, exportação
 
 ## 14. Changelog
 
+- `0.10.0` — Prévia da ECD: tela nova em Relatórios com os dados da escrituração (só admin salva), a geração do arquivo do leiaute 9 pelo worker, as pendências com link e o download do .txt marcado como prévia. Não transmite nem assina.
 - `0.9.0` — Assinaturas: a DRE e o Balanço terminam com o responsável técnico e o representante legal, na tela, na impressão e no CSV. Sem cadastro, a linha diz isso e a tela avisa com link. Entram o Perfil (CRC da pessoa) e a tela de assinaturas da empresa, só admin, ligada a partir da Administração.
 - `0.8.1` — O detalhe do lançamento mostra a origem por extenso. O encerramento traz uma nota sobre o tipo E e o registro I355 da ECD. O painel de encerramento avisa que resultado lançado depois do encerramento gera um encerramento complementar.
 - `0.8.0` — Relatórios: o menu Balancete e razão vira Relatórios, com DRE e Balanço gerenciais (imprimir e CSV) e o painel de encerramento do exercício no balancete de dezembro.

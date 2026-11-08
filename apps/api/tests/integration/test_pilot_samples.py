@@ -9,7 +9,7 @@ from contabil.platform.auth import apply_tenant
 from contabil.platform.db import session_factory
 from contabil.signatories.service import signatories_for
 from contabil.signatories.validators import valid_cpf
-from contabil.tables import AccountingPeriod, JournalEntry, JournalLine, LegalEntity, Membership, OperationalExport
+from contabil.tables import AccountingPeriod, EcdRegistration, JournalEntry, JournalLine, LegalEntity, Membership, OperationalExport
 
 
 def test_pilot_samples_are_idempotent_and_skip_statements_without_storage(monkeypatch, world):
@@ -88,5 +88,38 @@ def test_pilot_samples_are_idempotent_and_skip_statements_without_storage(monkey
             assert found is not None and found.accountant is not None, story
             assert found.accountant.crc.startswith("CRC-PE ")
             assert found.legal_representative is not None and valid_cpf(found.legal_representative.cpf or "")
+        ecd = session.scalars(select(EcdRegistration).where(EcdRegistration.tenant_id == "tenant_demo")).all()
+        assert [(row.legal_entity_id, row.uf, row.municipality_ibge, row.registry_kind) for row in ecd] == [
+            (by_story["banco"], "PE", "2611606", "junta")
+        ]
+        assert ecd[0].nire.startswith("26")
+    finally:
+        session.close()
+
+
+def test_litoral_samples_register_the_market_in_a_cartorio_and_generate_an_ecd_preview(world):
+    del world
+    from contabil.exports.service import ECD_PREVIEW_KIND
+    from contabil.pilot_samples import load_samples
+    from tests.integration.test_ecd_preview import _drain
+
+    loaded = load_samples("tenant_demo", "litoral")
+    assert loaded["statements"] == "imported"
+    by_story = {company["story"]: company["legal_entity_id"] for company in loaded["created"]}
+    _drain()
+    session = session_factory(admin=True)()
+    try:
+        apply_tenant(session, "tenant_demo")
+        row = session.scalar(select(EcdRegistration).where(EcdRegistration.legal_entity_id == by_story["mercado"]))
+        assert (row.uf, row.municipality_ibge, row.registry_kind, row.nire) == ("PE", "2611606", "cartorio", None)
+        export = session.scalar(
+            select(OperationalExport).where(OperationalExport.legal_entity_id == by_story["mercado"], OperationalExport.kind == ECD_PREVIEW_KIND)
+        )
+        assert export is not None and export.payload is not None, loaded["notes"]
+        assert export.payload["transmittable"] is False
+        codes = {issue["code"] for issue in export.payload["issues"]}
+        assert "closing_missing" in codes
+        assert "registration_missing" not in codes
+        assert export.payload["checks"]["block_counts"] is True
     finally:
         session.close()

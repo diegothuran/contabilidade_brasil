@@ -612,3 +612,26 @@ class OperationalExport(Base):
     payload: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     created_by: Mapped[str] = mapped_column(String(160))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+
+class EcdRegistration(Base):
+    """Dados da escrituração da ECD por empresa: sede, registro e número do livro (ADR 031)."""
+
+    __tablename__ = "ecd_registrations"
+    __table_args__ = (
+        UniqueConstraint("legal_entity_id", name="uq_ecd_registrations_entity"),
+        CheckConstraint("registry_kind IN ('junta', 'cartorio')", name="ck_ecd_registrations_kind"),
+    )
+
+    id: Mapped[str] = mapped_column(String(160), primary_key=True)
+    tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.id"))
+    legal_entity_id: Mapped[str] = mapped_column(ForeignKey("legal_entities.id"))
+    uf: Mapped[str] = mapped_column(String(2))
+    municipality_ibge: Mapped[str] = mapped_column(String(7))
+    registry_kind: Mapped[str] = mapped_column(String(20))
+    nire: Mapped[str | None] = mapped_column(String(11), nullable=True)
+    registry_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    special_situation: Mapped[str | None] = mapped_column(String(1), nullable=True)
+    book_number: Mapped[int] = mapped_column(Integer)
+    updated_by: Mapped[str] = mapped_column(String(160))
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)

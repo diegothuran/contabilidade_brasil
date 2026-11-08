@@ -27,7 +27,8 @@ Cada módulo fica em `apps/api/src/contabil/<módulo>/`, com `router.py` (HTTP) 
 | `documents` | `/documents` | `source_documents` | Evidências | [011](adr/011-object-storage-s3.md) |
 | `document_requests` | `/document-requests` (inclui fila, comentários e devolução) | `document_requests`, `document_request_files`, `document_request_comments` | Pendências; Hoje | [021](adr/021-pedido-de-documento.md), [024](adr/024-fila-de-pendencias.md), [026](adr/026-devolucao-e-conversa.md) |
 | `submissions` | `/client-submissions` | `client_submissions` | Pendências (envios sem pedido) | [027](adr/027-envio-sem-pedido.md) |
-| `exports` | `/legal-entities/{id}/exports`, `/exports` | `operational_exports` | Evidências | [023](adr/023-exportacao-operacional.md) |
+| `exports` | `/legal-entities/{id}/exports` (`operational_v1` ou `ecd_preview_v1`), `/exports/{id}` e `/exports/{id}/file` | `operational_exports` | Evidências; Relatórios › Prévia da ECD | [023](adr/023-exportacao-operacional.md), [031](adr/031-registry-minimo-e-previa-ecd.md) |
+| `regulatory` | `/legal-entities/{id}/ecd-registration` (GET e PUT, só admin grava). O leiaute é dado em `regulatory/data/ecd/*.json`; `registry.py` escolhe a versão pela vigência, `writer.py` serializa os registros e `ecd_preview.py` monta a prévia e as conferências | `ecd_registrations` | Relatórios › Prévia da ECD | [002](adr/002-registry-regulatorio-versionado.md), [031](adr/031-registry-minimo-e-previa-ecd.md) |
 | `portal` | `/portal/...` | usa as de `document_requests`, `submissions` e `identity` | Portal do cliente | [025](adr/025-portal-do-cliente.md) |
 | `signatories` | `/me/professional-registration`, `/legal-entities/{id}/signatories` (GET e PUT). A leitura `signatories_for` em `signatories/service.py` alimenta `ledger/statements.py` e o J930 da ECD; a escrita fica em `signatories/editing.py` | `professional_registrations`, `entity_signatories` | Perfil; Administração › Assinaturas; assinaturas da DRE e do Balanço | [030](adr/030-signatarios-das-demonstracoes.md) |
 | `audit` | `/audit-events`, `/audit-events/verify` | `audit_events` | Rotinas › Auditoria | [010](adr/010-rls-e-triggers.md) |
@@ -92,6 +93,7 @@ flowchart LR
 | `BankStatementReceived` | `reconciliation.service.import_statement` | envio de extrato |
 | `JournalPublished` | `reconciliation.service.resolve_case_from_journal` | publicação de lançamento criado a partir de um caso |
 | `OperationalExportRequested` | `exports.service.run_operational_export` | pedido de exportação |
+| `EcdPreviewRequested` | `exports.service.run_ecd_preview` | pedido da prévia da ECD (`kind: ecd_preview_v1`); guarda o .txt no storage como documento `generated` |
 | `DocumentRequestCreated`, `DocumentRequestReturned` | `identity.notices.deliver_notice` | pedido novo e devolução; o lembrete de prazo sai de `sweep_reminders` |
 
 O worker usa a sessão admin e chama `apply_tenant` antes de cada handler. `outbox_events` é a única tabela de negócio sem `FORCE ROW LEVEL SECURITY`, porque o relay lê todos os escritórios ([0004_force_rls.py](../apps/api/alembic/versions/0004_force_rls.py)).
@@ -211,6 +213,7 @@ flowchart TB
 - **`heroku run` no Windows quebra comando de várias linhas.** Mande o script pela entrada padrão: `heroku run --no-tty --app NOME -- python - < script.py`.
 - **No OpenAPI, descrição com vírgula dentro de `{ ... }` vai entre aspas.**
 - **O CRC é por escritório.** `professional_registrations` tem `tenant_id`; quem troca de escritório não leva o registro. Signatário de empresa sem registro no escritório ativo some da DRE, e `signatories_for` devolve o contador como `None`.
+- **A prévia da ECD não é o leiaute no código.** Campo, tamanho, constante e ordem vêm do JSON do registry. Mudar o leiaute é acrescentar um arquivo com outra vigência; o escritor não ganha `if` por campo. O arquivo usa ISO-8859-1 e CR+LF, e o `.gitattributes` mantém o fixture `examples/ecd-preview.example.txt` sem conversão de fim de linha.
 - **CPF não vai para a trilha nem para a demonstração.** A auditoria do perfil guarda só UF e categoria; a DRE e o Balanço levam nome e legenda. O CPF do representante sai mascarado para quem não é admin.
 - **Rotas com PUT.** O perfil e os signatários usam `PUT`; o CORS de `main.py` libera o método.
 

@@ -1,0 +1,2129 @@
+{
+  "layout": "ECD",
+  "layout_version": "9",
+  "title": "Escrituração Contábil Digital, leiaute 9 (recorte da prévia)",
+  "valid_from_year": 2020,
+  "valid_to_year": null,
+  "verified": true,
+  "source": {
+    "document": "Manual de Orientação do Leiaute 9 da ECD, anexo ao Ato Declaratório Executivo Cofis nº 01/2026, atualização de maio de 2026",
+    "page": "http://sped.rfb.gov.br/pasta/show/1569",
+    "item": "http://sped.rfb.gov.br/item/show/7990",
+    "pdf": "http://sped.rfb.gov.br/arquivo/download/7990",
+    "pdf_sha256": "bc63f0a893ce4b2262b73426717e1cb5546704db58eaf81791fb296468bacc91",
+    "docx": "http://sped.rfb.gov.br/arquivo/download/7989",
+    "docx_sha256": "4ff15e68ba7335ea0464645a330c3f669519d605c7939c49821bead7b1f133b3",
+    "accessed_on": "2026-11-08",
+    "notes": [
+      "O portal recusou HTTPS no dia da consulta; o download foi por HTTP.",
+      "As tabelas foram transcritas do arquivo Word da mesma versão e conferidas por amostragem contra o PDF.",
+      "O portal informa: não houve alteração de leiaute no ano-calendário de 2025."
+    ]
+  },
+  "verified_items": [
+    "I010.COD_VER_LC = 9.00 (único valor válido; o 10.00 aparece só nos exemplos do I012, por erro do manual).",
+    "Codificação ASCII ISO-8859-1 (Latin-1), seção 2.2.",
+    "Cada linha começa com |, cada campo termina com | e a linha termina em CR+LF.",
+    "Número com vírgula decimal, sem separador de milhar e sem sinal; data ddmmaaaa.",
+    "Campos, ordem, tipo, tamanho, decimais e obrigatoriedade dos registros abaixo.",
+    "J930: pelo menos um signatário 900 e um diferente de 900; um só com IND_RESP_LEGAL = S, e nunca o 900.",
+    "Tabela de qualificação dos assinantes (COD_ASSIN).",
+    "0007 é obrigatório na forma G; o código 00 significa nenhuma inscrição em outras entidades.",
+    "O bloco C não é importado: o PGE preenche com a ECD anterior.",
+    "J100 e J150 com linha D exigem I052 com o mesmo código de aglutinação numa conta analítica (REGRA_OBRIGATORIO_I052).",
+    "J100 tem exatamente duas linhas de nível 1 (A e P); J150 tem uma só linha de nível 1, totalizadora."
+  ],
+  "unverified": [
+    "Importação do arquivo no PVA da ECD: o programa não estava instalado no ambiente da POC.",
+    "Se o 9999 entra na contagem QTD_LIN_9 do 9990: o manual diz só 'linhas do bloco 9'. A prévia conta o 9999.",
+    "Formato do IND_CRC: o manual só traz o exemplo 1SP123456. A prévia grava UF e número do registro, sem o prefixo CRC-.",
+    "Correspondência entre o cargo do representante legal cadastrado e o COD_ASSIN (product_mappings.legal_rep_role_to_cod_assin): decisão provisória do produto, não do manual.",
+    "Natureza das contas por tipo (product_mappings.account_type_to_cod_nat): decisão do produto sobre o plano modelo."
+  ],
+  "file": {
+    "encoding": "ISO-8859-1",
+    "delimiter": "|",
+    "line_ending": "\r\n",
+    "decimal_separator": ",",
+    "date_format": "%d%m%Y",
+    "max_text_length": 255,
+    "forbidden_characters": "| e caracteres de controle 00 a 31"
+  },
+  "structure": {
+    "file_open": "0000",
+    "block_order": [
+      "0",
+      "I",
+      "J",
+      "9"
+    ],
+    "blocks": {
+      "0": {
+        "open": "0001",
+        "close": "0990",
+        "count_field": "QTD_LIN_0"
+      },
+      "I": {
+        "open": "I001",
+        "close": "I990",
+        "count_field": "QTD_LIN_I"
+      },
+      "J": {
+        "open": "J001",
+        "close": "J990",
+        "count_field": "QTD_LIN_J"
+      },
+      "9": {
+        "open": "9001",
+        "close": "9990",
+        "count_field": "QTD_LIN_9"
+      }
+    },
+    "register_count": {
+      "register": "9900",
+      "type_field": "REG_BLC",
+      "count_field": "QTD_REG_BLC"
+    },
+    "file_close": {
+      "register": "9999",
+      "count_field": "QTD_LIN"
+    },
+    "total_line_fields": [
+      [
+        "I030",
+        "QTD_LIN"
+      ],
+      [
+        "J900",
+        "QTD_LIN"
+      ]
+    ],
+    "omitted_blocks": {
+      "C": "Preenchido pelo próprio PGE a partir da ECD anterior; não é importado.",
+      "K": "Só para conglomerado econômico (IND_ESC_CONS = S)."
+    }
+  },
+  "constants": {
+    "LECD": "LECD",
+    "COD_VER_LC": "9.00",
+    "DNRC_ABERT": "TERMO DE ABERTURA",
+    "DNRC_ENCER": "TERMO DE ENCERRAMENTO"
+  },
+  "codes": {
+    "COD_NAT": {
+      "01": "Contas de Ativo",
+      "02": "Contas de Passivo",
+      "03": "Patrimônio Líquido",
+      "04": "Contas de Resultado",
+      "05": "Contas de Compensação",
+      "09": "Outras"
+    },
+    "IND_ESC": {
+      "G": "Diário completo",
+      "R": "Diário resumido",
+      "A": "Diário auxiliar",
+      "B": "Balancetes diários e balanços",
+      "Z": "Razão auxiliar"
+    },
+    "IND_LCTO": {
+      "N": "Normal",
+      "E": "Encerramento",
+      "X": "Extemporâneo"
+    },
+    "IND_SIT_ESP": {
+      "1": "Cisão",
+      "2": "Fusão",
+      "3": "Incorporação",
+      "4": "Extinção"
+    },
+    "IND_SIT_INI_PER": {
+      "0": "Normal",
+      "1": "Abertura",
+      "2": "Resultante de cisão, fusão ou remanescente de cisão, ou realizou incorporação",
+      "3": "Início de obrigatoriedade no curso do ano-calendário"
+    },
+    "COD_ENT_REF": {
+      "00": "Nenhuma inscrição em outras entidades"
+    },
+    "COD_ASSIN": {
+      "001": "Pessoa Jurídica (e-CNPJ ou e-PJ)",
+      "203": "Diretor",
+      "204": "Conselheiro de Administração",
+      "205": "Administrador",
+      "206": "Administrador do Grupo",
+      "207": "Administrador de Sociedade Filiada",
+      "220": "Administrador Judicial – Pessoa Física",
+      "222": "Administrador Judicial – Pessoa Jurídica – Profissional Responsável",
+      "223": "Administrador Judicial/Gestor",
+      "226": "Gestor Judicial",
+      "309": "Procurador",
+      "312": "Inventariante",
+      "313": "Liquidante",
+      "315": "Interventor",
+      "401": "Titular – Pessoa Física – EIRELI",
+      "801": "Empresário",
+      "900": "Contador/Contabilista",
+      "940": "Auditor Independente",
+      "999": "Outros"
+    },
+    "accountant_cod_assin": "900"
+  },
+  "product_mappings": {
+    "account_type_to_cod_nat": {
+      "asset": "01",
+      "liability": "02",
+      "equity": "03",
+      "revenue": "04",
+      "expense": "04"
+    },
+    "debit_nature_types": [
+      "asset",
+      "expense"
+    ],
+    "legal_rep_role_to_cod_assin": {
+      "socio_administrador": "205",
+      "administrador": "205",
+      "diretor": "203",
+      "titular": "801"
+    },
+    "book_nature": "DIARIO GERAL - PREVIA NAO TRANSMITIR",
+    "bookkeeping_form": "G"
+  },
+  "preview_defaults": {
+    "0000": {
+      "IND_SIT_INI_PER": "0",
+      "IND_FIN_ESC": "0",
+      "IND_GRANDE_PORTE": "0",
+      "TIP_ECD": "0",
+      "IDENT_MF": "N",
+      "IND_ESC_CONS": "N",
+      "IND_CENTRALIZADA": "0",
+      "IND_MUDANC_PC": "0",
+      "COD_PLAN_REF": ""
+    },
+    "J005": {
+      "ID_DEM": "1"
+    },
+    "note": "Valores assumidos pela prévia porque o cadastro ainda não os tem. Cada um aparece em issues como suposição."
+  },
+  "conditional_required": [
+    {
+      "register": "J930",
+      "when": {
+        "COD_ASSIN": "900"
+      },
+      "fields": [
+        "IND_CRC",
+        "EMAIL",
+        "FONE",
+        "UF_CRC"
+      ],
+      "severity": "error",
+      "rule": "REGRA_OBRIGATORIO_CONTADOR"
+    },
+    {
+      "register": "J930",
+      "when": {
+        "COD_ASSIN": "900"
+      },
+      "fields": [
+        "NUM_SEQ_CRC",
+        "DT_CRC"
+      ],
+      "severity": "warning",
+      "rule": "REGRA_ADVERTENCIA_CONTADOR"
+    }
+  ],
+  "registers": {
+    "0000": {
+      "block": "0",
+      "fields": [
+        {
+          "order": 1,
+          "name": "REG",
+          "description": "Texto fixo contendo “0000”.",
+          "type": "C",
+          "size": 4,
+          "decimals": null,
+          "required": true,
+          "valid_values": "\"0000\""
+        },
+        {
+          "order": 2,
+          "name": "LECD",
+          "description": "Texto fixo contendo “LECD”.",
+          "type": "C",
+          "size": 4,
+          "decimals": null,
+          "required": true,
+          "valid_values": "\"LECD\""
+        },
+        {
+          "order": 3,
+          "name": "DT_INI",
+          "description": "Data inicial das informações contidas no arquivo.",
+          "type": "N",
+          "size": 8,
+          "decimals": null,
+          "required": true,
+          "rules": [
+            "REGRA_DATA_INI_MAIOR",
+            "REGRA_INICIO_PERIODO"
+          ]
+        },
+        {
+          "order": 4,
+          "name": "DT_FIN",
+          "description": "Data final das informações contidas no arquivo.",
+          "type": "N",
+          "size": 8,
+          "decimals": null,
+          "required": true,
+          "rules": [
+            "REGRA_FIM_PERIODO"
+          ]
+        },
+        {
+          "order": 5,
+          "name": "NOME",
+          "description": "Nome empresarial da pessoa jurídica.",
+          "type": "C",
+          "size": null,
+          "decimals": null,
+          "required": true
+        },
+        {
+          "order": 6,
+          "name": "CNPJ",
+          "description": "Número de inscrição da pessoa jurídica no CNPJ. / Observação: Esse CNPJ é sempre da Sócia Ostensiva, no caso do arquivo da SCP.",
+          "type": "C",
+          "size": 14,
+          "decimals": null,
+          "required": true,
+          "rules": [
+            "REGRA_VALIDA_CNPJ"
+          ]
+        },
+        {
+          "order": 7,
+          "name": "UF",
+          "description": "Sigla da unidade da federação da pessoa jurídica.",
+          "type": "C",
+          "size": 2,
+          "decimals": null,
+          "required": true,
+          "rules": [
+            "REGRA_TABELA_UF"
+          ]
+        },
+        {
+          "order": 8,
+          "name": "IE",
+          "description": "Inscrição Estadual da pessoa jurídica.",
+          "type": "C",
+          "size": null,
+          "decimals": null,
+          "required": false,
+          "rules": [
+            "REGRA_CAMPO_CARACTERE_INVALIDO"
+          ]
+        },
+        {
+          "order": 9,
+          "name": "COD_MUN",
+          "description": "Código do município do domicílio fiscal da pessoa jurídica, conforme tabela do IBGE – Instituto Brasileiro de Geografia e Estatística.",
+          "type": "N",
+          "size": 7,
+          "decimals": null,
+          "required": false,
+          "rules": [
+            "REGRA_TABELA_MUNICIPIO",
+            "REGRA_COD_MUN_INV_UF"
+          ]
+        },
+        {
+          "order": 10,
+          "name": "IM",
+          "description": "Inscrição Municipal da pessoa jurídica.",
+          "type": "C",
+          "size": null,
+          "decimals": null,
+          "required": false,
+          "rules": [
+            "REGRA_CAMPO_CARACTERE_INVALIDO"
+          ]
+        },
+        {
+          "order": 11,
+          "name": "IND_SIT_ESP",
+          "description": "Indicador de situação especial (conforme tabela publicada pelo Sped).",
+          "type": "N",
+          "size": 1,
+          "decimals": null,
+          "required": false,
+          "rules": [
+            "REGRA_TABELA_SITUACAO"
+          ]
+        },
+        {
+          "order": 12,
+          "name": "IND_SIT_INI_PER",
+          "description": "Indicador de situação no início do período (conforme tabela publicada pelo Sped).",
+          "type": "N",
+          "size": 1,
+          "decimals": null,
+          "required": true,
+          "rules": [
+            "REGRA_TABELA_SIT_INICIO_PER"
+          ],
+          "note": "O manual imprime o nome como IND_SIT_INI / _PER."
+        },
+        {
+          "order": 13,
+          "name": "IND_NIRE",
+          "description": "Indicador de existência de NIRE: / 0 – Empresa não possui registro na Junta Comercial (não possui NIRE) / 1 – Empresa possui registro na Junta Comercial (possui NIRE)",
+          "type": "N",
+          "size": 1,
+          "decimals": null,
+          "required": true,
+          "valid_values": "[0,1]"
+        },
+        {
+          "order": 14,
+          "name": "IND_FIN_ESC",
+          "description": "Indicador de finalidade da escrituração: / 0 - Original / 1 – Substituta",
+          "type": "N",
+          "size": 1,
+          "decimals": null,
+          "required": true,
+          "valid_values": "[0,1]"
+        },
+        {
+          "order": 15,
+          "name": "COD_HASH_SUB",
+          "description": "Hash da escrituração substituída.",
+          "type": "C",
+          "size": 40,
+          "decimals": null,
+          "required": false,
+          "rules": [
+            "REGRA_HASH_SUBSTITUIDA",
+            "REGRA_VALIDA_HEXADECIMAL"
+          ],
+          "note": "O manual imprime o nome como COD_HASH_ / SUB."
+        },
+        {
+          "order": 16,
+          "name": "IND_GRANDE_PORTE",
+          "description": "Indicador de entidade sujeita a auditoria independente: / 0 – Empresa não é entidade sujeita a auditoria independente. / 1 – Empresa é entidade sujeita a auditoria independente – Ativo Total superior a R$ 240.000.000,00 ou Receita Bruta Anual superior R$300.000.000,00.",
+          "type": "N",
+          "size": 1,
+          "decimals": null,
+          "required": true,
+          "valid_values": "[0; 1]"
+        },
+        {
+          "order": 17,
+          "name": "TIP_ECD",
+          "description": "Indicador do tipo de ECD: / 0 – ECD de empresa não participante de SCP como sócio ostensivo. / 1 – ECD de empresa participante de SCP como sócio ostensivo. / 2 – ECD da SCP.",
+          "type": "N",
+          "size": 1,
+          "decimals": null,
+          "required": true,
+          "valid_values": "[0; 1; 2]"
+        },
+        {
+          "order": 18,
+          "name": "COD_SCP",
+          "description": "CNPJ da SCP (Anexo I, XVIII, da IN RFB nº 2.119, de 06 de dezembro de 2022). / Observação: Só deve ser preenchido pela própria SCP com o CNPJ da SCP (Não é preenchido pelo sócio ostensivo).",
+          "type": "C",
+          "size": 14,
+          "decimals": null,
+          "required": false,
+          "rules": [
+            "REGRA_SCP_OBRIGATORIO",
+            "REGRA_SCP_NAO_PREENCHER",
+            "REGRA_CNPJ_DIFERENTE_SCP",
+            "REGRA_VALIDA_CNPJ"
+          ]
+        },
+        {
+          "order": 19,
+          "name": "IDENT_MF",
+          "description": "Identificação de moeda funcional: Indica que a escrituração abrange valores com base na moeda funcional (art. 287 da Instrução Normativa RFB nº 1.700, de 14 de março de 2017). / Observação: Deverá ser utilizado o registro I020 para informação de campos adicionais, conforme instruções do item 1.24.",
+          "type": "C",
+          "size": 1,
+          "decimals": null,
+          "required": true,
+          "valid_values": "[S; N]"
+        },
+        {
+          "order": 20,
+          "name": "IND_ESC_CONS",
+          "description": "Escriturações Contábeis Consolidadas: (Deve ser preenchido pela empresa controladora obrigada a informar demonstrações contábeis consolidadas, nos termos da Lei nº 6.404/76 e/ou do Pronunciamento Técnico CPC 36 – Demonstrações Consolidadas) / S – Sim / N – Não",
+          "type": "C",
+          "size": 1,
+          "decimals": null,
+          "required": true,
+          "valid_values": "[S; N]",
+          "rules": [
+            "REGRA_CONGLOMERADO_MES_12"
+          ]
+        },
+        {
+          "order": 21,
+          "name": "IND_CENTRALIZADA",
+          "description": "Indicador da modalidade de escrituração centralizada ou descentralizada: / 0 – Escrituração Centralizada / 1 – Escrituração Descentralizada",
+          "type": "N",
+          "size": 1,
+          "decimals": null,
+          "required": true,
+          "valid_values": "[0;1]"
+        },
+        {
+          "order": 22,
+          "name": "IND_MUDANC_PC",
+          "description": "Indicador de mudança de plano de contas: / 0 – Não houve mudança no plano de contas. / 1 – Houve mudança no plano de contas.",
+          "type": "N",
+          "size": 1,
+          "decimals": null,
+          "required": true,
+          "valid_values": "[0;1]"
+        },
+        {
+          "order": 23,
+          "name": "COD_PLAN_REF",
+          "description": "Código do Plano de Contas Referencial que será utilizado para o mapeamento de todas as contas analíticas: / 1 – PJ em Geral – Lucro Real / 2 – PJ em Geral – Lucro Presumido / 3 – Financeiras – Lucro Real / 4 – Seguradoras – Lucro Real / 5 – Imunes e Isentas em Geral / 6 – Imunes e Isentas – Financeiras / 7 – Imunes e Isentas – Seguradoras / 8 – Entidades Fechadas de Previdência Complementar / 9 – Partidos Políticos / 10 – Financeiras – Lucro Presumido / 11 - TEF - Tributação Específica do Futebol / Observação: Caso a pessoa jurídica não realize o mapeamento para os planos referenciais na ECD, este campo deve ficar em branco.",
+          "type": "C",
+          "size": 2,
+          "decimals": null,
+          "required": false,
+          "valid_values": "[1; 2; 3; 4; 5; 6; 7; 8; 9; 10; 11] ou Vazio"
+        }
+      ]
+    },
+    "0001": {
+      "block": "0",
+      "fields": [
+        {
+          "order": 1,
+          "name": "REG",
+          "description": "Texto fixo contendo “0001”.",
+          "type": "C",
+          "size": 4,
+          "decimals": null,
+          "required": true,
+          "valid_values": "\"0001\""
+        },
+        {
+          "order": 2,
+          "name": "IND_DAD",
+          "description": "Indicador de movimento: / 0- Bloco com dados informados; / 1- Bloco sem dados informados.",
+          "type": "N",
+          "size": 1,
+          "decimals": null,
+          "required": true,
+          "valid_values": "[0,1]"
+        }
+      ]
+    },
+    "0007": {
+      "block": "0",
+      "fields": [
+        {
+          "order": 1,
+          "name": "REG",
+          "description": "Texto fixo contendo “0007”.",
+          "type": "C",
+          "size": 4,
+          "decimals": null,
+          "required": true,
+          "valid_values": "\"0007\""
+        },
+        {
+          "order": 2,
+          "name": "COD_ENT_REF",
+          "description": "Código da instituição responsável pela administração do cadastro (conforme tabela publicada pelo Sped).",
+          "type": "C",
+          "size": null,
+          "decimals": null,
+          "required": true,
+          "rules": [
+            "REGRA_TABELA_INSTITUICOES_CADASTRO"
+          ],
+          "note": "O manual imprime o nome como COD_ENT _REF."
+        },
+        {
+          "order": 3,
+          "name": "COD_INSCR",
+          "description": "Código cadastral da pessoa jurídica na instituição identificada no campo 02.",
+          "type": "C",
+          "size": null,
+          "decimals": null,
+          "required": false,
+          "rules": [
+            "REGRA_VALIDA_INSCRICAO"
+          ]
+        }
+      ]
+    },
+    "0990": {
+      "block": "0",
+      "fields": [
+        {
+          "order": 1,
+          "name": "REG",
+          "description": "Texto fixo contendo “0990”.",
+          "type": "C",
+          "size": 4,
+          "decimals": null,
+          "required": true,
+          "valid_values": "\"0990\""
+        },
+        {
+          "order": 2,
+          "name": "QTD_LIN_0",
+          "description": "Quantidade total de linhas do Bloco 0.",
+          "type": "N",
+          "size": null,
+          "decimals": null,
+          "required": true,
+          "rules": [
+            "REGRA_QTD_LIN_BLOCO_0"
+          ]
+        }
+      ]
+    },
+    "I001": {
+      "block": "I",
+      "fields": [
+        {
+          "order": 1,
+          "name": "REG",
+          "description": "Texto fixo contendo “I001”.",
+          "type": "C",
+          "size": 4,
+          "decimals": null,
+          "required": true,
+          "valid_values": "\"I001\""
+        },
+        {
+          "order": 2,
+          "name": "IND_DAD",
+          "description": "Indicador de movimento: / 0- Bloco com dados informados; / 1- Bloco sem dados informados.",
+          "type": "N",
+          "size": 1,
+          "decimals": null,
+          "required": true,
+          "valid_values": "[0,1]"
+        }
+      ]
+    },
+    "I010": {
+      "block": "I",
+      "fields": [
+        {
+          "order": 1,
+          "name": "REG",
+          "description": "Texto fixo contendo “I010”.",
+          "type": "C",
+          "size": 4,
+          "decimals": null,
+          "required": true,
+          "valid_values": "\"I010\""
+        },
+        {
+          "order": 2,
+          "name": "IND_ESC",
+          "description": "Indicador da forma de escrituração contábil: / G - Livro Diário (Completo sem escrituração auxiliar). / R - Livro Diário com Escrituração Resumida (com escrituração auxiliar). / A - Livro Diário Auxiliar ao Diário com Escrituração Resumida. / B - Livro Balancetes Diários e Balanços. / Z – Razão Auxiliar (Livro Contábil Auxiliar conforme leiaute definido nos registros I500 a I555).",
+          "type": "C",
+          "size": 1,
+          "decimals": null,
+          "required": true,
+          "valid_values": "[\"G\",\"R\", \"A\",\"B\", / \"Z\"]"
+        },
+        {
+          "order": 3,
+          "name": "COD_VER_LC",
+          "description": "Código da Versão do Leiaute Contábil.",
+          "type": "C",
+          "size": null,
+          "decimals": null,
+          "required": true,
+          "valid_values": "[9.00]",
+          "rules": [
+            "REGRA_VERSAO_LC"
+          ]
+        }
+      ]
+    },
+    "I030": {
+      "block": "I",
+      "fields": [
+        {
+          "order": 1,
+          "name": "REG",
+          "description": "Texto fixo contendo “I030”.",
+          "type": "C",
+          "size": 4,
+          "decimals": null,
+          "required": true,
+          "valid_values": "\"I030\""
+        },
+        {
+          "order": 2,
+          "name": "DNRC_ABERT",
+          "description": "Texto fixo contendo “TERMO DE ABERTURA”.",
+          "type": "C",
+          "size": 17,
+          "decimals": null,
+          "required": true,
+          "valid_values": "\"TERMO DE ABERTURA\""
+        },
+        {
+          "order": 3,
+          "name": "NUM_ORD",
+          "description": "Número de ordem do instrumento de escrituração.",
+          "type": "N",
+          "size": null,
+          "decimals": null,
+          "required": true,
+          "rules": [
+            "REGRA_MAIOR_QUE_ZERO"
+          ]
+        },
+        {
+          "order": 4,
+          "name": "NAT_LIVR",
+          "description": "Natureza do livro; finalidade a que se destina o instrumento.",
+          "type": "C",
+          "size": 80,
+          "decimals": null,
+          "required": true,
+          "rules": [
+            "REGRA_VALIDA_IDENT_MF_LIVRO_RAS",
+            "REGRA_VALIDA_CONTEUDO_NAT_LIVR"
+          ]
+        },
+        {
+          "order": 5,
+          "name": "QTD_LIN",
+          "description": "Quantidade total de linhas do arquivo digital.",
+          "type": "N",
+          "size": null,
+          "decimals": null,
+          "required": true,
+          "rules": [
+            "REGRA_IGUAL_QTD_LIN_REG9999"
+          ]
+        },
+        {
+          "order": 6,
+          "name": "NOME",
+          "description": "Nome empresarial.",
+          "type": "C",
+          "size": null,
+          "decimals": null,
+          "required": true,
+          "rules": [
+            "REGRA_IGUAL_NOME_REG0000"
+          ]
+        },
+        {
+          "order": 7,
+          "name": "NIRE",
+          "description": "Número de Identificação do Registro de Empresas da Junta Comercial.",
+          "type": "N",
+          "size": 11,
+          "decimals": null,
+          "required": false,
+          "rules": [
+            "REGRA_VALIDA_NIRE",
+            "REGRA_NIRE_UF",
+            "REGRA_CAMPO_OBRIGATORIO_NIRE"
+          ]
+        },
+        {
+          "order": 8,
+          "name": "CNPJ",
+          "description": "Número de inscrição no CNPJ.",
+          "type": "C",
+          "size": 14,
+          "decimals": null,
+          "required": true,
+          "rules": [
+            "REGRA_IGUAL_CNPJ_REG0000"
+          ]
+        },
+        {
+          "order": 9,
+          "name": "DT_ARQ",
+          "description": "Data do arquivamento dos atos constitutivos.",
+          "type": "N",
+          "size": 8,
+          "decimals": null,
+          "required": false,
+          "rules": [
+            "REGRA_DATA_INI_MAIOR_ADV"
+          ]
+        },
+        {
+          "order": 10,
+          "name": "DT_ARQ_CONV",
+          "description": "Data de arquivamento do ato de conversão de sociedade simples em sociedade empresária.",
+          "type": "N",
+          "size": 8,
+          "decimals": null,
+          "required": false,
+          "rules": [
+            "REGRA_DATA_INI_MAIOR",
+            "REGRA_PREENCHE_DATA_I030"
+          ]
+        },
+        {
+          "order": 11,
+          "name": "DESC_MUN",
+          "description": "Município.",
+          "type": "C",
+          "size": null,
+          "decimals": null,
+          "required": false
+        },
+        {
+          "order": 12,
+          "name": "DT_EX_SOCIAL",
+          "description": "Data de encerramento do exercício social.",
+          "type": "N",
+          "size": 8,
+          "decimals": null,
+          "required": true,
+          "rules": [
+            "REGRA_OBRIGATORIA_DT_EX_SOCIAL"
+          ]
+        }
+      ]
+    },
+    "I050": {
+      "block": "I",
+      "fields": [
+        {
+          "order": 1,
+          "name": "REG",
+          "description": "Texto fixo contendo “I050”.",
+          "type": "C",
+          "size": 4,
+          "decimals": null,
+          "required": true,
+          "valid_values": "\"I050\""
+        },
+        {
+          "order": 2,
+          "name": "DT_ALT",
+          "description": "Data da inclusão/alteração.",
+          "type": "N",
+          "size": 8,
+          "decimals": null,
+          "required": true,
+          "rules": [
+            "REGRA_ANO_ALT_MAIOR_ANO_FIN"
+          ]
+        },
+        {
+          "order": 3,
+          "name": "COD_NAT",
+          "description": "Código da natureza da conta/grupo de contas, conforme tabela publicada pelo Sped.",
+          "type": "C",
+          "size": 2,
+          "decimals": null,
+          "required": true,
+          "rules": [
+            "REGRA_TABELA_NATUREZA"
+          ]
+        },
+        {
+          "order": 4,
+          "name": "IND_CTA",
+          "description": "Indicador do tipo de conta: / S - Sintética (grupo de contas) / A - Analítica (conta)",
+          "type": "C",
+          "size": 1,
+          "decimals": null,
+          "required": true,
+          "valid_values": "[\"S\",\"A\"]"
+        },
+        {
+          "order": 5,
+          "name": "NIVEL",
+          "description": "Nível da conta analítica/grupo de contas.",
+          "type": "N",
+          "size": null,
+          "decimals": null,
+          "required": true,
+          "rules": [
+            "REGRA_MAIOR_QUE_UM",
+            "REGRA_VALIDA_NIVEL_CONTAS"
+          ]
+        },
+        {
+          "order": 6,
+          "name": "COD_CTA",
+          "description": "Código da conta analítica/grupo de contas.",
+          "type": "C",
+          "size": null,
+          "decimals": null,
+          "required": true,
+          "rules": [
+            "REGRA_COD_CTA_IGUAL_COD_CTA_SUP"
+          ]
+        },
+        {
+          "order": 7,
+          "name": "COD_CTA_SUP",
+          "description": "Código da conta sintética /grupo de contas de nível imediatamente superior.",
+          "type": "C",
+          "size": null,
+          "decimals": null,
+          "required": false,
+          "rules": [
+            "REGRA_COD_CTA_SUP_OBRIGATORIO",
+            "REGRA_CTA_DE_NIVEL_SUPERIOR_INVALIDA",
+            "REGRA_CONTA_SUPERIOR_NAO_SE_APLICA"
+          ]
+        },
+        {
+          "order": 8,
+          "name": "CTA",
+          "description": "Nome da conta analítica/grupo de contas.",
+          "type": "C",
+          "size": null,
+          "decimals": null,
+          "required": true
+        }
+      ]
+    },
+    "I052": {
+      "block": "I",
+      "fields": [
+        {
+          "order": 1,
+          "name": "REG",
+          "description": "Texto fixo contendo “I052”.",
+          "type": "C",
+          "size": 4,
+          "decimals": null,
+          "required": true,
+          "valid_values": "\"I052\""
+        },
+        {
+          "order": 2,
+          "name": "COD_CCUS",
+          "description": "Código do centro de custo.",
+          "type": "C",
+          "size": null,
+          "decimals": null,
+          "required": false,
+          "rules": [
+            "REGRA_CCUS_NO_CENTRO_CUSTOS_N3"
+          ]
+        },
+        {
+          "order": 3,
+          "name": "COD_AGL",
+          "description": "Código de aglutinação utilizado nas demonstrações contábeis do bloco J (Somente para as contas analíticas).",
+          "type": "C",
+          "size": null,
+          "decimals": null,
+          "required": true
+        }
+      ]
+    },
+    "I150": {
+      "block": "I",
+      "fields": [
+        {
+          "order": 1,
+          "name": "REG",
+          "description": "Texto fixo contendo “I150”.",
+          "type": "C",
+          "size": 4,
+          "decimals": null,
+          "required": true,
+          "valid_values": "\"I150\""
+        },
+        {
+          "order": 2,
+          "name": "DT_INI",
+          "description": "Data de início do período.",
+          "type": "N",
+          "size": 8,
+          "decimals": null,
+          "required": true,
+          "rules": [
+            "REGRA_DATA_INTERVALO_DO_ARQUIVO",
+            "REGRA_DT_INI_MAIOR_DT_FIN",
+            "REGRA_DT_INI_INICIO_MES"
+          ]
+        },
+        {
+          "order": 3,
+          "name": "DT_FIN",
+          "description": "Data de fim do período.",
+          "type": "N",
+          "size": 8,
+          "decimals": null,
+          "required": true,
+          "rules": [
+            "REGRA_DATA_INTERVALO_DO_ARQUIVO",
+            "REGRA_DT_FIN_FIM_MES"
+          ]
+        }
+      ]
+    },
+    "I155": {
+      "block": "I",
+      "fields": [
+        {
+          "order": 1,
+          "name": "REG",
+          "description": "Texto fixo contendo “I155”.",
+          "type": "C",
+          "size": 4,
+          "decimals": null,
+          "required": true,
+          "valid_values": "\"I155\""
+        },
+        {
+          "order": 2,
+          "name": "COD_CTA",
+          "description": "Código da conta analítica.",
+          "type": "C",
+          "size": null,
+          "decimals": null,
+          "required": true,
+          "rules": [
+            "REGRA_CONTA_PARA_LANCAMENTO"
+          ]
+        },
+        {
+          "order": 3,
+          "name": "COD_CCUS",
+          "description": "Código do centro de custos.",
+          "type": "C",
+          "size": null,
+          "decimals": null,
+          "required": false,
+          "rules": [
+            "REGRA_CCUS_NO_CENTRO_CUSTOS"
+          ]
+        },
+        {
+          "order": 4,
+          "name": "VL_SLD_INI",
+          "description": "Valor do saldo inicial do período.",
+          "type": "N",
+          "size": 19,
+          "decimals": 2,
+          "required": true
+        },
+        {
+          "order": 5,
+          "name": "IND_DC_INI",
+          "description": "Indicador da situação do saldo inicial: / D - Devedor; / C - Credor.",
+          "type": "C",
+          "size": 1,
+          "decimals": null,
+          "required": true,
+          "valid_values": "[\"D\",\"C\"]",
+          "rules": [
+            "REGRA_IND_DC_INI_OBRIGATORIO"
+          ],
+          "note": "A tabela do manual marca Não, mas as notas exigem D ou C mesmo com saldo zero (REGRA_IND_DC_INI_OBRIGATORIO / REGRA_IND_DC_FIN_OBRIGATORIO)."
+        },
+        {
+          "order": 6,
+          "name": "VL_DEB",
+          "description": "Valor total dos débitos do período.",
+          "type": "N",
+          "size": 19,
+          "decimals": 2,
+          "required": true
+        },
+        {
+          "order": 7,
+          "name": "VL_CRED",
+          "description": "Valor total dos créditos do período.",
+          "type": "N",
+          "size": 19,
+          "decimals": 2,
+          "required": true
+        },
+        {
+          "order": 8,
+          "name": "VL_SLD_FIN",
+          "description": "Valor do saldo final do período.",
+          "type": "N",
+          "size": 19,
+          "decimals": 2,
+          "required": true
+        },
+        {
+          "order": 9,
+          "name": "IND_DC_FIN",
+          "description": "Indicador da situação do saldo final: / D - Devedor; / C - Credor.",
+          "type": "C",
+          "size": 1,
+          "decimals": null,
+          "required": true,
+          "valid_values": "[\"D\",\"C\"]",
+          "rules": [
+            "REGRA_IND_DC_FIN_OBRIGATORIO"
+          ],
+          "note": "A tabela do manual marca Não, mas as notas exigem D ou C mesmo com saldo zero (REGRA_IND_DC_INI_OBRIGATORIO / REGRA_IND_DC_FIN_OBRIGATORIO)."
+        }
+      ]
+    },
+    "I200": {
+      "block": "I",
+      "fields": [
+        {
+          "order": 1,
+          "name": "REG",
+          "description": "Texto fixo contendo “I200”.",
+          "type": "C",
+          "size": 4,
+          "decimals": null,
+          "required": true,
+          "valid_values": "\"I200\""
+        },
+        {
+          "order": 2,
+          "name": "NUM_LCTO",
+          "description": "Número ou Código de identificação único do lançamento contábil.",
+          "type": "C",
+          "size": null,
+          "decimals": null,
+          "required": true,
+          "rules": [
+            "REGRA_REGISTRO_DUPLICADO"
+          ]
+        },
+        {
+          "order": 3,
+          "name": "DT_LCTO",
+          "description": "Data do lançamento.",
+          "type": "N",
+          "size": 8,
+          "decimals": null,
+          "required": true,
+          "rules": [
+            "REGRA_DATA_INTERVALO_DO_ARQUIVO",
+            "REGRA_DATA_ANTIGA"
+          ]
+        },
+        {
+          "order": 4,
+          "name": "VL_LCTO",
+          "description": "Valor do lançamento.",
+          "type": "N",
+          "size": 19,
+          "decimals": 2,
+          "required": true,
+          "rules": [
+            "REGRA_VALIDACAO_VL_LCTO_DEB",
+            "REGRA_VALIDACAO_VL_LCTO_CRED",
+            "REGRA_VALIDACAO_VL_LCTO_ESC_AUXILIAR"
+          ]
+        },
+        {
+          "order": 5,
+          "name": "IND_LCTO",
+          "description": "Indicador do tipo de lançamento: / N - Lançamento normal (todos os lançamentos, exceto os de encerramento das contas de resultado); / E - Lançamento de encerramento de contas de resultado. / X – Lançamento extemporâneo.",
+          "type": "C",
+          "size": 1,
+          "decimals": null,
+          "required": true,
+          "valid_values": "[\"N\", \"E\"]",
+          "note": "A coluna de valores válidos traz só N e E, mas a descrição e as regras usam X (extemporâneo). A prévia só gera N e E."
+        },
+        {
+          "order": 6,
+          "name": "DT_LCTO_EXT",
+          "description": "Data de ocorrência dos fatos objeto do lançamento extemporâneo. / Observação: Caso não seja possível precisar a data a que se refiram os fatos do lançamento extemporâneo, informar a data de encerramento do exercício em que ocorreram esses fatos.",
+          "type": "N",
+          "size": 8,
+          "decimals": null,
+          "required": false,
+          "rules": [
+            "REGRA_DT_LCTO_EXT_OBRIGATORIA",
+            "REGRA_DT_LCTO_EXT_INDEVIDA",
+            "REGRA_DT_ANTIGA",
+            "REGRA_DT_LCTO_EXT_INV"
+          ]
+        }
+      ]
+    },
+    "I250": {
+      "block": "I",
+      "fields": [
+        {
+          "order": 1,
+          "name": "REG",
+          "description": "Texto fixo contendo “I250”.",
+          "type": "C",
+          "size": 4,
+          "decimals": null,
+          "required": true,
+          "valid_values": "\"I250\""
+        },
+        {
+          "order": 2,
+          "name": "COD_CTA",
+          "description": "Código da conta analítica debitada/creditada.",
+          "type": "C",
+          "size": null,
+          "decimals": null,
+          "required": true,
+          "rules": [
+            "REGRA_CONTA_PARA_LANCAMENTO",
+            "REGRA_LANC_EXT_CONTA_RESULTADO"
+          ]
+        },
+        {
+          "order": 3,
+          "name": "COD_CCUS",
+          "description": "Código do centro de custos.",
+          "type": "C",
+          "size": null,
+          "decimals": null,
+          "required": false,
+          "rules": [
+            "REGRA_CCUS_NO_CENTRO_CUSTOS"
+          ]
+        },
+        {
+          "order": 4,
+          "name": "VL_DC",
+          "description": "Valor da partida.",
+          "type": "N",
+          "size": 19,
+          "decimals": 2,
+          "required": true
+        },
+        {
+          "order": 5,
+          "name": "IND_DC",
+          "description": "Indicador da natureza da partida: / D - Débito; / C - Crédito.",
+          "type": "C",
+          "size": 1,
+          "decimals": null,
+          "required": true,
+          "valid_values": "[\"D\",\"C\"]"
+        },
+        {
+          "order": 6,
+          "name": "NUM_ARQ",
+          "description": "Número, Código ou caminho de localização dos documentos arquivados.",
+          "type": "C",
+          "size": null,
+          "decimals": null,
+          "required": false
+        },
+        {
+          "order": 7,
+          "name": "COD_HIST_PAD",
+          "description": "Código do histórico padronizado, conforme tabela I075.",
+          "type": "C",
+          "size": null,
+          "decimals": null,
+          "required": false,
+          "rules": [
+            "REGRA_COD_HIS_PAD_NO_HISTORICO_PADRAO"
+          ]
+        },
+        {
+          "order": 8,
+          "name": "HIST",
+          "description": "Histórico completo da partida ou histórico complementar. / Observação: Caso o lançamento seja do tipo “X” – lançamento extemporâneo - em qualquer das formas de retificação, o histórico do lançamento extemporâneo deve especificar o motivo da correção, a data e o número do lançamento de origem (item 32 do ITG 2000 (R1)).",
+          "type": "C",
+          "size": 65535,
+          "decimals": null,
+          "required": false
+        },
+        {
+          "order": 9,
+          "name": "COD_PART",
+          "description": "Código de identificação do participante na partida conforme tabela 0150 (preencher somente quando identificado o tipo de participação no registro 0180).",
+          "type": "C",
+          "size": null,
+          "decimals": null,
+          "required": false,
+          "rules": [
+            "REGRA_CODIGO_PARTICIPANTE"
+          ]
+        }
+      ]
+    },
+    "I350": {
+      "block": "I",
+      "fields": [
+        {
+          "order": 1,
+          "name": "REG",
+          "description": "Texto fixo contendo “I350”.",
+          "type": "C",
+          "size": 4,
+          "decimals": null,
+          "required": true,
+          "valid_values": "\"I350\""
+        },
+        {
+          "order": 2,
+          "name": "DT_RES",
+          "description": "Data da apuração do resultado.",
+          "type": "N",
+          "size": 8,
+          "decimals": null,
+          "required": true,
+          "rules": [
+            "REGRA_DATA_INTERVALO_DO_ARQUIVO"
+          ]
+        }
+      ]
+    },
+    "I355": {
+      "block": "I",
+      "fields": [
+        {
+          "order": 1,
+          "name": "REG",
+          "description": "Texto fixo contendo “I355”.",
+          "type": "C",
+          "size": 4,
+          "decimals": null,
+          "required": true,
+          "valid_values": "\"I355\""
+        },
+        {
+          "order": 2,
+          "name": "COD_CTA",
+          "description": "Código da conta analítica de resultado.",
+          "type": "C",
+          "size": null,
+          "decimals": null,
+          "required": true,
+          "rules": [
+            "REGRA_CONTA_RESULTADO",
+            "REGRA_CONTA_PARA_LANCAMENTO"
+          ]
+        },
+        {
+          "order": 3,
+          "name": "COD_CCUS",
+          "description": "Código do centro de custos.",
+          "type": "C",
+          "size": null,
+          "decimals": null,
+          "required": false,
+          "rules": [
+            "REGRA_CCUS_NO_CENTRO_CUSTOS"
+          ]
+        },
+        {
+          "order": 4,
+          "name": "VL_CTA",
+          "description": "Valor do saldo final antes do lançamento de encerramento.",
+          "type": "N",
+          "size": 19,
+          "decimals": 2,
+          "required": true
+        },
+        {
+          "order": 5,
+          "name": "IND_DC",
+          "description": "Indicador da situação do saldo final: / D - Devedor; / C - Credor.",
+          "type": "C",
+          "size": 1,
+          "decimals": null,
+          "required": true,
+          "valid_values": "[\"D\",\"C\"]"
+        }
+      ]
+    },
+    "I990": {
+      "block": "I",
+      "fields": [
+        {
+          "order": 1,
+          "name": "REG",
+          "description": "Texto fixo contendo “I990”.",
+          "type": "C",
+          "size": 4,
+          "decimals": null,
+          "required": true,
+          "valid_values": "\"I990\""
+        },
+        {
+          "order": 2,
+          "name": "QTD_LIN_I",
+          "description": "Quantidade total de linhas do Bloco I.",
+          "type": "N",
+          "size": null,
+          "decimals": null,
+          "required": true,
+          "rules": [
+            "REGRA_QTD_LIN_BLOCOI"
+          ]
+        }
+      ]
+    },
+    "J001": {
+      "block": "J",
+      "fields": [
+        {
+          "order": 1,
+          "name": "REG",
+          "description": "Texto fixo contendo “J001”.",
+          "type": "C",
+          "size": 4,
+          "decimals": null,
+          "required": true,
+          "valid_values": "\"J001\""
+        },
+        {
+          "order": 2,
+          "name": "IND_DAD",
+          "description": "Indicador de movimento: / 0- Bloco com dados informados; / 1- Bloco sem dados informados.",
+          "type": "N",
+          "size": 1,
+          "decimals": null,
+          "required": true,
+          "valid_values": "[0,1]"
+        }
+      ]
+    },
+    "J005": {
+      "block": "J",
+      "fields": [
+        {
+          "order": 1,
+          "name": "REG",
+          "description": "Texto fixo contendo “J005”.",
+          "type": "C",
+          "size": 4,
+          "decimals": null,
+          "required": true,
+          "valid_values": "\"J005\""
+        },
+        {
+          "order": 2,
+          "name": "DT_INI",
+          "description": "Data inicial das demonstrações contábeis. / Observação: A data inicial das demonstrações deve ser a data posterior ao último encerramento do exercício, mesmo que essa data não esteja no período da ECD transmitida. / Exemplo: / Data do Último Encerramento do Exercício: 31/12/2022 / Data Inicial das Demonstrações Contábeis: 01/01/2023",
+          "type": "N",
+          "size": 8,
+          "decimals": null,
+          "required": true,
+          "rules": [
+            "REGRA_DATA_INI_MAIOR",
+            "REGRA_DT_INI_MAIOR_DT_FIN",
+            "REGRA_DATA_ANTIGA"
+          ]
+        },
+        {
+          "order": 3,
+          "name": "DT_FIN",
+          "description": "Data final das demonstrações contábeis.",
+          "type": "N",
+          "size": 8,
+          "decimals": null,
+          "required": true,
+          "rules": [
+            "REGRA_DATA_INI_MAIOR",
+            "REGRA_DATA_ANTIGA"
+          ]
+        },
+        {
+          "order": 4,
+          "name": "ID_DEM",
+          "description": "Identificação das demonstrações: / 1 – demonstrações contábeis da pessoa jurídica a que se refere a escrituração (inclusive Matrix/Filiais); / 2 – demonstrações consolidadas ou de outras pessoas jurídicas.",
+          "type": "N",
+          "size": 1,
+          "decimals": null,
+          "required": true,
+          "valid_values": "[1,2]"
+        },
+        {
+          "order": 5,
+          "name": "CAB_DEM",
+          "description": "Cabeçalho das demonstrações.",
+          "type": "C",
+          "size": 65535,
+          "decimals": null,
+          "required": false,
+          "rules": [
+            "REGRA_CAB_DEM_OBRIGATORIO"
+          ]
+        }
+      ]
+    },
+    "J100": {
+      "block": "J",
+      "fields": [
+        {
+          "order": 1,
+          "name": "REG",
+          "description": "Texto fixo contendo “J100”.",
+          "type": "C",
+          "size": 4,
+          "decimals": null,
+          "required": true,
+          "valid_values": "\"J100\""
+        },
+        {
+          "order": 2,
+          "name": "COD_AGL",
+          "description": "Código de aglutinação atribuído pela pessoa jurídica. / Observação: Caso o indicador de código de aglutinação seja totalizador (T), o código de aglutinação deve ser informado, mas não deve estar cadastrado no registro I052 – os códigos de aglutinação informados no registro I052 são somente para contas analíticas.",
+          "type": "C",
+          "size": null,
+          "decimals": null,
+          "required": true,
+          "rules": [
+            "REGRA_COD_AGL_IGUAL_COD_AGL_SUPERIOR"
+          ]
+        },
+        {
+          "order": 3,
+          "name": "IND_COD_AGL",
+          "description": "Indicador do tipo de código de aglutinação das linhas: / T – Totalizador (nível que totaliza um ou mais níveis inferiores da demonstração financeira) / D – Detalhe (nível mais detalhado da demonstração financeira)",
+          "type": "C",
+          "size": 1,
+          "decimals": null,
+          "required": true,
+          "valid_values": "[\"T\",\"D\"]"
+        },
+        {
+          "order": 4,
+          "name": "NIVEL_AGL",
+          "description": "Nível do Código de aglutinação (mesmo conceito do plano de contas – Registro I050).",
+          "type": "N",
+          "size": null,
+          "decimals": null,
+          "required": true,
+          "rules": [
+            "REGRA_MAIOR_QUE_ZERO",
+            "REGRA_VALIDA_NIVEL_AGL"
+          ]
+        },
+        {
+          "order": 5,
+          "name": "COD_AGL_SUP",
+          "description": "Código de aglutinação sintético/grupo de código de aglutinação de nível superior.",
+          "type": "C",
+          "size": null,
+          "decimals": null,
+          "required": false,
+          "rules": [
+            "REGRA_COD_AGL_SUP_OBRIGATORIO",
+            "REGRA_COD_AGL_DE_NIVEL_SUPERIOR_INVALIDO",
+            "REGRA_COD_AGL_NAO_SE_APLICA"
+          ]
+        },
+        {
+          "order": 6,
+          "name": "IND_GRP_BAL",
+          "description": "Indicador de grupo do balanço: / A – Ativo; / P – Passivo e Patrimônio Líquido.",
+          "type": "C",
+          "size": 1,
+          "decimals": null,
+          "required": true,
+          "valid_values": "[\"A\",\"P\"]"
+        },
+        {
+          "order": 7,
+          "name": "DESCR_COD_AGL",
+          "description": "Descrição do Código de aglutinação.",
+          "type": "C",
+          "size": null,
+          "decimals": null,
+          "required": true
+        },
+        {
+          "order": 8,
+          "name": "VL_CTA_INI",
+          "description": "Valor inicial do código de aglutinação no Balanço Patrimonial no exercício informado, ou de período definido em norma específica.",
+          "type": "N",
+          "size": 19,
+          "decimals": 2,
+          "required": true
+        },
+        {
+          "order": 9,
+          "name": "IND_DC_CTA_INI",
+          "description": "Indicador da situação do saldo inicial informado no campo anterior: / D - Devedor; / C – Credor.",
+          "type": "C",
+          "size": 1,
+          "decimals": null,
+          "required": true,
+          "valid_values": "[\"D\",\"C\"]"
+        },
+        {
+          "order": 10,
+          "name": "VL_CTA_FIN",
+          "description": "Valor final do código de aglutinação no Balanço Patrimonial no exercício informado, ou de período definido em norma específica.",
+          "type": "N",
+          "size": 19,
+          "decimals": 2,
+          "required": true
+        },
+        {
+          "order": 11,
+          "name": "IND_DC_CTA_FIN",
+          "description": "Indicador da situação do saldo final informado no campo anterior: / D - Devedor; / C – Credor.",
+          "type": "C",
+          "size": 1,
+          "decimals": null,
+          "required": true,
+          "valid_values": "[\"D\",\"C\"]"
+        },
+        {
+          "order": 12,
+          "name": "NOTA_EXP_REF",
+          "description": "Referência a numeração das notas explicativas relativas às demonstrações contábeis.",
+          "type": "C",
+          "size": 12,
+          "decimals": null,
+          "required": false
+        }
+      ]
+    },
+    "J150": {
+      "block": "J",
+      "fields": [
+        {
+          "order": 1,
+          "name": "REG",
+          "description": "Texto fixo contendo “J150”.",
+          "type": "C",
+          "size": 4,
+          "decimals": null,
+          "required": true,
+          "valid_values": "\"J150\""
+        },
+        {
+          "order": 2,
+          "name": "NU_ORDEM",
+          "description": "Número de ordem da linha na visualização da demonstração. / Ordem de apresentação da linha na visualização do registro J150.",
+          "type": "N",
+          "size": 19,
+          "decimals": null,
+          "required": true
+        },
+        {
+          "order": 3,
+          "name": "COD_AGL",
+          "description": "Código de aglutinação das linhas, atribuído pela pessoa jurídica. / Observação: Caso o indicador de código de aglutinação seja totalizador (T), o código de aglutinação deve ser informado, mas não deve estar cadastrado no registro I052 – os códigos de aglutinação informados no registro I052 são somente para contas analíticas.",
+          "type": "C",
+          "size": null,
+          "decimals": null,
+          "required": false,
+          "rules": [
+            "REGRA_COD_AGL_IGUAL_COD_AGL_SUPERIOR"
+          ]
+        },
+        {
+          "order": 4,
+          "name": "IND_COD_AGL",
+          "description": "Indicador do tipo de código de aglutinação das linhas: / T – Totalizador (nível que totaliza um ou mais níveis inferiores da demonstração financeira) / D – Detalhe (nível mais detalhado da demonstração financeira)",
+          "type": "C",
+          "size": 1,
+          "decimals": null,
+          "required": true,
+          "valid_values": "[\"T\",\"D\"]"
+        },
+        {
+          "order": 5,
+          "name": "NIVEL_AGL",
+          "description": "Nível do Código de aglutinação (mesmo conceito do plano de contas – Registro I050).",
+          "type": "N",
+          "size": null,
+          "decimals": null,
+          "required": true,
+          "rules": [
+            "REGRA_MAIOR_QUE_ZERO",
+            "REGRA_VALIDA_NIVEL_AGL"
+          ]
+        },
+        {
+          "order": 6,
+          "name": "COD_AGL_SUP",
+          "description": "Código de aglutinação sintético/grupo de código de aglutinação de nível superior.",
+          "type": "C",
+          "size": null,
+          "decimals": null,
+          "required": false,
+          "rules": [
+            "REGRA_COD_AGL_SUP_OBRIGATORIO",
+            "REGRA_COD_AGL_DE_NIVEL_SUPERIOR_INVALIDO",
+            "REGRA_COD_AGL_NAO_SE_APLICA"
+          ]
+        },
+        {
+          "order": 7,
+          "name": "DESCR_COD_AGL",
+          "description": "Descrição do Código de aglutinação.",
+          "type": "C",
+          "size": null,
+          "decimals": null,
+          "required": true
+        },
+        {
+          "order": 8,
+          "name": "VL_CTA_INI",
+          "description": "Valor do saldo final da linha no período imediatamente anterior (saldo final da DRE anterior).",
+          "type": "N",
+          "size": 19,
+          "decimals": 2,
+          "required": false,
+          "note": "O manual imprime o nome como VL_CTA_INI_."
+        },
+        {
+          "order": 9,
+          "name": "IND_DC_CTA_INI",
+          "description": "Indicador da situação do valor final da linha no período imediatamente anterior: / D – Devedor; / C – Credor.",
+          "type": "C",
+          "size": 1,
+          "decimals": null,
+          "required": false,
+          "valid_values": "[\"D\",\"C\"]"
+        },
+        {
+          "order": 10,
+          "name": "VL_CTA_FIN",
+          "description": "Valor final da linha antes do encerramento do exercício.",
+          "type": "N",
+          "size": 19,
+          "decimals": 2,
+          "required": true
+        },
+        {
+          "order": 11,
+          "name": "IND_DC_CTA_FIN",
+          "description": "Indicador da situação do valor final da linha antes do encerramento do exercício: / D – Devedor; / C – Credor.",
+          "type": "C",
+          "size": 1,
+          "decimals": null,
+          "required": true,
+          "valid_values": "[\"D\",\"C\"]"
+        },
+        {
+          "order": 12,
+          "name": "IND_GRP_DRE",
+          "description": "Indicador de grupo da DRE: / D – Linha totalizadora ou de detalhe da demonstração que, por sua natureza de despesa, represente redução do lucro. / R – Linha totalizadora ou de detalhe da demonstração que, por sua natureza de receita, represente incremento do lucro.",
+          "type": "C",
+          "size": 1,
+          "decimals": null,
+          "required": true,
+          "valid_values": "[\"D\",\"R\"]"
+        },
+        {
+          "order": 13,
+          "name": "NOTA_EXP_REF",
+          "description": "Referência a numeração das notas explicativas relativas às demonstrações contábeis.",
+          "type": "C",
+          "size": 12,
+          "decimals": null,
+          "required": false
+        }
+      ]
+    },
+    "J900": {
+      "block": "J",
+      "fields": [
+        {
+          "order": 1,
+          "name": "REG",
+          "description": "Texto fixo contendo “J900”.",
+          "type": "C",
+          "size": 4,
+          "decimals": null,
+          "required": true,
+          "valid_values": "\"J900\""
+        },
+        {
+          "order": 2,
+          "name": "DNRC_ENCER",
+          "description": "Texto fixo contendo “TERMO DE ENCERRAMENTO”.",
+          "type": "C",
+          "size": 21,
+          "decimals": null,
+          "required": true,
+          "valid_values": "\"TERMO DE ENCERRAMENTO\""
+        },
+        {
+          "order": 3,
+          "name": "NUM_ORD",
+          "description": "Número de ordem do instrumento de escrituração.",
+          "type": "N",
+          "size": null,
+          "decimals": null,
+          "required": true,
+          "rules": [
+            "REGRA_IGUAL_NUM_ORD_REGI030"
+          ]
+        },
+        {
+          "order": 4,
+          "name": "NAT_LIVRO",
+          "description": "Natureza do livro; finalidade a que se destinou o instrumento.",
+          "type": "C",
+          "size": 80,
+          "decimals": null,
+          "required": true,
+          "rules": [
+            "REGRA_VALIDA_CONTEUDO_NAT_LIVR"
+          ]
+        },
+        {
+          "order": 5,
+          "name": "NOME",
+          "description": "Nome empresarial.",
+          "type": "C",
+          "size": null,
+          "decimals": null,
+          "required": true,
+          "size_note": "(*)",
+          "rules": [
+            "REGRA_IGUAL_NOME_REG0000"
+          ]
+        },
+        {
+          "order": 6,
+          "name": "QTD_LIN",
+          "description": "Quantidade total de linhas do arquivo digital.",
+          "type": "N",
+          "size": null,
+          "decimals": null,
+          "required": true,
+          "rules": [
+            "REGRA_IGUAL_QTD_LIN_REG9999"
+          ]
+        },
+        {
+          "order": 7,
+          "name": "DT_INI_ESCR",
+          "description": "Data de início da escrituração.",
+          "type": "N",
+          "size": 8,
+          "decimals": null,
+          "required": true,
+          "rules": [
+            "REGRA_IGUAL_DT_INI_REG0000"
+          ]
+        },
+        {
+          "order": 8,
+          "name": "DT_FIN_ESCR",
+          "description": "Data de término da escrituração.",
+          "type": "N",
+          "size": 8,
+          "decimals": null,
+          "required": true,
+          "rules": [
+            "REGRA_IGUAL_DT_FIN_REG0000"
+          ]
+        }
+      ]
+    },
+    "J930": {
+      "block": "J",
+      "fields": [
+        {
+          "order": 1,
+          "name": "REG",
+          "description": "Texto fixo contendo “J930”.",
+          "type": "C",
+          "size": 4,
+          "decimals": null,
+          "required": true,
+          "valid_values": "[\"J930\"]"
+        },
+        {
+          "order": 2,
+          "name": "IDENT_NOM",
+          "description": "Nome do signatário.",
+          "type": "C",
+          "size": null,
+          "decimals": null,
+          "required": true
+        },
+        {
+          "order": 3,
+          "name": "IDENT_CPF_CNPJ",
+          "description": "CPF ou CNPJ",
+          "type": "C",
+          "size": 14,
+          "decimals": null,
+          "required": true,
+          "size_note": "CPF (11) / CNPJ(14)",
+          "rules": [
+            "REGRA_VALIDA_CPF",
+            "REGRA_VALIDA_CNPJ"
+          ],
+          "note": "O manual dá CPF (11) ou CNPJ (14); o tamanho aqui é o maior dos dois."
+        },
+        {
+          "order": 4,
+          "name": "IDENT_QUALIF",
+          "description": "Qualificação do assinante, conforme tabela.",
+          "type": "C",
+          "size": null,
+          "decimals": null,
+          "required": true,
+          "rules": [
+            "REGRA_TABELA_ASSINANTE_DESC"
+          ]
+        },
+        {
+          "order": 5,
+          "name": "COD_ASSIN",
+          "description": "Código de qualificação do assinante, conforme tabela.",
+          "type": "C",
+          "size": 3,
+          "decimals": null,
+          "required": true,
+          "rules": [
+            "REGRA_QUALIF_INV_RESP_LEGAL"
+          ]
+        },
+        {
+          "order": 6,
+          "name": "IND_CRC",
+          "description": "Número de inscrição do contabilista no Conselho Regional de Contabilidade.",
+          "type": "C",
+          "size": null,
+          "decimals": null,
+          "required": false,
+          "rules": [
+            "REGRA_OBRIGATORIO_CONTADOR"
+          ]
+        },
+        {
+          "order": 7,
+          "name": "EMAIL",
+          "description": "Email do signatário.",
+          "type": "C",
+          "size": 60,
+          "decimals": null,
+          "required": false,
+          "rules": [
+            "REGRA_OBRIGATORIO_CONTADOR"
+          ]
+        },
+        {
+          "order": 8,
+          "name": "FONE",
+          "description": "Telefone do signatário.",
+          "type": "C",
+          "size": 14,
+          "decimals": null,
+          "required": false,
+          "rules": [
+            "REGRA_OBRIGATORIO_CONTADOR"
+          ]
+        },
+        {
+          "order": 9,
+          "name": "UF_CRC",
+          "description": "Indicação da unidade da federação que expediu o CRC.",
+          "type": "C",
+          "size": 2,
+          "decimals": null,
+          "required": false,
+          "rules": [
+            "REGRA_TABELA_UF",
+            "REGRA_OBRIGATORIO_CONTADOR",
+            "REGRA_AVISO_ASSIN_CNPJ"
+          ]
+        },
+        {
+          "order": 10,
+          "name": "NUM_SEQ_CRC",
+          "description": "Número da Certidão de Regularidade Profissional do Contador no seguinte formato: / UF/ano/número",
+          "type": "C",
+          "size": null,
+          "decimals": null,
+          "required": false,
+          "rules": [
+            "REGRA_VALIDA_FORMATO_SEQUENCIAL_CRC",
+            "REGRA_ADVERTENCIA_CONTADOR",
+            "REGRA_AVISO_ASSIN_CNPJ"
+          ]
+        },
+        {
+          "order": 11,
+          "name": "DT_CRC",
+          "description": "Data de validade da Certidão de Regularidade Profissional do Contador",
+          "type": "N",
+          "size": 8,
+          "decimals": null,
+          "required": false,
+          "rules": [
+            "REGRA_ADVERTENCIA_CONTADOR",
+            "REGRA_AVISO_ASSIN_CNPJ"
+          ]
+        },
+        {
+          "order": 12,
+          "name": "IND_RESP_LEGAL",
+          "description": "Identificação do signatário que será validado como responsável pela assinatura da ECD, conforme atos societários: / S – Sim / N – Não",
+          "type": "C",
+          "size": 1,
+          "decimals": null,
+          "required": true,
+          "valid_values": "[S; N]"
+        }
+      ]
+    },
+    "J990": {
+      "block": "J",
+      "fields": [
+        {
+          "order": 1,
+          "name": "REG",
+          "description": "Texto fixo contendo “J990”.",
+          "type": "C",
+          "size": 4,
+          "decimals": null,
+          "required": true,
+          "valid_values": "\"J990\""
+        },
+        {
+          "order": 2,
+          "name": "QTD_LIN_J",
+          "description": "Quantidade total de linhas do Bloco J.",
+          "type": "N",
+          "size": null,
+          "decimals": null,
+          "required": true,
+          "rules": [
+            "REGRA_QTD_LIN_BLOCOJ"
+          ]
+        }
+      ]
+    },
+    "9001": {
+      "block": "9",
+      "fields": [
+        {
+          "order": 1,
+          "name": "REG",
+          "description": "Texto fixo contendo “9001”.",
+          "type": "C",
+          "size": 4,
+          "decimals": null,
+          "required": true,
+          "valid_values": "\"9001\""
+        },
+        {
+          "order": 2,
+          "name": "IND_DAD",
+          "description": "Indicador de movimento: / 0- Bloco com dados informados; / 1- Bloco sem dados informados.",
+          "type": "N",
+          "size": 1,
+          "decimals": null,
+          "required": true,
+          "valid_values": "[0,1]"
+        }
+      ]
+    },
+    "9900": {
+      "block": "9",
+      "fields": [
+        {
+          "order": 1,
+          "name": "REG",
+          "description": "Texto fixo contendo “9900”.",
+          "type": "C",
+          "size": 4,
+          "decimals": null,
+          "required": true,
+          "valid_values": "\"9900\""
+        },
+        {
+          "order": 2,
+          "name": "REG_BLC",
+          "description": "Registro que será totalizado no próximo campo.",
+          "type": "C",
+          "size": 4,
+          "decimals": null,
+          "required": true,
+          "valid_values": "Somente tipos de registro previstos para a escrituração contábil digital"
+        },
+        {
+          "order": 3,
+          "name": "QTD_REG_BLC",
+          "description": "Total de registros do tipo informado no campo anterior.",
+          "type": "N",
+          "size": null,
+          "decimals": null,
+          "required": true,
+          "rules": [
+            "REGRA_QTD_REG_BLC"
+          ]
+        }
+      ]
+    },
+    "9990": {
+      "block": "9",
+      "fields": [
+        {
+          "order": 1,
+          "name": "REG",
+          "description": "Texto fixo contendo “9990”.",
+          "type": "C",
+          "size": 4,
+          "decimals": null,
+          "required": true,
+          "valid_values": "\"9990\""
+        },
+        {
+          "order": 2,
+          "name": "QTD_LIN_9",
+          "description": "Quantidade total de linhas do Bloco 9.",
+          "type": "N",
+          "size": null,
+          "decimals": null,
+          "required": true,
+          "rules": [
+            "REGRA_QRD_LIN_BLOCO9"
+          ]
+        }
+      ]
+    },
+    "9999": {
+      "block": "9",
+      "fields": [
+        {
+          "order": 1,
+          "name": "REG",
+          "description": "Texto fixo contendo “9999”.",
+          "type": "C",
+          "size": 4,
+          "decimals": null,
+          "required": true,
+          "valid_values": "\"9999\""
+        },
+        {
+          "order": 2,
+          "name": "QTD_LIN",
+          "description": "Quantidade total de linhas do arquivo digital.",
+          "type": "N",
+          "size": null,
+          "decimals": null,
+          "required": true,
+          "rules": [
+            "REGRA_QTD_LIN_ARQUIVO"
+          ]
+        }
+      ]
+    }
+  }
+}
