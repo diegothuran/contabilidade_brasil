@@ -162,3 +162,34 @@ def test_balance_sheet_csv_shows_unclosed_result_and_difference() -> None:
     assert ["", "Resultado do exercício não encerrado", "500,00"] in rows
     assert ["", "Total do passivo e patrimônio líquido", "1500,00"] in rows
     assert ["", "Diferença", "0,00"] in rows
+
+
+def test_statement_csv_ends_with_signatures_and_names_the_accountant() -> None:
+    report = {
+        "sections": [{"title": "Ativo", "balance": "0", "groups": []}],
+        "total_assets": "0",
+        "total_liabilities_and_equity": "0",
+        "difference": "0",
+        "signatories": {
+            "accountant": {"name": "Contadora Fictícia", "caption": "Contador, CRC-PE 012345/O"},
+            "legal_representative": {"name": "=Sócio Fictício", "caption": "Sócio-administrador"},
+        },
+    }
+    rows = _rows(
+        balance_sheet_csv(entity_name="Empresa Alfa", cnpj="12345678000195", period="dezembro de 2026", generated_at=GENERATED, report=report)
+    )
+    assert ["Responsável técnico", "Contadora Fictícia — Contador, CRC-PE 012345/O"] in rows[:8]
+    signatures = rows.index(["Assinaturas"])
+    assert rows[signatures + 1] == ["Responsável técnico", "Contadora Fictícia", "Contador, CRC-PE 012345/O"]
+    assert rows[signatures + 2] == ["Representante legal", "'=Sócio Fictício", "Sócio-administrador"]
+    assert len(rows) == signatures + 3
+
+
+def test_statement_csv_without_signatories_says_so_and_still_renders() -> None:
+    report = {"sections": [], "result": {"month": "0", "year_to_date": "0"}, "signatories": None}
+    rows = _rows(
+        income_statement_csv(entity_name="Empresa Alfa", cnpj="12345678000195", period="dezembro de 2026", generated_at=GENERATED, report=report)
+    )
+    assert not any(row[:1] == ["Responsável técnico"] for row in rows)
+    assert ["Responsável técnico não cadastrado"] in rows
+    assert rows[-1] == ["Representante legal não cadastrado"]

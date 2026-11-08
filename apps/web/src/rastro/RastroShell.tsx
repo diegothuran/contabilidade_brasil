@@ -8,6 +8,7 @@ import { AuditPage } from "../pages/AuditPage";
 import { BanksPage } from "../pages/BanksPage";
 import { CloseRunPage } from "../pages/CloseRunPage";
 import { CompanyFormPage } from "../pages/CompanyFormPage";
+import { CompanySignatoriesPage } from "../pages/CompanySignatoriesPage";
 import { DocumentRequestsPage } from "../pages/DocumentRequestsPage";
 import { DocumentsPage } from "../pages/DocumentsPage";
 import { ImportDetailPage, ImportsPage } from "../pages/ImportsPage";
@@ -15,6 +16,7 @@ import { JournalDetailPage } from "../pages/JournalDetailPage";
 import { JournalFormPage } from "../pages/JournalFormPage";
 import { JournalsPage } from "../pages/JournalsPage";
 import { PeriodsPage } from "../pages/PeriodsPage";
+import { ProfilePage } from "../pages/ProfilePage";
 import { ReconciliationPage as LedgerReconciliationPage } from "../pages/ReconciliationPage";
 import { BalanceSheetPage, IncomeStatementPage } from "../pages/StatementsPage";
 import { TrialBalancePage } from "../pages/TrialBalancePage";
@@ -103,6 +105,7 @@ const workRoutes: Record<string, { crumb: string; label: string }> = {
   ...routeMeta,
   "/app/rastro/rotinas": { crumb: "Sistema", label: "Rotinas do razão" },
   "/app/rastro/administracao": { crumb: "Governança", label: "Administração" },
+  "/app/rastro/perfil": { crumb: "Conta", label: "Perfil" },
   "/app/journals": { crumb: "Rastreabilidade", label: "Lançamentos" },
   "/app/journals/new": { crumb: "Sistema", label: "Novo lançamento" },
   "/app/trial-balance": { crumb: "Sistema", label: "Balancete" },
@@ -126,6 +129,9 @@ function currentRoute(pathname: string): { crumb: string; label: string } {
     }
     const known = routeMeta[demoPath];
     return known ? { crumb: "Demonstração", label: known.label } : { crumb: "Demonstração", label: "Hoje" };
+  }
+  if (pathname.startsWith("/app/rastro/empresas/") && pathname.endsWith("/assinaturas")) {
+    return { crumb: "Governança", label: "Assinaturas" };
   }
   if (pathname.startsWith("/app/rastro/fechamentos/")) {
     return { crumb: "Fechamentos", label: "Checklist" };
@@ -363,6 +369,7 @@ export function RastroShell() {
             <strong>{actorName}</strong>
             <span>{session.me.roles.join(", ")}</span>
           </div>
+          <NavLink className="sidebar-profile" to="/app/rastro/perfil" data-testid="profile-link" onClick={() => setSidebarOpen(false)}>Perfil</NavLink>
           <button className="sidebar-logout" type="button" onClick={() => void userManager.signoutRedirect()}>Sair</button>
         </div>
       </aside>
@@ -433,6 +440,8 @@ export function RastroShell() {
             <Route path="/app/rastro/integracoes" element={<PlannedPage title="Integrações" detail="Nenhum conector externo está configurado. As contas bancárias da empresa ficam em Rotinas do razão." />} />
             <Route path="/app/rastro/rotinas" element={<RoutinesPage />} />
             <Route path="/app/rastro/administracao" element={<Routine><AdministrationPage /></Routine>} />
+            <Route path="/app/rastro/perfil" element={<Routine><ProfilePage /></Routine>} />
+            <Route path="/app/rastro/empresas/:id/assinaturas" element={<Routine><CompanySignatoriesPage /></Routine>} />
             <Route path="/app/journals/new" element={<Routine><JournalFormPage /></Routine>} />
             <Route path="/app/journals/:journalId" element={<Routine><JournalDetailPage /></Routine>} />
             <Route path="/app/journals" element={<Routine><JournalsPage /></Routine>} />

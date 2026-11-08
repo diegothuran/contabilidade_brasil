@@ -1,4 +1,4 @@
-# SPEC — Contrato de interface v0.8.1
+# SPEC — Contrato de interface v0.9.0
 
 > Fonte de verdade da experiência do front-end. Atualizações de comportamento, estado, linguagem visual ou estrutura precisam atualizar este arquivo antes do código.
 
@@ -96,7 +96,7 @@ As transições de navegação e controles permanecem contidas em 150ms; sidebar
 
 ## 10. Dados sintéticos
 
-Usar somente organizações e empresas fictícias, sem CPF, certificados, documentos reais, segredos, URLs privadas ou dados bancários reais. O front inicial é demonstrativo; ações de aprovar/rejeitar atualizam apenas estado local.
+Usar somente organizações e empresas fictícias, sem CPF real, certificados, documentos reais, segredos, URLs privadas ou dados bancários reais. O front inicial é demonstrativo; ações de aprovar/rejeitar atualizam apenas estado local.
 
 ## 11. Decisões abertas
 
@@ -114,6 +114,7 @@ A sala fica em `/app/rastro` e é a primeira tela depois do login. Ela é a úni
 | Balancete e razão | Saldo anterior, débito, crédito e saldo atual da competência da barra, com D (devedor) e C (credor), totais e a diferença entre débitos e créditos. A busca filtra por código ou nome; por padrão só aparecem contas com saldo ou movimento. Clicar na conta abre o razão abaixo, do saldo anterior ao saldo atual. Imprimir e Baixar CSV (Excel) ficam no cabeçalho; o razão tem os próprios. A impressão esconde menu, barra e botões, leva empresa, CNPJ, competência, data de emissão e o aviso de relatório gerencial, e imprime só o relatório do botão usado. O cartão em Rotinas do razão e a rota antiga continuam. |
 | DRE | Em Relatórios, ao lado do balancete, pelos links Balancete · DRE · Balanço. Receitas, despesas e resultado do mês e do acumulado no ano, agrupados pela conta raiz do plano, só com contas que têm valor. Os cartões mostram receitas, despesas e lucro ou prejuízo do ano. O encerramento do exercício não entra. Imprimir e Baixar CSV (Excel) no cabeçalho, com o aviso de demonstração gerencial sem layout oficial. |
 | Balanço | Ativo, passivo e patrimônio líquido no fim da competência. Antes do encerramento, o PL mostra a linha "Resultado do exercício não encerrado". O cartão Diferença fica verde quando o ativo é igual ao passivo mais o PL. Imprimir e Baixar CSV (Excel) no cabeçalho. |
+| Assinaturas da DRE e do Balanço | Depois da tabela, as duas demonstrações mostram e imprimem duas linhas de assinatura: "Nome — Contador, CRC-PE 012345/O" e "Nome — Sócio-administrador". O CPF não aparece. Sem cadastro, a linha diz "Responsável técnico não cadastrado" (ou "Representante legal não cadastrado") e a impressão não é bloqueada. Na tela, um aviso com a palavra "Aviso" e a cor de atenção diz o que falta; para o admin ele traz o link "Definir as assinaturas da empresa", para os outros pede que falem com o admin. O aviso não sai no papel. O CSV traz "Responsável técnico" no cabeçalho e o bloco "Assinaturas" no fim ([ADR 030](../adr/030-signatarios-das-demonstracoes.md)). |
 | Encerramento do exercício | Painel no balancete de dezembro, só para preparador e admin. Escolhe a conta do PL (pré-seleciona 3.2.01) e gera o rascunho em 31/12. Abre o lançamento criado, que segue enviar, aprovar e publicar por outro usuário. Recusa com a mensagem da API quando há lançamento pendente no ano, quando o encerramento já existe ou quando não há o que encerrar. |
 | Conciliação | Casos de conciliação. |
 | Migrações | Lotes de importação. |
@@ -123,7 +124,9 @@ A sala fica em `/app/rastro` e é a primeira tela depois do login. Ela é a úni
 | Evidências | Documentos da empresa e a exportação da competência da barra. Os estados aparecem em texto: em fila, gerando, pronto, falhou. Não há lista de operações nesta tela. |
 | Integrações | Estado vazio: nenhum conector externo. As contas bancárias ficam nas rotinas. |
 | Rotinas do razão | Novo lançamento, balancete, plano, bancos, auditoria e, para o admin, nova empresa. |
-| Administração | O admin convida uma pessoa do escritório ou um cliente ligado a uma empresa. Convidar um cliente que já existe para a mesma empresa, mas ainda sem login, só cria o login. A senha temporária vai por e-mail e não aparece na tela. Quem não é admin vê que só o admin convida. |
+| Administração | O admin convida uma pessoa do escritório ou um cliente ligado a uma empresa. Convidar um cliente que já existe para a mesma empresa, mas ainda sem login, só cria o login. A senha temporária vai por e-mail e não aparece na tela. Quem não é admin vê que só o admin convida. Abaixo, a lista de empresas leva, em cada linha, à tela de assinaturas. |
+| Assinaturas da empresa | `/app/rastro/empresas/:id/assinaturas`, só admin. Escolhe o contador entre quem do escritório cadastrou o CRC; o técnico aparece com "(técnico, não assina)" e não pode ser escolhido. Mostra a validade da certidão de quem foi escolhido. Recebe nome, CPF e cargo do representante legal (sócio-administrador, administrador, diretor ou titular). Quem não é admin vê que só o admin define. A recusa da API aparece em texto. |
+| Perfil | `/app/rastro/perfil`, pelo link Perfil ao lado de Sair. A pessoa cadastra o próprio CPF, a UF, o número e a categoria do CRC, e, se quiser, a certidão de regularidade e a validade. Mostra o registro atual e diz "(vencida)" quando a validade passou. Vale só para o escritório ativo. |
 | Demonstração | Caminhada sintética da Orbe, só com `VITE_RASTRO_DEMO` diferente de `false`. |
 
 A barra de contexto marca a empresa escolhida e mantém a busca ao lado. A competência dessa empresa vale para o balancete, o lançamento novo, a importação, a conciliação, as pendências da competência e a exportação. A caminhada sintética tem o próprio seletor e não altera a empresa do sistema. As rotas `/app/journals`, `/app/accounts` e vizinhas permanecem e renderizam na mesma casca.
@@ -138,6 +141,7 @@ Nada nesta tela fala em journal, balancete, papéis do escritório, exportação
 
 ## 14. Changelog
 
+- `0.9.0` — Assinaturas: a DRE e o Balanço terminam com o responsável técnico e o representante legal, na tela, na impressão e no CSV. Sem cadastro, a linha diz isso e a tela avisa com link. Entram o Perfil (CRC da pessoa) e a tela de assinaturas da empresa, só admin, ligada a partir da Administração.
 - `0.8.1` — O detalhe do lançamento mostra a origem por extenso. O encerramento traz uma nota sobre o tipo E e o registro I355 da ECD. O painel de encerramento avisa que resultado lançado depois do encerramento gera um encerramento complementar.
 - `0.8.0` — Relatórios: o menu Balancete e razão vira Relatórios, com DRE e Balanço gerenciais (imprimir e CSV) e o painel de encerramento do exercício no balancete de dezembro.
 - `0.7.0` — Renovação visual produtiva: controles live/portal saem da cascata bege/verde, estados loading/empty/error ficam textuais, foco da navegação móvel é contido/restaurado, painel/toast recebem motion contido e o scroll do razão respeita reduced-motion. API, domínio, dados, papéis e impressão permanecem inalterados.

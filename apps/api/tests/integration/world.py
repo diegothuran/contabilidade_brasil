@@ -32,6 +32,8 @@ TABLES = (
     "source_documents",
     "outbox_events",
     "idempotency_keys",
+    "entity_signatories",
+    "professional_registrations",
     "audit_events",
     "journal_lines",
     "journal_entries",

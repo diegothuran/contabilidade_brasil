@@ -171,12 +171,14 @@ O [questionário anônimo](https://claude.ai/artifact/3QCemad8tRtHsfKse7f4W3) ju
 ## Perguntas de seguimento
 
 50. **CRC ativo.** Quais rotinas só um contador com CRC ativo pode fazer: aprovar lançamento, revisar o balancete, fechar a competência, assinar as demonstrações? O sistema deve guardar o número e a situação do CRC de cada usuário, e quem confere essa situação?
+   > **Implementado em parte ([ADR 030](adr/030-signatarios-das-demonstracoes.md)):** cada pessoa do escritório cadastra no Perfil o CPF, a UF, o número e a categoria do CRC, e, se quiser, a certidão de regularidade e a validade. O admin escolhe, por empresa, o contador responsável e o representante legal. A DRE e o Balanço saem com as duas linhas de assinatura, na impressão e no CSV. O sistema não consulta o CRC e não bloqueia nada por falta de certidão (pergunta 57). Continua aberto se alguma rotina, além de assinar, fica reservada a quem tem CRC ativo.
 51. **Data na conciliação.** A diferença de data zero vale também para cheque compensado, boleto ou transferência que cai no dia seguinte e venda no cartão? Quando a data difere, o caso fica sem sugestão ou recebe sugestão com aviso?
 52. **Despesa financeira.** Que conta do plano recebe tarifa, juros e IOF? Quando não é despesa financeira (juros recebidos, IOF de uma operação específica)?
 53. **Demonstrações atualizadas.** A DRE e o Balanço precisam estar disponíveis a qualquer momento do mês ou só depois do fechamento? Valem para todos os regimes, inclusive o Simples Nacional?
 54. **Explicar.** O que precisa ser explicado, e para quem: cada lançamento até o documento de origem, as diferenças de conciliação, a variação de um saldo entre dois meses?
 55. **Apuração do resultado.** O encerramento passa por uma conta de apuração do resultado (ARE) antes de chegar a lucros ou prejuízos acumulados, ou vai direto? Hoje o rascunho vai direto para a conta do PL escolhida. O saldo final é o mesmo; muda o que o razão mostra.
 56. **O que bloqueia o encerramento.** Hoje qualquer lançamento do ano em rascunho, pendente ou aprovado impede gerar o encerramento, e dezembro precisa estar aberto. Basta isso, ou o fechamento de dezembro e a provisão de IRPJ e CSLL precisam estar concluídos antes? Resultado lançado depois do encerramento publicado gera um encerramento complementar, como na complementação da ITG 2000; isso serve ao escritório?
+57. **Certidão de regularidade.** Hoje a DRE e o Balanço saem com o nome e o CRC do contador mesmo sem certidão de regularidade (DHP) informada ou com ela vencida, e a tela só mostra a validade no perfil e na tela de assinaturas. O escritório quer bloquear a impressão quando a certidão do responsável técnico não estiver válida, só avisar, ou deixar como está? Quem confere a certidão no site do CRC, e com que frequência?
 
 ## O que as normas já respondem (pesquisa de 06/11/2026)
 
