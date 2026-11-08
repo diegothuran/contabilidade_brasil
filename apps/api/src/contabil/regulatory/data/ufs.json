@@ -1,0 +1,23 @@
+{
+  "title": "Unidades da Federação e o código IBGE de dois dígitos",
+  "source": {
+    "document": "IBGE, códigos dos municípios (os dois primeiros dígitos são o código da UF)",
+    "url": "https://www.ibge.gov.br/explica/codigos-dos-municipios.php",
+    "accessed_on": null
+  },
+  "verified": false,
+  "unverified": [
+    "Tabela transcrita sem consulta à página do IBGE nesta POC. Conferir antes de usar fora da prévia."
+  ],
+  "uses": [
+    "0000.COD_MUN: os dois primeiros dígitos do município são os da UF (REGRA_COD_MUN_INV_UF do manual da ECD).",
+    "I030.NIRE: os dois primeiros dígitos do NIRE correspondem à UF do 0000 (REGRA_NIRE_UF do manual da ECD)."
+  ],
+  "ufs": {
+    "RO": "11", "AC": "12", "AM": "13", "RR": "14", "PA": "15", "AP": "16", "TO": "17",
+    "MA": "21", "PI": "22", "CE": "23", "RN": "24", "PB": "25", "PE": "26", "AL": "27", "SE": "28", "BA": "29",
+    "MG": "31", "ES": "32", "RJ": "33", "SP": "35",
+    "PR": "41", "SC": "42", "RS": "43",
+    "MS": "50", "MT": "51", "GO": "52", "DF": "53"
+  }
+}
