@@ -552,6 +552,40 @@ class ClientSubmission(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
 
 
+class ProfessionalRegistration(Base):
+    __tablename__ = "professional_registrations"
+    __table_args__ = (
+        UniqueConstraint("tenant_id", "user_id", name="uq_professional_registrations_user"),
+        CheckConstraint("crc_category IN ('contador', 'tecnico')", name="ck_professional_registrations_category"),
+    )
+
+    id: Mapped[str] = mapped_column(String(160), primary_key=True)
+    tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.id"))
+    user_id: Mapped[str] = mapped_column(ForeignKey("app_users.id"))
+    cpf: Mapped[str] = mapped_column(String(11))
+    crc_uf: Mapped[str] = mapped_column(String(2))
+    crc_number: Mapped[str] = mapped_column(String(20))
+    crc_category: Mapped[str] = mapped_column(String(20))
+    regularity_number: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    regularity_valid_until: Mapped[date | None] = mapped_column(Date, nullable=True)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+
+class EntitySignatories(Base):
+    __tablename__ = "entity_signatories"
+    __table_args__ = (UniqueConstraint("legal_entity_id", name="uq_entity_signatories_entity"),)
+
+    id: Mapped[str] = mapped_column(String(160), primary_key=True)
+    tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.id"))
+    legal_entity_id: Mapped[str] = mapped_column(ForeignKey("legal_entities.id"))
+    accountant_user_id: Mapped[str | None] = mapped_column(ForeignKey("app_users.id"), nullable=True)
+    legal_rep_name: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    legal_rep_cpf: Mapped[str | None] = mapped_column(String(11), nullable=True)
+    legal_rep_role: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    updated_by: Mapped[str] = mapped_column(String(160))
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+
 class CloseSnapshot(Base):
     __tablename__ = "close_snapshots"
     __table_args__ = (UniqueConstraint("close_run_id", name="uq_close_snapshots_run"),)
