@@ -21,6 +21,8 @@ from contabil.reconciliation.router import BankAccountCreate
 from contabil.reconciliation.service import approve_case, create_bank_account, create_statement, ignore_case, import_statement
 from contabil.master_data.starter_chart import ensure_retained_earnings
 from contabil.seed.cnpj import cnpj_digits
+from contabil.seed.cpf import cpf_digits
+from contabil.signatories.samples import ensure_entity_signatories, ensure_registration
 from contabil.platform.errors import DomainError
 from contabil.tables import (
     AccountingPeriod,
@@ -348,6 +350,9 @@ def load_samples(tenant_id: str, catalog: str = "carteira") -> dict:
         skipped: list[str] = []
         notes: list[str] = []
         statements = "imported" if storage_configured() else "skipped"
+        apply_tenant(session, tenant_id)
+        _ensure_registrations(session, preparer, approver)
+        session.commit()
         for index, (base, name, capital, revenue, expense, reverse, story) in enumerate(companies, start=1):
             apply_tenant(session, tenant_id)
             digits = cnpj_digits(base)
@@ -395,6 +400,8 @@ def load_samples(tenant_id: str, catalog: str = "carteira") -> dict:
                 statements=statements == "imported",
                 notes=notes,
             )
+            apply_tenant(session, tenant_id)
+            _ensure_signatories(session, approver, entity_id, base, story)
             session.commit()
         return {"created": created, "skipped": skipped, "statements": statements, "notes": notes}
     except Exception:
@@ -402,6 +409,27 @@ def load_samples(tenant_id: str, catalog: str = "carteira") -> dict:
         raise
     finally:
         session.close()
+
+
+def _ensure_registrations(session: Session, preparer: Principal, approver: Principal) -> None:
+    """CRC-PE e CPF fictícios: o aprovador do piloto é contador; o preparador, técnico (ADR 030)."""
+    ensure_registration(session, approver, cpf=cpf_digits("700000001"), crc_number="045678/O", category="contador")
+    ensure_registration(session, preparer, cpf=cpf_digits("700000002"), crc_number="056789/T", category="tecnico")
+
+
+def _ensure_signatories(session: Session, approver: Principal, entity_id: str, base: str, story: str) -> None:
+    """A empresa vazia fica sem signatários, para a tela mostrar o aviso de cadastro."""
+    if _behavior(story) == "vazia":
+        return
+    trade = _ACTIVITY_TEXT[story]["trade"]
+    ensure_entity_signatories(
+        session,
+        approver,
+        entity_id,
+        accountant_user_id=APPROVER_ID,
+        legal_rep_name=f"Representante fictício de {trade}",
+        legal_rep_cpf=cpf_digits(base[:2] + base[-7:]),
+    )
 
 
 def _load_company(

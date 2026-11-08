@@ -50,6 +50,7 @@ def seed() -> None:
         _seed_phase_b(session)
         _seed_phase_c(session)
         _seed_reports(session)
+        _seed_signatories(session)
         session.commit()
     except Exception:
         session.rollback()
@@ -312,6 +313,32 @@ def _seed_reports(session) -> None:
         post(month, 20, f"despesa-{month:02d}", f"Despesas do mês {month:02d}/2026", "5.1.01", "2.1.01", expense)
         paid = format(Decimal(expense) * Decimal("0.8"), ".2f")
         post(month, 25, f"pagamento-{month:02d}", f"Pagamento a fornecedores {month:02d}/2026", "2.1.01", "1.1.01", paid)
+
+
+def _seed_signatories(session) -> None:
+    """CRC-PE e CPF fictícios dos usuários de teste; a Empresa Alfa tem signatários, a Beta não (ADR 030)."""
+    from contabil.platform.auth import apply_tenant
+    from contabil.seed.cpf import cpf_digits
+    from contabil.signatories.samples import ensure_entity_signatories, ensure_registration
+
+    apply_tenant(session, "tenant_demo")
+    people = (
+        ("approver", "Aprovador", ["approver"], "800000001", "012345/O", "contador"),
+        ("admin", "Administrador", ["preparer", "approver", "admin", "viewer"], "800000002", "023456/O", "contador"),
+        ("preparer", "Preparador", ["preparer"], "800000003", "034567/T", "tecnico"),
+    )
+    for user_id, name, roles, cpf_base, crc_number, category in people:
+        principal = Principal(user_id, "tenant_demo", frozenset(roles), name, "Escritório Demo")
+        ensure_registration(session, principal, cpf=cpf_digits(cpf_base), crc_number=crc_number, category=category)
+    admin = Principal("admin", "tenant_demo", frozenset({"preparer", "approver", "admin", "viewer"}), "Administrador", "Escritório Demo")
+    ensure_entity_signatories(
+        session,
+        admin,
+        "le_alfa",
+        accountant_user_id="approver",
+        legal_rep_name="Sócia Fictícia da Alfa",
+        legal_rep_cpf=cpf_digits("800000010"),
+    )
 
 
 if __name__ == "__main__":
