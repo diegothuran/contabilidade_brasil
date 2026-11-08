@@ -17,6 +17,7 @@ from contabil.ledger.service import account_sums
 from contabil.periods.service import require_period
 from contabil.platform.money import format_signed
 from contabil.platform.principal import Principal
+from contabil.signatories.editing import statement_signatories
 from contabil.tables import Account, AccountingPeriod, LegalEntity
 from contabil.tenancy.service import require_entity
 
@@ -130,6 +131,7 @@ def income_statement(session: Session, principal: Principal, legal_entity_id: st
              **{column: format_signed(totals["expense"][column]) for column in columns}},
         ],
         "result": {column: format_signed(result[column]) for column in columns},
+        "signatories": statement_signatories(session, principal.tenant_id, entity.id),
     }
 
 
@@ -164,6 +166,7 @@ def balance_sheet(session: Session, principal: Principal, legal_entity_id: str, 
         "total_assets": format_signed(totals["asset"]),
         "total_liabilities_and_equity": format_signed(liabilities_and_equity),
         "difference": format_signed(totals["asset"] - liabilities_and_equity),
+        "signatories": statement_signatories(session, principal.tenant_id, entity.id),
     }
 
 

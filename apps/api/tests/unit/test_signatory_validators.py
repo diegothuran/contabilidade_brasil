@@ -1,3 +1,4 @@
+from contabil.seed.cpf import cpf_digits
 from contabil.signatories.validators import crc_label, masked_cpf, normalize_crc_number, valid_cpf, valid_crc_number
 
 
@@ -24,3 +25,9 @@ def test_crc_number_format() -> None:
 
 def test_crc_label() -> None:
     assert crc_label("PE", "012345/O-8") == "CRC-PE 012345/O-8"
+
+
+def test_sample_cpf_generator_produces_valid_check_digits() -> None:
+    assert cpf_digits("529982247") == "52998224725"
+    for base in ("900000001", "900000002", "910000003"):
+        assert valid_cpf(cpf_digits(base))
