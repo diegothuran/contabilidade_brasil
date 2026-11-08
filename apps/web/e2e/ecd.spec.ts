@@ -16,7 +16,7 @@ test("a prévia da ECD da Empresa Alfa sai marcada e lista o que falta", async (
   await expect(page.getByRole("heading", { name: "Prévia da ECD" })).toBeVisible();
   await expect(page.getByTestId("ecd-notice")).toHaveText("Prévia para conferência no PVA. Não transmitir.");
   // O preparador lê os dados da escrituração, mas só o admin altera.
-  await expect(page.getByTestId("ecd-registration").locator("fieldset")).toBeDisabled();
+  await expect(page.getByTestId("ecd-registration").getByLabel("UF da sede")).toBeDisabled();
 
   const generate = page.getByTestId("ecd-generate");
   await expect(generate.getByRole("combobox")).toHaveValue("2026");
