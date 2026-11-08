@@ -7,10 +7,11 @@ from sqlalchemy.orm import Session
 
 from contabil.audit.hash import content_hash
 from contabil.audit.service import append_event
+from contabil.documents.service import get_document, store_document
 from contabil.imports.service import mark_operation_running, operation_dict
 from contabil.ledger.service import trial_balance
 from contabil.periods.service import require_period
-from contabil.platform.auth import format_utc
+from contabil.platform.auth import apply_tenant, format_utc
 from contabil.platform.correlation import correlation_id
 from contabil.platform.errors import DomainError
 from contabil.platform.ids import new_id
@@ -29,6 +30,11 @@ from contabil.tables import (
 from contabil.tenancy.service import require_entity
 
 EXPORT_KIND = "operational_v1"
+ECD_PREVIEW_KIND = "ecd_preview_v1"
+EXPORT_KINDS = {
+    EXPORT_KIND: {"operation": "operational_export", "event": "OperationalExportRequested", "requested": "operational_export_requested"},
+    ECD_PREVIEW_KIND: {"operation": "ecd_preview", "event": "EcdPreviewRequested", "requested": "ecd_preview_requested"},
+}
 PACKAGE_LIMIT = 200
 DISCLAIMER = (
     "Este pacote reúne lançamentos, documentos, pedidos, auditoria e o resumo do balancete da competência. "
@@ -73,24 +79,50 @@ def assemble_operational_package(
     return body
 
 
+def _last_period_of_year(session: Session, tenant_id: str, legal_entity_id: str, fiscal_year: int) -> AccountingPeriod:
+    period = session.scalar(
+        select(AccountingPeriod)
+        .where(
+            AccountingPeriod.tenant_id == tenant_id,
+            AccountingPeriod.legal_entity_id == legal_entity_id,
+            AccountingPeriod.fiscal_year == fiscal_year,
+        )
+        .order_by(AccountingPeriod.month.desc())
+        .limit(1)
+    )
+    if period is None:
+        raise DomainError(409, "Ano sem competências", f"A empresa não tem competências em {fiscal_year}.")
+    return period
+
+
 def create_export(
     session: Session,
     principal: Principal,
     *,
     legal_entity_id: str,
-    period_id: str,
+    period_id: str | None,
     kind: str,
+    fiscal_year: int | None = None,
 ) -> dict:
     ensure_role(principal, "preparer", "approver", "admin")
-    if kind != EXPORT_KIND:
-        raise DomainError(400, "Tipo inválido", "Nesta versão a exportação é operational_v1.")
+    if kind not in EXPORT_KINDS:
+        raise DomainError(400, "Tipo inválido", "Use operational_v1 ou ecd_preview_v1.")
     entity = require_entity(session, principal.tenant_id, legal_entity_id)
-    period = require_period(session, principal.tenant_id, entity.id, period_id, for_posting=False)
+    if kind == ECD_PREVIEW_KIND:
+        if fiscal_year is None:
+            raise DomainError(400, "Ano ausente", "A prévia da ECD pede o ano-calendário em fiscal_year.")
+        # A exportação guarda a última competência do ano como referência; a prévia cobre o ano inteiro.
+        period = _last_period_of_year(session, principal.tenant_id, entity.id, fiscal_year)
+    else:
+        if not period_id:
+            raise DomainError(400, "Competência ausente", "A exportação operacional pede period_id.")
+        period = require_period(session, principal.tenant_id, entity.id, period_id, for_posting=False)
+    spec = EXPORT_KINDS[kind]
     export_id = new_id("exp")
     operation = Operation(
         id=new_id("op"),
         tenant_id=principal.tenant_id,
-        kind="operational_export",
+        kind=spec["operation"],
         status="accepted",
         correlation_id=correlation_id.get() or "",
         target_ref=export_id,
@@ -104,7 +136,7 @@ def create_export(
             legal_entity_id=entity.id,
             period_id=period.id,
             operation_id=operation.id,
-            kind=EXPORT_KIND,
+            kind=kind,
             sha256=None,
             payload=None,
             created_by=principal.user_id,
@@ -112,12 +144,13 @@ def create_export(
         )
     )
     session.flush()
-    enqueue(
-        session,
-        tenant_id=principal.tenant_id,
-        event_type="OperationalExportRequested",
-        payload={"export_id": export_id, "operation_id": operation.id, "legal_entity_id": entity.id},
-    )
+    event_payload = {"export_id": export_id, "operation_id": operation.id, "legal_entity_id": entity.id}
+    if kind == ECD_PREVIEW_KIND:
+        event_payload["fiscal_year"] = fiscal_year
+    enqueue(session, tenant_id=principal.tenant_id, event_type=spec["event"], payload=event_payload)
+    metadata = {"action": spec["requested"], "period_id": period.id}
+    if kind == ECD_PREVIEW_KIND:
+        metadata["fiscal_year"] = fiscal_year
     append_event(
         session,
         tenant_id=principal.tenant_id,
@@ -125,14 +158,14 @@ def create_export(
         actor_ref=principal.user_id,
         target_type="operational_export",
         target_ref=export_id,
-        metadata={"action": "operational_export_requested", "period_id": period.id},
+        metadata=metadata,
     )
     payload = operation_dict(operation)
     payload["export_id"] = export_id
     return payload
 
 
-def get_export(session: Session, principal: Principal, export_id: str) -> dict:
+def _ready_export(session: Session, principal: Principal, export_id: str) -> OperationalExport:
     export = session.scalar(
         select(OperationalExport).where(OperationalExport.id == export_id, OperationalExport.tenant_id == principal.tenant_id)
     )
@@ -145,7 +178,82 @@ def get_export(session: Session, principal: Principal, export_id: str) -> dict:
         raise DomainError(409, "Exportação falhou", "Não foi possível montar o pacote desta competência.")
     if operation.status != "completed" or export.payload is None:
         raise DomainError(409, "Exportação em andamento", "O pacote ainda está em fila ou sendo gerado.")
-    return export.payload
+    return export
+
+
+def get_export(session: Session, principal: Principal, export_id: str) -> dict:
+    return _ready_export(session, principal, export_id).payload
+
+
+def export_file(session: Session, principal: Principal, export_id: str) -> tuple[SourceDocument, str]:
+    """Arquivo guardado de uma exportação que gera arquivo (hoje, só a prévia da ECD)."""
+    export = _ready_export(session, principal, export_id)
+    document_id = (export.payload or {}).get("document_id")
+    if export.kind != ECD_PREVIEW_KIND or not document_id:
+        raise DomainError(404, "Não encontrado", "Esta exportação não tem arquivo para baixar.")
+    document = get_document(session, principal, document_id)
+    return document, export.payload.get("file_name") or document.file_name
+
+
+def run_ecd_preview(session: Session, tenant_id: str, payload: dict) -> None:
+    """Handler do worker: monta a prévia, guarda o .txt no storage e o resumo na exportação."""
+    from contabil.regulatory.ecd_preview import build_ecd_preview
+
+    mark_operation_running(session, tenant_id, payload.get("operation_id"))
+    export = session.scalar(
+        select(OperationalExport)
+        .where(OperationalExport.id == payload["export_id"], OperationalExport.tenant_id == tenant_id)
+        .with_for_update()
+    )
+    if export is None or export.payload is not None:
+        return
+    fiscal_year = int(payload["fiscal_year"])
+    preview = build_ecd_preview(session, tenant_id, export.legal_entity_id, fiscal_year, actor=export.created_by)
+    writer = Principal(export.created_by, tenant_id, frozenset({"preparer"}), export.created_by, "")
+    content = preview.encoded()
+    document, _status = store_document(
+        session,
+        writer,
+        file_name=preview.file_name,
+        media_type=f"text/plain; charset={preview.encoding.lower()}",
+        content=content,
+        document_type="other",
+        legal_entity_id=export.legal_entity_id,
+        competence=None,
+        source_ref=f"ecd-preview:{export.id}",
+        source_type="generated",
+    )
+    apply_tenant(session, tenant_id)
+    body = {
+        "schema_version": "1.0.0",
+        "kind": ECD_PREVIEW_KIND,
+        "generated_at": format_utc(datetime.now(timezone.utc)),
+        "legal_entity_id": export.legal_entity_id,
+        "fiscal_year": fiscal_year,
+        "layout": {"obligation": "ECD", "version": preview.layout_version, "encoding": preview.encoding},
+        "notice": preview.notice,
+        "transmittable": False,
+        "file_name": preview.file_name,
+        "document_id": document["document_id"],
+        "sha256": document["original"]["sha256"],
+        "size_bytes": len(content),
+        "result": preview.result,
+        "counts": preview.counts,
+        "checks": preview.checks,
+        "issues": [issue.as_dict() for issue in preview.issues],
+    }
+    export.payload = body
+    export.sha256 = document["original"]["sha256"]
+    session.flush()
+    append_event(
+        session,
+        tenant_id=tenant_id,
+        event_type="document_exported",
+        actor_ref=export.created_by,
+        target_type="operational_export",
+        target_ref=export.id,
+        metadata={"action": "ecd_preview_completed", "sha256": document["original"]["sha256"], "fiscal_year": fiscal_year},
+    )
 
 
 def run_operational_export(session: Session, tenant_id: str, payload: dict) -> None:
