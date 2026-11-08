@@ -32,6 +32,7 @@ O primeiro público é um escritório com cerca de **20 a 200 CNPJs**, em dois o
 | Balancete | Débito, crédito e saldo por conta e competência, com drill-down até a linha. | Rotinas do razão › Balancete |
 | Demonstrações | DRE e Balanço gerenciais da competência, com impressão e CSV. Terminam com as assinaturas do contador responsável (nome e CRC) e do representante legal; sem cadastro, a linha diz que falta. | Relatórios › DRE e Balanço |
 | Signatários | Cada pessoa do escritório cadastra o próprio CRC. O admin escolhe o contador e o representante legal de cada empresa. | Perfil; Administração › Assinaturas |
+| Prévia da ECD | Arquivo do leiaute 9 do ano, montado do razão para conferir no PVA, com a lista do que falta. O leiaute é dado versionado no registry. Não transmite nem assina. | Relatórios › Prévia da ECD |
 | Períodos | O checklist bloqueia o fechamento. O snapshot fica gravado com SHA-256. Reabrir pede motivo e aprovação de outra pessoa e não altera o snapshot. | Fechamentos |
 | Pendências | Pedido de documento na competência. Aberto ou recebido bloqueia o fechamento. Hoje mostra a fila do escritório. | Hoje e Pendências |
 | Importação | Lote CSV em simulação, relatório de diferenças e publicação por outra pessoa. Identificador já importado não entra de novo. | Migrações |
@@ -117,6 +118,7 @@ flowchart LR
 | Exportação | `exports/` | Pacote JSON da competência, gerado pelo outbox, com SHA-256 e auditoria. |
 | Portal do cliente | `portal/` | Rotas do cliente: os pedidos da própria empresa e o envio do arquivo. |
 | Signatários | `signatories/` | Registro profissional (CRC) por escritório, signatários da empresa e a leitura que as demonstrações e a ECD usam. |
+| Regulatório | `regulatory/` | Registry mínimo (leiaute da ECD como dado, escolhido pela vigência), dados da escrituração por empresa e a prévia da ECD. |
 | Auditoria | `audit/` | Eventos encadeados por hash e verificação. |
 | Plataforma | `platform/` | Autenticação, escopo do cliente (`require_office`), RLS, idempotência, correlation ID, outbox, storage, dinheiro em decimal. |
 

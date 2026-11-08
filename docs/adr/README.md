@@ -32,3 +32,4 @@
 | [028](028-aviso-por-email.md) | O cliente recebe aviso pelo SES. O e-mail é lido no Cognito e não fica no banco. |
 | [029](029-encerramento-e-demonstracoes.md) | O encerramento do exercício nasce como rascunho para aprovação. DRE e Balanço são gerenciais. |
 | [030](030-signatarios-das-demonstracoes.md) | O CRC fica no perfil de cada pessoa do escritório. O admin escolhe o contador e o representante legal de cada empresa, e a DRE e o Balanço saem assinados. |
+| [031](031-registry-minimo-e-previa-ecd.md) | O leiaute da ECD é dado versionado num registry mínimo. A prévia do ano sai marcada, com pendências, e não é transmitida. |
