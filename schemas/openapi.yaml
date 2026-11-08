@@ -372,8 +372,12 @@ paths:
         '400': { description: Motivo curto }
   /v1/legal-entities/{legal_entity_id}/exports:
     post:
-      summary: Pede a exportação operacional da competência
-      description: preparer, approver ou admin dispara. A lista de operações não é uma tela. O resultado sai em GET /v1/exports/{export_id}.
+      summary: Pede a exportação operacional da competência ou a prévia da ECD do ano
+      description: >-
+        preparer, approver ou admin dispara. A lista de operações não é uma tela. O resultado sai em
+        GET /v1/exports/{export_id}. Com kind operational_v1, period_id é obrigatório. Com kind ecd_preview_v1
+        (ADR 031), fiscal_year é obrigatório; o worker monta o arquivo do leiaute 9 da ECD, guarda o .txt no
+        storage e devolve as pendências. A prévia não é transmitida nem assinada.
       operationId: createOperationalExport
       parameters:
         - in: path
@@ -388,16 +392,20 @@ paths:
             schema:
               type: object
               additionalProperties: false
-              required: [period_id, kind]
+              required: [kind]
               properties:
-                period_id: { type: string }
-                kind: { type: string, enum: [operational_v1] }
+                period_id: { type: string, description: Obrigatório em operational_v1 }
+                kind: { type: string, enum: [operational_v1, ecd_preview_v1] }
+                fiscal_year: { type: integer, minimum: 2000, maximum: 2100, description: Obrigatório em ecd_preview_v1 }
       responses:
         '202': { description: "Exportação aceita, com export_id, operation_id e correlation_id" }
+        '400': { description: 'Tipo inválido, ou period_id / fiscal_year ausente' }
         '403': { description: Papel insuficiente }
+        '404': { description: Empresa de outro escritório ou inexistente }
+        '409': { description: Ano sem competências }
   /v1/exports/{export_id}:
     get:
-      summary: Pacote operacional quando a operação terminou
+      summary: Pacote operacional ou resumo da prévia da ECD quando a operação terminou
       operationId: getOperationalExport
       parameters:
         - in: path
@@ -405,9 +413,73 @@ paths:
           required: true
           schema: { type: string }
       responses:
-        '200': { description: Pacote JSON, content: { application/json: { schema: { $ref: '#/components/schemas/OperationalExport' } } } }
+        '200':
+          description: Pacote JSON (operational_v1) ou resumo da prévia da ECD (ecd_preview_v1)
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/OperationalExport'
+                  - $ref: '#/components/schemas/EcdPreviewExport'
         '404': { description: Exportação de outro escritório ou inexistente }
         '409': { description: "Ainda em fila, gerando ou falhou" }
+  /v1/exports/{export_id}/file:
+    get:
+      summary: Baixa o arquivo .txt da prévia da ECD
+      description: >-
+        Só para ecd_preview_v1. O arquivo segue o leiaute (ISO-8859-1, campos entre |, linhas em CR+LF) e se chama
+        ECD-PREVIA-<cnpj>-<ano>.txt. A natureza do livro no I030 e no J900 diz PREVIA NAO TRANSMITIR.
+      operationId: getExportFile
+      parameters:
+        - in: path
+          name: export_id
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: 'Arquivo da prévia, text/plain; charset=iso-8859-1, com Content-Disposition', content: { text/plain: { schema: { type: string, format: binary } } } }
+        '404': { description: 'Exportação de outro escritório, inexistente ou sem arquivo' }
+        '409': { description: "Ainda em fila, gerando ou falhou" }
+  /v1/legal-entities/{legal_entity_id}/ecd-registration:
+    get:
+      summary: Dados da escrituração da ECD da empresa
+      description: Qualquer papel do escritório lê. Sem cadastro, devolve configured = false e os campos nulos (ADR 031).
+      operationId: getEcdRegistration
+      parameters:
+        - $ref: '#/components/parameters/LegalEntityId'
+      responses:
+        '200': { description: Cadastro da escrituração, content: { application/json: { schema: { $ref: '#/components/schemas/EcdRegistration' } } } }
+        '404': { description: Empresa de outro escritório ou inexistente }
+    put:
+      summary: Grava os dados da escrituração da ECD
+      description: >-
+        Só admin, com auditoria (ecd_registration_created ou ecd_registration_updated). O município é o código IBGE de
+        7 dígitos e começa com o código da UF. Em Junta Comercial o NIRE é obrigatório, tem 11 dígitos e começa com o
+        código da UF; em cartório o NIRE fica vazio.
+      operationId: putEcdRegistration
+      parameters:
+        - $ref: '#/components/parameters/LegalEntityId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [uf, municipality_ibge, registry_kind, book_number]
+              properties:
+                uf: { type: string, minLength: 2, maxLength: 2 }
+                municipality_ibge: { type: string, minLength: 7, maxLength: 9 }
+                registry_kind: { type: string, enum: [junta, cartorio] }
+                nire: { type: [string, 'null'], maxLength: 20 }
+                registry_date: { type: [string, 'null'], format: date }
+                special_situation: { type: [string, 'null'], enum: ['1', '2', '3', '4', null] }
+                book_number: { type: integer, minimum: 1, maximum: 999999 }
+      responses:
+        '200': { description: Cadastro gravado, content: { application/json: { schema: { $ref: '#/components/schemas/EcdRegistration' } } } }
+        '400': { description: 'UF, município, NIRE, data ou livro inválidos; errors aponta o campo' }
+        '403': { description: Só admin altera }
+        '404': { description: Empresa de outro escritório ou inexistente }
   /v1/document-requests/{request_id}/content:
     post:
       summary: Grava o arquivo original e marca o pedido como recebido
@@ -1456,6 +1528,55 @@ components:
     SourceDocument: { type: object, description: Validado por schemas/source-document.schema.json, additionalProperties: true }
     DocumentRequest: { type: object, description: Validado por schemas/document-request.schema.json, additionalProperties: true }
     OperationalExport: { type: object, description: Validado por schemas/export-package.schema.json, additionalProperties: true }
+    EcdRegistration:
+      type: object
+      required: [legal_entity_id, configured]
+      properties:
+        legal_entity_id: { type: string }
+        configured: { type: boolean }
+        uf: { type: [string, 'null'] }
+        municipality_ibge: { type: [string, 'null'] }
+        registry_kind: { type: [string, 'null'], enum: [junta, cartorio, null] }
+        nire: { type: [string, 'null'] }
+        registry_date: { type: [string, 'null'], format: date }
+        special_situation: { type: [string, 'null'] }
+        book_number: { type: [integer, 'null'] }
+        updated_at: { type: [string, 'null'], format: date-time }
+    EcdPreviewExport:
+      type: object
+      description: >-
+        Resumo da prévia da ECD (ADR 031). transmittable é sempre false. issues traz code, severity (blocker, warning,
+        assumption ou out_of_scope), message, register e fix (ecd_registration, signatories, accounts, journals,
+        year_end_closing ou null). checks traz as conferências internas (i200_matches_i250, i155_rolls_forward,
+        i355_matches_income_statement quando há encerramento, j100_balances e block_counts).
+      required: [kind, fiscal_year, file_name, document_id, sha256, notice, transmittable, issues, checks, counts]
+      properties:
+        schema_version: { type: string }
+        kind: { type: string, enum: [ecd_preview_v1] }
+        generated_at: { type: string, format: date-time }
+        legal_entity_id: { type: string }
+        fiscal_year: { type: integer }
+        layout: { type: object, additionalProperties: true }
+        notice: { type: string }
+        transmittable: { type: boolean, const: false }
+        file_name: { type: string }
+        document_id: { type: string }
+        sha256: { type: string }
+        size_bytes: { type: integer }
+        result: { type: string, description: Resultado do exercício antes do encerramento, decimal em string }
+        counts: { type: object, additionalProperties: { type: integer } }
+        checks: { type: object, additionalProperties: { type: boolean } }
+        issues:
+          type: array
+          items:
+            type: object
+            required: [code, severity, message]
+            properties:
+              code: { type: string }
+              severity: { type: string, enum: [blocker, warning, assumption, out_of_scope] }
+              message: { type: string }
+              register: { type: [string, 'null'] }
+              fix: { type: [string, 'null'] }
     ReconciliationCase: { type: object, description: Validado por schemas/reconciliation-case.schema.json, additionalProperties: true }
     CloseRun: { type: object, description: Validado por schemas/close-run.schema.json, additionalProperties: true }
     RegulatoryObligation: { type: object, description: Validado por schemas/regulatory-obligation.schema.json, additionalProperties: true }
