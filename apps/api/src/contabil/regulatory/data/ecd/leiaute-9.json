@@ -29,7 +29,9 @@
     "J930: pelo menos um signatário 900 e um diferente de 900; um só com IND_RESP_LEGAL = S, e nunca o 900.",
     "Tabela de qualificação dos assinantes (COD_ASSIN).",
     "0007 é obrigatório na forma G; o código 00 significa nenhuma inscrição em outras entidades.",
-    "O bloco C não é importado: o PGE preenche com a ECD anterior."
+    "O bloco C não é importado: o PGE preenche com a ECD anterior.",
+    "J100 e J150 com linha D exigem I052 com o mesmo código de aglutinação numa conta analítica (REGRA_OBRIGATORIO_I052).",
+    "J100 tem exatamente duas linhas de nível 1 (A e P); J150 tem uma só linha de nível 1, totalizadora."
   ],
   "unverified": [
     "Importação do arquivo no PVA da ECD: o programa não estava instalado no ambiente da POC.",
@@ -48,6 +50,7 @@
     "forbidden_characters": "| e caracteres de controle 00 a 31"
   },
   "structure": {
+    "file_open": "0000",
     "block_order": [
       "0",
       "I",
@@ -183,7 +186,7 @@
       "diretor": "203",
       "titular": "801"
     },
-    "book_nature": "DIARIO GERAL",
+    "book_nature": "DIARIO GERAL - PREVIA NAO TRANSMITIR",
     "bookkeeping_form": "G"
   },
   "preview_defaults": {
@@ -364,7 +367,7 @@
         },
         {
           "order": 12,
-          "name": "IND_SIT_INI/_PER",
+          "name": "IND_SIT_INI_PER",
           "description": "Indicador de situação no início do período (conforme tabela publicada pelo Sped).",
           "type": "N",
           "size": 1,
@@ -397,7 +400,7 @@
         },
         {
           "order": 15,
-          "name": "COD_HASH_/SUB",
+          "name": "COD_HASH_SUB",
           "description": "Hash da escrituração substituída.",
           "type": "C",
           "size": 40,
@@ -890,6 +893,42 @@
           "order": 8,
           "name": "CTA",
           "description": "Nome da conta analítica/grupo de contas.",
+          "type": "C",
+          "size": null,
+          "decimals": null,
+          "required": true
+        }
+      ]
+    },
+    "I052": {
+      "block": "I",
+      "fields": [
+        {
+          "order": 1,
+          "name": "REG",
+          "description": "Texto fixo contendo “I052”.",
+          "type": "C",
+          "size": 4,
+          "decimals": null,
+          "required": true,
+          "valid_values": "\"I052\""
+        },
+        {
+          "order": 2,
+          "name": "COD_CCUS",
+          "description": "Código do centro de custo.",
+          "type": "C",
+          "size": null,
+          "decimals": null,
+          "required": false,
+          "rules": [
+            "REGRA_CCUS_NO_CENTRO_CUSTOS_N3"
+          ]
+        },
+        {
+          "order": 3,
+          "name": "COD_AGL",
+          "description": "Código de aglutinação utilizado nas demonstrações contábeis do bloco J (Somente para as contas analíticas).",
           "type": "C",
           "size": null,
           "decimals": null,
