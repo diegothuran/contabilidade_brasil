@@ -322,9 +322,25 @@
 .rastro .report-closing__form { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px; }
 .rastro .report-closing__form label { display: grid; gap: 4px; font-weight: 600; }
 .rastro .report-closing__form select { min-width: 18rem; }
+/* Assinaturas da DRE e do Balanço (ADR 030): duas linhas, nome e legenda. O aviso só aparece na tela. */
+.rastro .report-signatures { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 32px; padding: 32px 20px 8px; }
+.rastro .report-signature { display: grid; gap: 3px; justify-items: center; color: var(--ink-700); font-size: .78rem; text-align: center; }
+.rastro .report-signature strong { color: var(--ink-900); }
+.rastro .report-signature__line { display: block; width: 100%; max-width: 22rem; height: 1px; margin-bottom: 6px; background: var(--ink-700); }
+.rastro .report-signature__missing { color: var(--ink-600); font-style: italic; }
+.rastro .report-signatures__notice { margin: 16px 20px 0; padding: 10px 12px; border-left: 3px solid var(--attention); border-radius: 6px; background: var(--attention-soft); color: #79591f; font-size: .78rem; }
+.rastro .report-signatures__notice a { color: var(--blue-deep); font-weight: 650; }
+.rastro .signatories-form { display: grid; gap: 18px; }
+.rastro .signatories-form fieldset { margin: 0; padding: 0; border: 0; }
+.rastro .signatories-form legend { margin-bottom: 8px; color: var(--ink-900); font-weight: 700; }
+.rastro .signatories-form select { min-width: 18rem; }
+.rastro .sidebar-profile { color: #d5e8f5; font-size: .72rem; font-weight: 650; text-decoration: none; }
+.rastro .sidebar-profile:hover { text-decoration: underline; }
+.rastro .sidebar-profile:focus-visible { outline-color: #a4ddff; }
 @media (max-width: 760px) {
   .rastro .report-search, .rastro .report-search input { width: 100%; min-width: 0; }
   .rastro .report-actions .button { flex: 1; }
+  .rastro .report-signatures { grid-template-columns: 1fr; }
 }
 
 @media print {
@@ -349,6 +365,10 @@
   .rastro .report-print-heading strong { font-size: 14pt; }
   .rastro .routine .report-note { padding: 8px 0 0; color: #000; font-size: 8pt; }
   body.print-balancete .rastro .report-razao, body.print-razao .rastro .report-balancete { display: none !important; }
+  .rastro .report-signatures__notice { display: none !important; }
+  .rastro .report-signatures { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24pt; padding: 40pt 0 0; break-inside: avoid; font-size: 9pt; }
+  .rastro .report-signature, .rastro .report-signature strong, .rastro .report-signature__missing { color: #000; }
+  .rastro .report-signature__line { background: #000; }
 }
 .rastro .page-header__action .report-shortcut { margin-left: 10px; padding: 0 12px; }
 

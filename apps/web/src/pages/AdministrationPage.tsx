@@ -1,7 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { ApiError, api } from "../api";
+import { formatCnpj } from "../format";
 import { can, useSession } from "../session";
+import { signaturesPath } from "./signatories";
 
 type Member = { user_id: string; display_name: string; roles: string[]; legal_entity_id?: string };
 
@@ -165,6 +168,28 @@ function InviteOffice() {
                   <td>{member.user_id}</td>
                   <td>{member.roles.join(", ")}</td>
                   <td>{member.legal_entity_id ? entities.find((entity) => entity.legal_entity_id === member.legal_entity_id)?.name ?? member.legal_entity_id : "—"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+      <section className="panel panel--flush">
+        <div className="table-toolbar">
+          <span className="eyebrow">Empresas</span>
+          <span className="table-count">{entities.length} empresas</span>
+        </div>
+        <div className="table-scroll">
+          <table className="data-table" data-testid="company-list">
+            <thead>
+              <tr><th>Empresa</th><th>CNPJ</th><th>Assinaturas da DRE e do Balanço</th></tr>
+            </thead>
+            <tbody>
+              {entities.map((entity) => (
+                <tr key={entity.legal_entity_id}>
+                  <td>{entity.name}</td>
+                  <td>{formatCnpj(entity.cnpj)}</td>
+                  <td><Link to={signaturesPath(entity.legal_entity_id)}>Contador e representante legal</Link></td>
                 </tr>
               ))}
             </tbody>
