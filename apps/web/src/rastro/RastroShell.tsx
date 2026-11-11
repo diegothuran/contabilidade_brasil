@@ -18,6 +18,7 @@ import { JournalFormPage } from "../pages/JournalFormPage";
 import { JournalsPage } from "../pages/JournalsPage";
 import { PeriodsPage } from "../pages/PeriodsPage";
 import { ProfilePage } from "../pages/ProfilePage";
+import { ReinfPage } from "../pages/ReinfPage";
 import { ReconciliationPage as LedgerReconciliationPage } from "../pages/ReconciliationPage";
 import { BalanceSheetPage, IncomeStatementPage } from "../pages/StatementsPage";
 import { TrialBalancePage } from "../pages/TrialBalancePage";
@@ -65,7 +66,7 @@ const navGroups = [
       { to: "/app/rastro", label: "Hoje", mark: "H" },
       { to: "/app/rastro/fechamentos", label: "Fechamentos", mark: "F" },
       { to: "/app/rastro/pendencias", label: "Pendências", mark: "P" },
-      { to: "/app/rastro/balancete", label: "Relatórios", mark: "R", also: ["/app/rastro/dre", "/app/rastro/balanco", "/app/rastro/ecd"] },
+      { to: "/app/rastro/balancete", label: "Relatórios", mark: "R", also: ["/app/rastro/dre", "/app/rastro/balanco", "/app/rastro/ecd", "/app/rastro/reinf"] },
       { to: "/app/rastro/conciliacao", label: "Conciliação", mark: "C" },
       { to: "/app/rastro/migracoes", label: "Migrações", mark: "M" },
     ],
@@ -94,6 +95,7 @@ const routeMeta: Record<string, { crumb: string; label: string }> = {
   "/app/rastro/dre": { crumb: "Relatórios", label: "DRE" },
   "/app/rastro/balanco": { crumb: "Relatórios", label: "Balanço" },
   "/app/rastro/ecd": { crumb: "Relatórios", label: "Prévia da ECD" },
+  "/app/rastro/reinf": { crumb: "Relatórios", label: "Prévia da EFD-Reinf" },
   "/app/rastro/conciliacao": { crumb: "Operação", label: "Conciliação" },
   "/app/rastro/migracoes": { crumb: "Operação", label: "Migrações" },
   "/app/rastro/ledger": { crumb: "Rastreabilidade", label: "Dados e ledger" },
@@ -433,6 +435,7 @@ export function RastroShell() {
             <Route path="/app/rastro/dre" element={<Routine><IncomeStatementPage /></Routine>} />
             <Route path="/app/rastro/balanco" element={<Routine><BalanceSheetPage /></Routine>} />
             <Route path="/app/rastro/ecd" element={<Routine><EcdPage /></Routine>} />
+            <Route path="/app/rastro/reinf" element={<Routine><ReinfPage /></Routine>} />
             <Route path="/app/rastro/conciliacao" element={<Routine><LedgerReconciliationPage /></Routine>} />
             <Route path="/app/rastro/migracoes" element={<Routine><ImportsPage /></Routine>} />
             <Route path="/app/rastro/migracoes/:batchId" element={<Routine><ImportDetailPage /></Routine>} />

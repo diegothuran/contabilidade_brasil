@@ -470,3 +470,13 @@
 .rastro .ecd-issue--warning { border-color: var(--attention); background: var(--attention-soft); }
 .rastro .ecd-issue__severity { font-weight: 700; }
 .rastro .ecd-checks li { font-size: .74rem; }
+.rastro .reinf-inline { margin: 12px 20px; }
+.rastro .reinf-form__wide { grid-column: span 2; }
+.rastro .reinf-form input:focus-visible { outline: 3px solid rgba(31, 92, 134, .28); outline-offset: 2px; }
+.rastro .reinf-form input[aria-invalid="true"], .rastro .reinf-form select[aria-invalid="true"] { border-color: var(--danger); }
+.rastro .reinf-field-error { font-size: .7rem; }
+.rastro .reinf-confirm { display: inline-flex; flex-wrap: wrap; gap: 6px; }
+.rastro .reinf-issue-group + .reinf-issue-group { margin-top: 10px; }
+.rastro .reinf-issue-group h4 { margin: 8px 0 6px; font-size: .78rem; }
+.rastro .data-table.report-table td.amount { text-align: right; white-space: nowrap; }
+@media (max-width: 640px) { .rastro .reinf-form__wide { grid-column: auto; } }
