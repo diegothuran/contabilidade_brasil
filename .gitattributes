@@ -8,3 +8,5 @@ Dockerfile text eol=lf
 *.conf text eol=lf
 # A prévia da ECD usa CR+LF e ISO-8859-1 por exigência do leiaute (ADR 031).
 examples/ecd-preview.example.txt -text
+# XSDs oficiais da EFD-Reinf (CC BY-ND 3.0): guardados byte a byte, sem conversão de fim de linha (ADR 032).
+apps/api/src/contabil/regulatory/data/reinf/v2_01_02/*.xsd -text

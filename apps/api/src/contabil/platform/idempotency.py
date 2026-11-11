@@ -50,9 +50,16 @@ async def replay_guard(request: Request, ctx: Ctx = Depends(get_context)) -> Ctx
     return ctx
 
 
-def persist(ctx: Ctx, request: Request, status_code: int, body: dict):
-    from fastapi.responses import JSONResponse
+def stored_response(status_code: int, body):
+    """Resposta gravada (ou repetida) pela idempotência. 204 sai sem corpo, como manda o HTTP."""
+    from fastapi.responses import JSONResponse, Response
 
+    if status_code == 204:
+        return Response(status_code=204)
+    return JSONResponse(body, status_code=status_code)
+
+
+def persist(ctx: Ctx, request: Request, status_code: int, body: dict):
     key = getattr(request.state, "idempotency_key", None)
     digest = getattr(request.state, "idempotency_hash", None)
     if not key or not digest:
@@ -85,7 +92,7 @@ def persist(ctx: Ctx, request: Request, status_code: int, body: dict):
                 select(IdempotencyKey).where(IdempotencyKey.tenant_id == ctx.principal.tenant_id, IdempotencyKey.key == key)
             )
             if existing is not None and existing.request_hash == digest:
-                return JSONResponse(existing.response_body, status_code=existing.response_status)
+                return stored_response(existing.response_status, existing.response_body)
             raise DomainError(409, "Chave de idempotência reutilizada", "A mesma chave foi enviada com outro pedido.") from exc
         if name == "uq_accounts_entity_code":
             raise DomainError(409, "Conta já existe", "Já existe uma conta com este código na empresa.") from exc
@@ -95,4 +102,4 @@ def persist(ctx: Ctx, request: Request, status_code: int, body: dict):
             raise DomainError(409, "Usuário já faz parte do escritório", "Este nome de usuário já tem acesso ao escritório.") from exc
         logger.warning("integrity constraint %s", name)
         raise DomainError(409, "Conflito de persistência", "O banco rejeitou a operação.") from exc
-    return JSONResponse(body, status_code=status_code)
+    return stored_response(status_code, body)

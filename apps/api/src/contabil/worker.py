@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 
 from contabil.audit.service import verify_chain
 from contabil.imports.service import publish_batch, validate_batch
-from contabil.exports.service import run_ecd_preview, run_operational_export
+from contabil.exports.service import run_ecd_preview, run_operational_export, run_reinf_preview
 from contabil.identity.notices import deliver_notice, sweep_reminders
 from contabil.reconciliation.service import import_statement, resolve_case_from_journal
 from contabil.platform.auth import apply_tenant
@@ -29,6 +29,7 @@ HANDLERS = {
     "JournalPublished": resolve_case_from_journal,
     "OperationalExportRequested": run_operational_export,
     "EcdPreviewRequested": run_ecd_preview,
+    "ReinfPreviewRequested": run_reinf_preview,
     "DocumentRequestCreated": deliver_notice,
     "DocumentRequestReturned": deliver_notice,
 }

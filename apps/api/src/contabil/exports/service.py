@@ -31,10 +31,14 @@ from contabil.tenancy.service import require_entity
 
 EXPORT_KIND = "operational_v1"
 ECD_PREVIEW_KIND = "ecd_preview_v1"
+REINF_PREVIEW_KIND = "reinf_r4000_preview_v1"
 EXPORT_KINDS = {
     EXPORT_KIND: {"operation": "operational_export", "event": "OperationalExportRequested", "requested": "operational_export_requested"},
     ECD_PREVIEW_KIND: {"operation": "ecd_preview", "event": "EcdPreviewRequested", "requested": "ecd_preview_requested"},
+    REINF_PREVIEW_KIND: {"operation": "reinf_preview", "event": "ReinfPreviewRequested", "requested": "reinf_preview_requested"},
 }
+# Exportações que geram arquivo para baixar em GET /v1/exports/{id}/file.
+FILE_KINDS = frozenset({ECD_PREVIEW_KIND, REINF_PREVIEW_KIND})
 PACKAGE_LIMIT = 200
 DISCLAIMER = (
     "Este pacote reúne lançamentos, documentos, pedidos, auditoria e o resumo do balancete da competência. "
@@ -106,7 +110,7 @@ def create_export(
 ) -> dict:
     ensure_role(principal, "preparer", "approver", "admin")
     if kind not in EXPORT_KINDS:
-        raise DomainError(400, "Tipo inválido", "Use operational_v1 ou ecd_preview_v1.")
+        raise DomainError(400, "Tipo inválido", "Use operational_v1, ecd_preview_v1 ou reinf_r4000_preview_v1.")
     entity = require_entity(session, principal.tenant_id, legal_entity_id)
     if kind == ECD_PREVIEW_KIND:
         if fiscal_year is None:
@@ -115,6 +119,8 @@ def create_export(
         period = _last_period_of_year(session, principal.tenant_id, entity.id, fiscal_year)
     else:
         if not period_id:
+            if kind == REINF_PREVIEW_KIND:
+                raise DomainError(400, "Competência ausente", "A prévia da EFD-Reinf pede period_id.")
             raise DomainError(400, "Competência ausente", "A exportação operacional pede period_id.")
         period = require_period(session, principal.tenant_id, entity.id, period_id, for_posting=False)
     spec = EXPORT_KINDS[kind]
@@ -186,10 +192,10 @@ def get_export(session: Session, principal: Principal, export_id: str) -> dict:
 
 
 def export_file(session: Session, principal: Principal, export_id: str) -> tuple[SourceDocument, str]:
-    """Arquivo guardado de uma exportação que gera arquivo (hoje, só a prévia da ECD)."""
+    """Arquivo guardado de uma exportação que gera arquivo (as prévias da ECD e da EFD-Reinf)."""
     export = _ready_export(session, principal, export_id)
     document_id = (export.payload or {}).get("document_id")
-    if export.kind != ECD_PREVIEW_KIND or not document_id:
+    if export.kind not in FILE_KINDS or not document_id:
         raise DomainError(404, "Não encontrado", "Esta exportação não tem arquivo para baixar.")
     document = get_document(session, principal, document_id)
     return document, export.payload.get("file_name") or document.file_name
@@ -253,6 +259,65 @@ def run_ecd_preview(session: Session, tenant_id: str, payload: dict) -> None:
         target_type="operational_export",
         target_ref=export.id,
         metadata={"action": "ecd_preview_completed", "sha256": document["original"]["sha256"], "fiscal_year": fiscal_year},
+    )
+
+
+def run_reinf_preview(session: Session, tenant_id: str, payload: dict) -> None:
+    """Handler do worker: monta a prévia da EFD-Reinf R-4000, guarda o .zip no storage e o resumo na exportação (ADR 032)."""
+    from contabil.regulatory.reinf_preview import build_reinf_preview
+
+    mark_operation_running(session, tenant_id, payload.get("operation_id"))
+    export = session.scalar(
+        select(OperationalExport)
+        .where(OperationalExport.id == payload["export_id"], OperationalExport.tenant_id == tenant_id)
+        .with_for_update()
+    )
+    if export is None or export.payload is not None:
+        return
+    preview = build_reinf_preview(session, tenant_id, export.legal_entity_id, export.period_id)
+    writer = Principal(export.created_by, tenant_id, frozenset({"preparer"}), export.created_by, "")
+    document, _status = store_document(
+        session,
+        writer,
+        file_name=preview.file_name,
+        media_type="application/zip",
+        content=preview.content,
+        document_type="other",
+        legal_entity_id=export.legal_entity_id,
+        competence=None,
+        source_ref=f"reinf-preview:{export.id}",
+        source_type="generated",
+    )
+    apply_tenant(session, tenant_id)
+    body = {
+        "schema_version": "1.0.0",
+        "kind": REINF_PREVIEW_KIND,
+        "generated_at": format_utc(datetime.now(timezone.utc)),
+        "legal_entity_id": export.legal_entity_id,
+        "period_id": export.period_id,
+        "competence": preview.competence,
+        "layout_version": preview.layout_version,
+        "notice": preview.notice,
+        "transmittable": False,
+        "file_name": preview.file_name,
+        "document_id": document["document_id"],
+        "sha256": document["original"]["sha256"],
+        "size_bytes": len(preview.content),
+        "counts": preview.counts,
+        "checks": preview.checks,
+        "issues": [issue.as_dict() for issue in preview.issues],
+    }
+    export.payload = body
+    export.sha256 = document["original"]["sha256"]
+    session.flush()
+    append_event(
+        session,
+        tenant_id=tenant_id,
+        event_type="document_exported",
+        actor_ref=export.created_by,
+        target_type="operational_export",
+        target_ref=export.id,
+        metadata={"action": "reinf_preview_completed", "sha256": document["original"]["sha256"], "period_id": export.period_id},
     )
 
 

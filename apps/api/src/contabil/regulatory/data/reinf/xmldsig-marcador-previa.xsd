@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Schema auxiliar da plataforma (ADR 032). Escrito do zero; não é cópia nem derivação do XSD oficial da
+  EFD-Reinf nem do xmldsig-core-schema.xsd da W3C.
+
+  Os XSDs oficiais dos eventos importam "./xmldsig-core-schema.xsd" e exigem um ds:Signature depois do
+  evento. A prévia não assina. Para validar o evento contra os XSDs oficiais sem editá-los, a validação
+  troca esse import por este arquivo e acrescenta, numa cópia em memória, um <Signature/> vazio como
+  marcador de "não assinado". O XML entregue no zip sai sem o marcador.
+
+  Este schema só declara o elemento Signature no namespace do xmldsig e aceita qualquer conteúdo.
+  Ele não valida assinatura nenhuma.
+-->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           targetNamespace="http://www.w3.org/2000/09/xmldsig#"
+           elementFormDefault="qualified">
+  <xs:element name="Signature">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:any namespace="##any" processContents="skip" minOccurs="0" maxOccurs="unbounded"/>
+      </xs:sequence>
+      <xs:anyAttribute namespace="##any" processContents="skip"/>
+    </xs:complexType>
+  </xs:element>
+</xs:schema>

@@ -33,6 +33,7 @@ FORCED = (
     "bank_transactions",
     "reconciliation_cases",
     "reconciliation_matches",
+    "withholding_payments",
 )
 
 
