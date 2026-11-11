@@ -83,6 +83,8 @@ export function TrialBalancePage() {
           <ReportSwitcher />
           <p className="muted">
             <Link to="/app/rastro/ecd" data-testid="link-ecd">Prévia da ECD</Link>: o arquivo do ano para conferir no PVA, sem transmissão.
+            {" · "}
+            <Link to="/app/rastro/reinf" data-testid="link-reinf">Prévia da EFD-Reinf</Link>: os eventos R-4000 da competência para conferir, sem assinatura nem envio.
           </p>
         </div>
         <div className="page-header__action report-actions">

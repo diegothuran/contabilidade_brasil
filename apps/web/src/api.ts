@@ -8,15 +8,29 @@ function tenantHeaders(): Record<string, string> {
   return tenantId ? { "X-Tenant-Id": tenantId } : {};
 }
 
+export type FieldError = { loc: string[]; msg: string };
+
 export class ApiError extends Error {
   status: number;
   title: string;
+  errors: FieldError[];
 
-  constructor(status: number, title: string, detail: string) {
+  constructor(status: number, title: string, detail: string, errors: FieldError[] = []) {
     super(detail);
     this.status = status;
     this.title = title;
+    this.errors = errors;
   }
+}
+
+// A recusa por campo chega em errors[].loc; o último item da loc é o nome do campo.
+function fieldErrors(payload: { errors?: unknown }): FieldError[] {
+  if (!Array.isArray(payload.errors)) {
+    return [];
+  }
+  return payload.errors.filter(
+    (item): item is FieldError => Boolean(item) && Array.isArray((item as FieldError).loc) && typeof (item as FieldError).msg === "string",
+  );
 }
 
 export async function api<T>(path: string, options: { method?: string; body?: unknown } = {}): Promise<T> {
@@ -29,6 +43,9 @@ export async function api<T>(path: string, options: { method?: string; body?: un
   if (options.body !== undefined) {
     body = JSON.stringify(options.body);
     headers["Content-Type"] = "application/json";
+  }
+  // Toda escrita leva Idempotency-Key, inclusive DELETE sem corpo.
+  if (body !== undefined || (options.method && options.method !== "GET")) {
     headers["Idempotency-Key"] = crypto.randomUUID();
   }
   const response = await fetch(`${apiUrl}${path}`, {
@@ -41,7 +58,10 @@ export async function api<T>(path: string, options: { method?: string; body?: un
     throw new ApiError(response.status, payload.title ?? "Não autenticado", payload.detail ?? "A sessão expirou.");
   }
   if (!response.ok) {
-    throw new ApiError(response.status, payload.title ?? "Erro", payload.detail ?? "A operação falhou.");
+    throw new ApiError(response.status, payload.title ?? "Erro", payload.detail ?? "A operação falhou.", fieldErrors(payload));
+  }
+  if (response.status === 204) {
+    return undefined as T;
   }
   return payload as T;
 }
