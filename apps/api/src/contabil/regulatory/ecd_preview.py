@@ -21,7 +21,7 @@ from contabil.platform.constants import CLOSING_SOURCE, EFFECTIVE_JOURNAL_STATUS
 from contabil.platform.errors import DomainError
 from contabil.platform.principal import Principal
 from contabil.regulatory.registration import registration_row
-from contabil.regulatory.registry import Layout, LayoutNotFound, layout_for
+from contabil.regulatory.registry import Layout, LayoutNotFound, layout_for, uf_codes
 from contabil.regulatory.writer import RecordWriter
 from contabil.signatories.service import signatories_for
 from contabil.tables import Account, AccountingPeriod, JournalEntry, JournalLine
@@ -114,6 +114,8 @@ def build_ecd_preview(session: Session, tenant_id: str, legal_entity_id: str, fi
     registration = registration_row(session, tenant_id, entity.id)
     if registration is None:
         issues.append(Issue("registration_missing", "blocker", "Preencha os dados da escrituração: UF, município, registro e número do livro.", "0000", "ecd_registration"))
+    else:
+        issues.extend(registration_issues(registration))
     signatories = signatories_for(session, tenant_id, entity.id)
     accountant = signatories.accountant if signatories else None
     representative = signatories.legal_representative if signatories else None
@@ -226,11 +228,36 @@ def build_ecd_preview(session: Session, tenant_id: str, legal_entity_id: str, fi
         issues=issues,
         counts=writer.counts,
         checks=checks,
-        file_name=f"ECD-PREVIA-{entity.cnpj}-{fiscal_year}.txt",
+        file_name=preview_file_name(entity.cnpj, fiscal_year),
         layout_version=layout.version,
         encoding=layout.file["encoding"],
         result=format(result, "f"),
     )
+
+
+def preview_file_name(cnpj: str, fiscal_year: int) -> str:
+    """Nome do arquivo da prévia. O CNPJ entra como está guardado: 14 dígitos ou alfanumérico."""
+    return f"ECD-PREVIA-{cnpj}-{fiscal_year}.txt"
+
+
+def registration_issues(registration) -> list[Issue]:
+    """Confere de novo, sobre o cadastro gravado, as regras do NIRE do Manual do Leiaute 9.
+
+    O IND_NIRE do 0000 sai da presença do NIRE, então o par IND_NIRE/NIRE do I030 é sempre
+    coerente no arquivo; o que pode divergir é o registro escolhido (Junta ou cartório) e a UF.
+    O cadastro já recusa isso na gravação; aqui a prévia não confia num dado gravado por outro
+    caminho (seed, migração ou SQL).
+    """
+    found: list[Issue] = []
+    nire = (registration.nire or "").strip()
+    if registration.registry_kind == "junta" and not nire:
+        found.append(Issue("registration_nire_missing", "blocker", "Empresa registrada na Junta Comercial sem NIRE: o I030 sairia com IND_NIRE = 1 e NIRE vazio (REGRA_CAMPO_OBRIGATORIO_NIRE).", "I030", "ecd_registration"))
+    if registration.registry_kind == "cartorio" and nire:
+        found.append(Issue("registration_nire_unexpected", "blocker", "Sociedade registrada em cartório não tem NIRE: com NIRE preenchido o PVA exige IND_NIRE = 1.", "I030", "ecd_registration"))
+    prefix = uf_codes().get((registration.uf or "").upper())
+    if nire and prefix and not nire.startswith(prefix):
+        found.append(Issue("registration_nire_uf", "blocker", f"O NIRE {nire} não começa com {prefix}, o código da UF {registration.uf} do 0000 (REGRA_NIRE_UF).", "I030", "ecd_registration"))
+    return found
 
 
 def _fix_for(register: str) -> str | None:

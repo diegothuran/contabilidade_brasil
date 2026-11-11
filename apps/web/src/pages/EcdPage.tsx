@@ -252,8 +252,11 @@ export function EcdPage() {
               </label>
             ) : null}
             <label>
-              <span>Arquivamento dos atos constitutivos</span>
+              <span>{form.registry_kind === "cartorio" ? "Data de abertura" : "Data do arquivamento"}</span>
               <input type="date" value={form.registry_date} onChange={(event) => setForm({ ...form, registry_date: event.target.value })} />
+              {form.registry_kind === "cartorio" ? (
+                <small className="muted" data-testid="ecd-opening-date-hint">Sem NIRE, a ECD usa a data de abertura da empresa no I030.</small>
+              ) : null}
             </label>
             <label>
               <span>Situação especial</span>

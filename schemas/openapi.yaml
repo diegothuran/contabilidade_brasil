@@ -472,7 +472,7 @@ paths:
                 municipality_ibge: { type: string, minLength: 7, maxLength: 9 }
                 registry_kind: { type: string, enum: [junta, cartorio] }
                 nire: { type: [string, 'null'], maxLength: 20 }
-                registry_date: { type: [string, 'null'], format: date }
+                registry_date: { type: [string, 'null'], format: date, description: 'Vai para o I030.DT_ARQ. Na Junta (registry_kind junta), data do arquivamento dos atos constitutivos; no cartório (cartorio, sem NIRE), data de abertura da empresa. Não pode ser futura.' }
                 special_situation: { type: [string, 'null'], enum: ['1', '2', '3', '4', null] }
                 book_number: { type: integer, minimum: 1, maximum: 999999 }
       responses:
@@ -1538,7 +1538,7 @@ components:
         municipality_ibge: { type: [string, 'null'] }
         registry_kind: { type: [string, 'null'], enum: [junta, cartorio, null] }
         nire: { type: [string, 'null'] }
-        registry_date: { type: [string, 'null'], format: date }
+        registry_date: { type: [string, 'null'], format: date, description: 'Data do I030.DT_ARQ: arquivamento na Junta, ou data de abertura quando o registro é cartório (sem NIRE).' }
         special_situation: { type: [string, 'null'] }
         book_number: { type: [integer, 'null'] }
         updated_at: { type: [string, 'null'], format: date-time }

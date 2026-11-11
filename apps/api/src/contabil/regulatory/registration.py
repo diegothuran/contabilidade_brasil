@@ -1,8 +1,12 @@
 """Cadastro da escrituração da ECD por empresa (ADR 031).
 
 Guarda o que o razão não sabe e o 0000 e o I030 pedem: UF e município da sede, onde o livro é
-registrado (Junta Comercial com NIRE, ou cartório de pessoas jurídicas sem NIRE), a data do
-arquivamento dos atos constitutivos, a situação especial e o número de ordem do livro.
+registrado (Junta Comercial com NIRE, ou cartório de pessoas jurídicas sem NIRE), a data que vai
+para o I030.DT_ARQ, a situação especial e o número de ordem do livro.
+
+A coluna `registry_date` muda de sentido com o registro (Manual do Leiaute 9 da ECD, ADE Cofis
+nº 01/2026): na Junta é a data do arquivamento dos atos constitutivos; sem NIRE (cartório) é a data
+de abertura da empresa.
 """
 
 from __future__ import annotations
@@ -25,6 +29,7 @@ from contabil.tables import EcdRegistration
 from contabil.tenancy.service import require_entity
 
 REGISTRY_KINDS = ("junta", "cartorio")
+REGISTRY_DATE_LABELS = {"junta": "data do arquivamento", "cartorio": "data de abertura"}
 _MUNICIPALITY = re.compile(r"^[0-9]{7}$")
 _NIRE = re.compile(r"^[0-9]{11}$")
 
@@ -76,7 +81,8 @@ def validate_registration(data: RegistrationInput, today: date | None = None) ->
         errors.append({"loc": ["nire"], "msg": "Sociedade registrada em cartório não tem NIRE. Deixe o campo vazio."})
     reference = today or brasilia_today()
     if data.registry_date is not None and data.registry_date > reference:
-        errors.append({"loc": ["registry_date"], "msg": "A data do arquivamento não pode ser futura."})
+        label = REGISTRY_DATE_LABELS.get(kind, "data do arquivamento")
+        errors.append({"loc": ["registry_date"], "msg": f"A {label} não pode ser futura."})
     special = (data.special_situation or "").strip() or None
     if special is not None and special not in _special_situations():
         errors.append({"loc": ["special_situation"], "msg": "Situação especial fora da tabela do leiaute."})

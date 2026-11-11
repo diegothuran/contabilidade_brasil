@@ -19,7 +19,9 @@ O leiaute foi transcrito do **Manual de Orientação do Leiaute 9 da ECD**, anex
 **Conferido no manual oficial**
 - `I010.COD_VER_LC = 9.00`. O valor 10.00 só aparece nos exemplos do I012, por erro do próprio manual. Isso explica a divergência entre as fontes secundárias.
 - Arquivo em ISO-8859-1 (Latin-1). Cada linha começa com `|`, cada campo termina com `|` e a linha termina em CR+LF.
-- Número com vírgula decimal, sem separador de milhar e sem sinal; data em ddmmaaaa.
+- Número com vírgula decimal, sem separador de milhar e sem sinal; data em ddmmaaaa. O manual cita a troca de vírgula por ponto entre o sistema contábil e o PVA como causa típica de ECD substituta. O escritor grava os valores com duas casas e vírgula (1234567,80), e o saldo credor sai sem sinal, com o indicador C; o teste `test_ecd_preview_fields.py` confere os dois casos.
+- Sem NIRE (sociedade simples em cartório), o 0000 sai com `IND_NIRE = 0` e o I030 com o NIRE vazio; NIRE preenchido com `IND_NIRE = 0`, ou vazio com `IND_NIRE = 1`, é erro no PVA. Os dois primeiros dígitos do NIRE são os da UF do 0000.
+- O `I030.DT_ARQ` de empresa sem NIRE é a **data de abertura** da empresa, não uma data de arquivamento na Junta. O `DT_ARQ_CONV` é a data em que a Junta arquivou a conversão de sociedade simples em empresária; a prévia o deixa vazio.
 - Campos, ordem, tipo, tamanho, decimais e obrigatoriedade de 0000, 0001, 0007, 0990, I001, I010, I030, I050, I052, I150, I155, I200, I250, I350, I355, I990, J001, J005, J100, J150, J900, J930, J990, 9001, 9900, 9990 e 9999.
 - J930: pelo menos um signatário com código 900 e um diferente de 900; um só com `IND_RESP_LEGAL = S`, e nunca o 900. Com 900, `IND_CRC`, `EMAIL`, `FONE` e `UF_CRC` vazios são erro; `NUM_SEQ_CRC` e `DT_CRC` vazios são advertência.
 - O 0007 é obrigatório no Diário completo (G); o código 00 diz "nenhuma inscrição em outras entidades".
@@ -41,7 +43,8 @@ O leiaute foi transcrito do **Manual de Orientação do Leiaute 9 da ECD**, anex
 - `regulatory/writer.py` serializa os registros a partir do dado, sem `if` por campo fiscal. O que não cabe no leiaute vira `Violation`: campo obrigatório vazio, tamanho, casas decimais, caractere proibido e as regras condicionais do J930.
 
 **Dados da escrituração**
-- A tabela `ecd_registrations` (migração `0016_ecd_registration`) guarda, por empresa: UF, município IBGE, `registry_kind` (`junta` ou `cartorio`), NIRE, data do arquivamento, situação especial e número do livro.
+- A tabela `ecd_registrations` (migração `0016_ecd_registration`) guarda, por empresa: UF, município IBGE, `registry_kind` (`junta` ou `cartorio`), NIRE, a data do I030.DT_ARQ (`registry_date`), situação especial e número do livro.
+- `registry_date` é uma coluna só, com sentido que depende do registro (ADE Cofis nº 01/2026): na Junta é a **data do arquivamento** dos atos constitutivos; no cartório, sem NIRE, é a **data de abertura** da empresa. A tela troca o rótulo pelo registro escolhido e, no cartório, explica que a ECD usa a data de abertura quando não há NIRE. A recusa de data futura usa o mesmo nome. Não houve migração.
 - As validações seguem as regras do manual:
   - os dois primeiros dígitos do município são os da UF (`REGRA_COD_MUN_INV_UF`);
   - os do NIRE também (`REGRA_NIRE_UF`);
@@ -60,6 +63,7 @@ O leiaute foi transcrito do **Manual de Orientação do Leiaute 9 da ECD**, anex
 - O arquivo sai marcado como prévia no nome (`ECD-PREVIA-<cnpj>-<ano>.txt`) e na natureza do livro (`DIARIO GERAL - PREVIA NAO TRANSMITIR`, no I030 e no J900). A tela e a resposta trazem o aviso fixo "Prévia para conferência no PVA. Não transmitir."
 - `issues` lista o que falta, com severidade (`blocker`, `warning`, `assumption`, `out_of_scope`) e onde corrigir:
   - cadastro ausente, contador ou representante ausente;
+  - cadastro gravado que fura a regra do NIRE: Junta sem NIRE, cartório com NIRE ou NIRE que não começa com o código da UF do 0000 (`REGRA_NIRE_UF`). A gravação já recusa esses casos; a prévia confere de novo porque não confia em dado gravado por seed, migração ou SQL. O `IND_NIRE` sai da presença do NIRE, então o par `IND_NIRE`/`NIRE` é sempre coerente no arquivo;
   - conta sem natureza, ano sem encerramento publicado e lançamento pendente no ano;
   - as violações do leiaute;
   - o que fica fora: I051, I012/I015, bloco K, DLPA/DMPL e bloco C;
