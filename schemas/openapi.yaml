@@ -372,12 +372,15 @@ paths:
         '400': { description: Motivo curto }
   /v1/legal-entities/{legal_entity_id}/exports:
     post:
-      summary: Pede a exportação operacional da competência ou a prévia da ECD do ano
+      summary: Pede a exportação operacional da competência, a prévia da ECD do ano ou a prévia da EFD-Reinf R-4000
       description: >-
         preparer, approver ou admin dispara. A lista de operações não é uma tela. O resultado sai em
         GET /v1/exports/{export_id}. Com kind operational_v1, period_id é obrigatório. Com kind ecd_preview_v1
         (ADR 031), fiscal_year é obrigatório; o worker monta o arquivo do leiaute 9 da ECD, guarda o .txt no
-        storage e devolve as pendências. A prévia não é transmitida nem assinada.
+        storage e devolve as pendências. Com kind reinf_r4000_preview_v1 (ADR 032), period_id é obrigatório; o
+        worker monta R-4010, R-4020 e R-4099 a partir dos pagamentos com retenção da competência, valida cada
+        evento no XSD oficial, guarda um .zip sem assinatura e devolve as pendências. Nenhuma prévia é
+        transmitida nem assinada.
       operationId: createOperationalExport
       parameters:
         - in: path
@@ -394,8 +397,8 @@ paths:
               additionalProperties: false
               required: [kind]
               properties:
-                period_id: { type: string, description: Obrigatório em operational_v1 }
-                kind: { type: string, enum: [operational_v1, ecd_preview_v1] }
+                period_id: { type: string, description: Obrigatório em operational_v1 e reinf_r4000_preview_v1 }
+                kind: { type: string, enum: [operational_v1, ecd_preview_v1, reinf_r4000_preview_v1] }
                 fiscal_year: { type: integer, minimum: 2000, maximum: 2100, description: Obrigatório em ecd_preview_v1 }
       responses:
         '202': { description: "Exportação aceita, com export_id, operation_id e correlation_id" }
@@ -405,7 +408,7 @@ paths:
         '409': { description: Ano sem competências }
   /v1/exports/{export_id}:
     get:
-      summary: Pacote operacional ou resumo da prévia da ECD quando a operação terminou
+      summary: Pacote operacional ou resumo da prévia (ECD ou EFD-Reinf) quando a operação terminou
       operationId: getOperationalExport
       parameters:
         - in: path
@@ -414,21 +417,25 @@ paths:
           schema: { type: string }
       responses:
         '200':
-          description: Pacote JSON (operational_v1) ou resumo da prévia da ECD (ecd_preview_v1)
+          description: Pacote JSON (operational_v1) ou resumo da prévia da ECD (ecd_preview_v1) ou da EFD-Reinf (reinf_r4000_preview_v1)
           content:
             application/json:
               schema:
                 oneOf:
                   - $ref: '#/components/schemas/OperationalExport'
                   - $ref: '#/components/schemas/EcdPreviewExport'
+                  - $ref: '#/components/schemas/ReinfPreviewExport'
         '404': { description: Exportação de outro escritório ou inexistente }
         '409': { description: "Ainda em fila, gerando ou falhou" }
   /v1/exports/{export_id}/file:
     get:
-      summary: Baixa o arquivo .txt da prévia da ECD
+      summary: Baixa o arquivo da prévia da ECD (.txt) ou da EFD-Reinf (.zip)
       description: >-
-        Só para ecd_preview_v1. O arquivo segue o leiaute (ISO-8859-1, campos entre |, linhas em CR+LF) e se chama
-        ECD-PREVIA-<cnpj>-<ano>.txt. A natureza do livro no I030 e no J900 diz PREVIA NAO TRANSMITIR.
+        Para ecd_preview_v1 e reinf_r4000_preview_v1. Na ECD, o arquivo segue o leiaute (ISO-8859-1, campos entre |,
+        linhas em CR+LF) e se chama ECD-PREVIA-<cnpj>-<ano>.txt; a natureza do livro no I030 e no J900 diz PREVIA NAO
+        TRANSMITIR. Na EFD-Reinf, o arquivo é REINF-R4000-PREVIA-<cnpj>-<AAAAMM>.zip, application/zip, com um XML por
+        evento (R-4010-001.xml, R-4020-001.xml, R-4099-001.xml) sem ds:Signature e um LEIA-ME.txt que diz que é prévia
+        sem assinatura e que o XSD oficial exige assinatura.
       operationId: getExportFile
       parameters:
         - in: path
@@ -436,7 +443,7 @@ paths:
           required: true
           schema: { type: string }
       responses:
-        '200': { description: 'Arquivo da prévia, text/plain; charset=iso-8859-1, com Content-Disposition', content: { text/plain: { schema: { type: string, format: binary } } } }
+        '200': { description: 'Arquivo da prévia, text/plain; charset=iso-8859-1 (ECD) ou application/zip (EFD-Reinf), com Content-Disposition', content: { text/plain: { schema: { type: string, format: binary } }, application/zip: { schema: { type: string, format: binary } } } }
         '404': { description: 'Exportação de outro escritório, inexistente ou sem arquivo' }
         '409': { description: "Ainda em fila, gerando ou falhou" }
   /v1/legal-entities/{legal_entity_id}/ecd-registration:
@@ -481,6 +488,123 @@ paths:
         '400': { description: 'UF, município, NIRE, datas ou livro inválidos; errors aponta o campo' }
         '403': { description: Só admin altera }
         '404': { description: Empresa de outro escritório ou inexistente }
+  /v1/legal-entities/{legal_entity_id}/withholding-payments:
+    get:
+      summary: Pagamentos com retenção na fonte da empresa
+      description: >-
+        Qualquer papel do escritório lê; o cliente da empresa recebe 403. Com period_id, só os da competência,
+        em ordem de data do pagamento. Base da prévia da EFD-Reinf R-4000 (ADR 032).
+      operationId: listWithholdingPayments
+      parameters:
+        - $ref: '#/components/parameters/LegalEntityId'
+        - in: query
+          name: period_id
+          required: false
+          schema: { type: string }
+      responses:
+        '200':
+          description: Pagamentos
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items: { type: array, items: { $ref: '#/components/schemas/WithholdingPayment' } }
+        '403': { description: Cliente da empresa }
+        '404': { description: Empresa de outro escritório ou inexistente }
+    post:
+      summary: Registra um pagamento com retenção na fonte
+      description: >-
+        preparer, approver ou admin, com auditoria (withholding_payment_created, sem CPF, CNPJ nem nome do
+        beneficiário). O sistema não calcula imposto: guarda o que foi informado e confere a coerência. CNPJ
+        (aceita o alfanumérico) para pj e CPF para pf, gravados sem máscara; natureza do recorte da Tabela 01 do
+        mesmo tipo de beneficiário; data dentro da competência; valores em string decimal com ponto e até 2 casas,
+        maiores que zero; valor retido não passa da base e não vem sem base. IR dispensado é base preenchida e
+        ir_amount nulo. CSRF agregada só em pj e em natureza com AGREGADO; em pf, csrf_base e csrf_amount são nulos.
+      operationId: createWithholdingPayment
+      parameters:
+        - $ref: '#/components/parameters/LegalEntityId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [period_id, payment_date, beneficiary_kind, beneficiary_document, beneficiary_name, nature_code, gross_amount]
+              properties:
+                period_id: { type: string }
+                payment_date: { type: string, format: date, description: 'Vai para o dtFG; precisa cair dentro da competência.' }
+                beneficiary_kind: { type: string, enum: [pj, pf] }
+                beneficiary_document: { type: string, description: 'CNPJ (pj) ou CPF (pf), com ou sem máscara.' }
+                beneficiary_name: { type: string, minLength: 1, maxLength: 150 }
+                nature_code: { type: string, pattern: '^[0-9]{5}$', description: Código da Tabela 01 (GET /v1/regulatory/reinf/natures) }
+                gross_amount: { type: string, pattern: '^[0-9]{1,12}(\.[0-9]{1,2})?$' }
+                ir_base: { type: [string, 'null'], pattern: '^[0-9]{1,12}(\.[0-9]{1,2})?$' }
+                ir_amount: { type: [string, 'null'], pattern: '^[0-9]{1,12}(\.[0-9]{1,2})?$' }
+                csrf_base: { type: [string, 'null'], pattern: '^[0-9]{1,12}(\.[0-9]{1,2})?$', description: Só pj }
+                csrf_amount: { type: [string, 'null'], pattern: '^[0-9]{1,12}(\.[0-9]{1,2})?$', description: Só pj }
+                description: { type: [string, 'null'], maxLength: 200 }
+      responses:
+        '201': { description: Pagamento gravado, content: { application/json: { schema: { $ref: '#/components/schemas/WithholdingPayment' } } } }
+        '400': { description: 'Campo inválido; errors[].loc aponta o campo. Também sem Idempotency-Key' }
+        '403': { description: Viewer ou cliente da empresa }
+        '404': { description: Empresa ou competência inexistente }
+        '409': { description: Competência fechada ou chave de idempotência reutilizada }
+  /v1/legal-entities/{legal_entity_id}/withholding-payments/{payment_id}:
+    delete:
+      summary: Exclui um pagamento com retenção
+      description: >-
+        preparer, approver ou admin, com auditoria (withholding_payment_deleted). Responde 204 sem corpo, também
+        na repetição com a mesma Idempotency-Key. Competência fechada responde 409.
+      operationId: deleteWithholdingPayment
+      parameters:
+        - $ref: '#/components/parameters/LegalEntityId'
+        - in: path
+          name: payment_id
+          required: true
+          schema: { type: string }
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '204': { description: Excluído }
+        '403': { description: Viewer ou cliente da empresa }
+        '404': { description: Pagamento inexistente }
+        '409': { description: Competência fechada }
+  /v1/regulatory/reinf/natures:
+    get:
+      summary: Naturezas de rendimento da prévia da EFD-Reinf (recorte da Tabela 01)
+      description: >-
+        Qualquer papel do escritório. Só os códigos da prévia (ADR 032), sem alíquota. beneficiary_kind filtra
+        por pj ou pf; outro valor responde 400.
+      operationId: listReinfNatures
+      parameters:
+        - in: query
+          name: beneficiary_kind
+          required: false
+          schema: { type: string, enum: [pj, pf] }
+      responses:
+        '200':
+          description: Versão da tabela e códigos
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [version, items]
+                properties:
+                  version: { type: string }
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      required: [code, description, beneficiary_kind]
+                      properties:
+                        code: { type: string }
+                        description: { type: string }
+                        beneficiary_kind: { type: string, enum: [pj, pf] }
+        '400': { description: beneficiary_kind inválido }
+        '403': { description: Cliente da empresa }
   /v1/document-requests/{request_id}/content:
     post:
       summary: Grava o arquivo original e marca o pedido como recebido
@@ -1579,6 +1703,71 @@ components:
               message: { type: string }
               register: { type: [string, 'null'] }
               fix: { type: [string, 'null'] }
+    WithholdingPayment:
+      type: object
+      description: Pagamento com retenção na fonte (ADR 032). Valores em string decimal com 2 casas.
+      required: [id, legal_entity_id, period_id, payment_date, beneficiary_kind, beneficiary_document, beneficiary_name, nature_code, gross_amount, ir_base, ir_amount, csrf_base, csrf_amount, description, created_by, created_at]
+      properties:
+        id: { type: string, description: 'Prefixo whp_' }
+        legal_entity_id: { type: string }
+        period_id: { type: string }
+        payment_date: { type: string, format: date }
+        beneficiary_kind: { type: string, enum: [pj, pf] }
+        beneficiary_document: { type: string, description: CNPJ ou CPF sem máscara }
+        beneficiary_name: { type: string }
+        nature_code: { type: string }
+        gross_amount: { type: string }
+        ir_base: { type: [string, 'null'] }
+        ir_amount: { type: [string, 'null'] }
+        csrf_base: { type: [string, 'null'] }
+        csrf_amount: { type: [string, 'null'] }
+        description: { type: [string, 'null'] }
+        created_by: { type: string }
+        created_at: { type: string, format: date-time }
+    ReinfPreviewExport:
+      type: object
+      description: >-
+        Resumo da prévia da EFD-Reinf R-4000 (ADR 032). transmittable é sempre false e notice é "Prévia para
+        conferência. Não assinar nem transmitir." counts traz R-4010, R-4020 e R-4099. checks.xsd_valid é true só
+        quando há evento e todos validam no XSD oficial; sem evento é false. checks.ir_matches_ledger é null nesta POC.
+        issues traz code, severity (blocker, warning, assumption ou out_of_scope), message, event (R-4010, R-4020,
+        R-4099 ou null) e fix (withholding_payments, signatories, legal_entity ou null).
+      required: [kind, period_id, competence, file_name, document_id, sha256, notice, transmittable, counts, checks, issues, layout_version]
+      properties:
+        schema_version: { type: string }
+        kind: { type: string, enum: [reinf_r4000_preview_v1] }
+        generated_at: { type: string, format: date-time }
+        legal_entity_id: { type: string }
+        period_id: { type: string }
+        competence: { type: string, description: AAAA-MM }
+        layout_version: { type: string, description: 'Versão do leiaute, 2.1.2' }
+        notice: { type: string }
+        transmittable: { type: boolean, const: false }
+        file_name: { type: string, description: REINF-R4000-PREVIA-<cnpj>-<AAAAMM>.zip }
+        document_id: { type: string }
+        sha256: { type: string }
+        size_bytes: { type: integer }
+        counts:
+          type: object
+          required: [R-4010, R-4020, R-4099]
+          additionalProperties: { type: integer }
+        checks:
+          type: object
+          required: [xsd_valid, ir_matches_ledger]
+          properties:
+            xsd_valid: { type: boolean }
+            ir_matches_ledger: { type: [boolean, 'null'] }
+        issues:
+          type: array
+          items:
+            type: object
+            required: [code, severity, message, event, fix]
+            properties:
+              code: { type: string }
+              severity: { type: string, enum: [blocker, warning, assumption, out_of_scope] }
+              message: { type: string }
+              event: { type: [string, 'null'], enum: [R-4010, R-4020, R-4099, null] }
+              fix: { type: [string, 'null'], enum: [withholding_payments, signatories, legal_entity, null] }
     ReconciliationCase: { type: object, description: Validado por schemas/reconciliation-case.schema.json, additionalProperties: true }
     CloseRun: { type: object, description: Validado por schemas/close-run.schema.json, additionalProperties: true }
     RegulatoryObligation: { type: object, description: Validado por schemas/regulatory-obligation.schema.json, additionalProperties: true }

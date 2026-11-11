@@ -110,6 +110,46 @@ def layout_for(obligation: str, fiscal_year: int) -> Layout:
     return select_layout(layouts(obligation), fiscal_year)
 
 
+@dataclass(frozen=True)
+class IncomeNature:
+    """Linha da Tabela 01 da EFD-Reinf (natureza do rendimento). Não traz alíquota."""
+
+    code: str
+    description: str
+    beneficiary_kind: str
+    taxes: tuple[str, ...]
+
+    def as_dict(self) -> dict:
+        return {"code": self.code, "description": self.description, "beneficiary_kind": self.beneficiary_kind}
+
+
+@dataclass(frozen=True)
+class IncomeNatureTable:
+    version: str
+    layout_version: str
+    source: dict
+    natures: dict[str, IncomeNature]
+
+    def items(self, beneficiary_kind: str | None = None) -> list[IncomeNature]:
+        return [nature for nature in self.natures.values() if beneficiary_kind is None or nature.beneficiary_kind == beneficiary_kind]
+
+
+@lru_cache(maxsize=1)
+def reinf_natures() -> IncomeNatureTable:
+    """Recorte da Tabela 01 usado pela prévia da EFD-Reinf (ADR 032)."""
+    raw = json.loads((DATA / "reinf" / "natureza-rendimentos.json").read_text(encoding="utf-8"))
+    natures = {
+        item["code"]: IncomeNature(
+            code=item["code"],
+            description=item["description"],
+            beneficiary_kind=item["beneficiary_kind"],
+            taxes=tuple(item.get("taxes", ())),
+        )
+        for item in raw["natures"]
+    }
+    return IncomeNatureTable(version=str(raw["version"]), layout_version=str(raw["layout_version"]), source=raw.get("source", {}), natures=natures)
+
+
 @lru_cache(maxsize=1)
 def uf_codes() -> dict[str, str]:
     """Sigla da UF para o código IBGE de dois dígitos."""

@@ -9,7 +9,16 @@ from contabil.platform.auth import apply_tenant
 from contabil.platform.db import session_factory
 from contabil.signatories.service import signatories_for
 from contabil.signatories.validators import valid_cpf
-from contabil.tables import AccountingPeriod, EcdRegistration, JournalEntry, JournalLine, LegalEntity, Membership, OperationalExport
+from contabil.tables import (
+    AccountingPeriod,
+    EcdRegistration,
+    JournalEntry,
+    JournalLine,
+    LegalEntity,
+    Membership,
+    OperationalExport,
+    WithholdingPayment,
+)
 
 
 def test_pilot_samples_are_idempotent_and_skip_statements_without_storage(monkeypatch, world):
@@ -93,6 +102,16 @@ def test_pilot_samples_are_idempotent_and_skip_statements_without_storage(monkey
             (by_story["banco"], "PE", "2611606", "junta")
         ]
         assert ecd[0].nire.startswith("26")
+        withholdings = session.scalars(
+            select(WithholdingPayment).where(WithholdingPayment.tenant_id == "tenant_demo").order_by(WithholdingPayment.nature_code)
+        ).all()
+        today = date.today()
+        assert [(row.legal_entity_id, row.nature_code, row.beneficiary_kind) for row in withholdings] == [
+            (by_story["andamento"], "13002", "pf"),
+            (by_story["andamento"], "15015", "pj"),
+            (by_story["andamento"], "15043", "pj"),
+        ]
+        assert {row.period_id for row in withholdings} == {f"{by_story['andamento']}-{today.year}-{today.month:02d}"}
     finally:
         session.close()
 

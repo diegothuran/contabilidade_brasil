@@ -1,0 +1,31 @@
+{
+  "table": "EFD-Reinf Tabela 01 - Natureza dos Rendimentos",
+  "version": "2026-01-15+NT04-2026",
+  "layout_version": "2.1.2",
+  "scope": "Recorte da prévia (ADR 032): só os códigos citados com fonte em research_notes/EFD-Reinf R-4000/reinf_r4000.md. Não é a Tabela 01 inteira. Sem alíquota: a Tabela 01 não traz alíquota, e a alíquota não entra no código.",
+  "source": {
+    "tables_zip": "http://sped.rfb.gov.br/arquivo/download/7994",
+    "tables_date": "2026-01-15",
+    "tables_page": "https://www.gov.br/sped/pt-br/assuntos/escrituracoes-digitais/efd-reinf/documento-tecnicos/versao-atual/tabelas",
+    "technical_note": "https://www.gov.br/sped/pt-br/assuntos/comunicados/efd-reinf/nota-tecnica-04-2026-ajustes-nas-tabelas-da-versao-2-1.2",
+    "technical_note_effect": "A NT 04/2026 criou 11009 e 20011, que não entram neste recorte; não altera os códigos abaixo.",
+    "consulted_on": "2026-11-11",
+    "license": "Conteúdo do gov.br/sped sob CC BY-ND 3.0; as descrições foram transcritas como estão na tabela oficial."
+  },
+  "verified": false,
+  "unverified": [
+    "As descrições foram conferidas na nota de pesquisa, não diretamente na planilha xlsx de 15/01/2026.",
+    "Não foi baixada uma Tabela 01 posterior à NT 04/2026."
+  ],
+  "natures": [
+    {"code": "15014", "description": "Serviços de consultoria", "beneficiary_kind": "pj", "taxes": ["IR", "CSLL", "COFINS", "PP", "AGREGADO"]},
+    {"code": "15015", "description": "Serviços de contabilidade", "beneficiary_kind": "pj", "taxes": ["IR", "CSLL", "COFINS", "PP", "AGREGADO"]},
+    {"code": "15043", "description": "Serviços de Limpeza", "beneficiary_kind": "pj", "taxes": ["IR", "CSLL", "COFINS", "PP", "AGREGADO"]},
+    {"code": "15044", "description": "Conservação/Manutenção, exceto reformas e obras assemelhadas", "beneficiary_kind": "pj", "taxes": ["IR", "CSLL", "COFINS", "PP", "AGREGADO"]},
+    {"code": "15045", "description": "Segurança/Vigilância/Transporte de valores", "beneficiary_kind": "pj", "taxes": ["IR", "CSLL", "COFINS", "PP", "AGREGADO"]},
+    {"code": "15046", "description": "Locação de mão de obra", "beneficiary_kind": "pj", "taxes": ["IR", "CSLL", "COFINS", "PP", "AGREGADO"]},
+    {"code": "15099", "description": "Demais rendimentos de serviços técnicos, de assistência técnica, administrativa e semelhantes", "beneficiary_kind": "pj", "taxes": ["IR", "CSLL", "COFINS", "PP", "AGREGADO"]},
+    {"code": "10002", "description": "Rendimento decorrente do trabalho sem vínculo empregatício", "beneficiary_kind": "pf", "taxes": ["IR"]},
+    {"code": "13002", "description": "Rendimentos de Aluguéis, Locação ou Sublocação", "beneficiary_kind": "pf", "taxes": ["IR"]}
+  ]
+}

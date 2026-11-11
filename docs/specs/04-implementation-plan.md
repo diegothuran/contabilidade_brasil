@@ -38,7 +38,9 @@ Falta para fechar a fase: os cinco clientes resolverem as pendências com o cont
 
 Escolher obrigação e localidades. Implementar registry, validação, homologação, adapter, transmissão assíncrona, polling, rejeição, protocolo, retificação e reconciliação.
 
-**Pronto quando:** o fluxo funciona em homologação, apresenta cobertura explicitamente e não duplica envio.
+**Pronto quando:** os eventos da competência validam contra o XSD oficial, a cobertura aparece explícita e nada é assinado ou transmitido. O critério anterior ("o fluxo funciona em homologação e não duplica envio") fica para a transmissão, que exige o certificado ICP-Brasil da própria empresa até na produção restrita e terá ADR de segurança própria.
+
+**Primeiro corte (POC):** a prévia da EFD-Reinf série R-4000 ([ADR 032](../adr/032-previa-efd-reinf-r4000.md)). O escritório informa os pagamentos com retenção da competência, e a prévia monta R-4010, R-4020 e R-4099, valida cada evento no XSD oficial e entrega um zip sem assinatura. É decisão provisória do usuário, até o contador responder a pergunta 63 do [caderno](../accountant-discovery-workbook.md).
 
 A fase começa pelo [DISC-002](06-discovery-and-poc-backlog.md), sem código. O contador escolhe a obrigação e descreve o fluxo dela na Sessão 2 do [roteiro de entrevista](../roteiro-entrevista-contador.md), respondendo as perguntas 34 a 48 do [caderno](../accountant-discovery-workbook.md#perguntas-da-fase-e). O primeiro código da fase, o registry e o adapter da obrigação escolhida, só entra depois dessa escolha, com ADR própria.
 

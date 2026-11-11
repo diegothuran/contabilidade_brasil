@@ -636,3 +636,34 @@ class EcdRegistration(Base):
     book_number: Mapped[int] = mapped_column(Integer)
     updated_by: Mapped[str] = mapped_column(String(160))
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+
+class WithholdingPayment(Base):
+    """Pagamento com retenção na fonte informado pelo escritório, base da prévia da EFD-Reinf R-4000 (ADR 032).
+
+    O sistema não calcula imposto: guarda o que o usuário informou e confere a coerência.
+    """
+
+    __tablename__ = "withholding_payments"
+    __table_args__ = (
+        CheckConstraint("beneficiary_kind IN ('pj', 'pf')", name="ck_withholding_payments_kind"),
+        CheckConstraint("gross_amount > 0", name="ck_withholding_payments_gross"),
+    )
+
+    id: Mapped[str] = mapped_column(String(160), primary_key=True)
+    tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.id"))
+    legal_entity_id: Mapped[str] = mapped_column(ForeignKey("legal_entities.id"))
+    period_id: Mapped[str] = mapped_column(ForeignKey("accounting_periods.id"))
+    payment_date: Mapped[date] = mapped_column(Date)
+    beneficiary_kind: Mapped[str] = mapped_column(String(2))
+    beneficiary_document: Mapped[str] = mapped_column(String(14))
+    beneficiary_name: Mapped[str] = mapped_column(String(150))
+    nature_code: Mapped[str] = mapped_column(String(5))
+    gross_amount: Mapped[Decimal] = mapped_column(Numeric(14, 2))
+    ir_base: Mapped[Decimal | None] = mapped_column(Numeric(14, 2), nullable=True)
+    ir_amount: Mapped[Decimal | None] = mapped_column(Numeric(14, 2), nullable=True)
+    csrf_base: Mapped[Decimal | None] = mapped_column(Numeric(14, 2), nullable=True)
+    csrf_amount: Mapped[Decimal | None] = mapped_column(Numeric(14, 2), nullable=True)
+    description: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    created_by: Mapped[str] = mapped_column(String(160))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)

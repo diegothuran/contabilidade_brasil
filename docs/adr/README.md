@@ -33,3 +33,4 @@
 | [029](029-encerramento-e-demonstracoes.md) | O encerramento do exercício nasce como rascunho para aprovação. DRE e Balanço são gerenciais. |
 | [030](030-signatarios-das-demonstracoes.md) | O CRC fica no perfil de cada pessoa do escritório. O admin escolhe o contador e o representante legal de cada empresa, e a DRE e o Balanço saem assinados. |
 | [031](031-registry-minimo-e-previa-ecd.md) | O leiaute da ECD é dado versionado num registry mínimo. A prévia do ano sai marcada, com pendências, e não é transmitida. |
+| [032](032-previa-efd-reinf-r4000.md) | A Fase E começa pela prévia da EFD-Reinf R-4000: pagamentos com retenção informados, eventos validados no XSD oficial sem modificação, zip sem assinatura e sem envio. |

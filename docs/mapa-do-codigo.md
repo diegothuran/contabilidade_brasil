@@ -27,8 +27,9 @@ Cada módulo fica em `apps/api/src/contabil/<módulo>/`, com `router.py` (HTTP) 
 | `documents` | `/documents` | `source_documents` | Evidências | [011](adr/011-object-storage-s3.md) |
 | `document_requests` | `/document-requests` (inclui fila, comentários e devolução) | `document_requests`, `document_request_files`, `document_request_comments` | Pendências; Hoje | [021](adr/021-pedido-de-documento.md), [024](adr/024-fila-de-pendencias.md), [026](adr/026-devolucao-e-conversa.md) |
 | `submissions` | `/client-submissions` | `client_submissions` | Pendências (envios sem pedido) | [027](adr/027-envio-sem-pedido.md) |
-| `exports` | `/legal-entities/{id}/exports` (`operational_v1` ou `ecd_preview_v1`), `/exports/{id}` e `/exports/{id}/file` | `operational_exports` | Evidências; Relatórios › Prévia da ECD | [023](adr/023-exportacao-operacional.md), [031](adr/031-registry-minimo-e-previa-ecd.md) |
-| `regulatory` | `/legal-entities/{id}/ecd-registration` (GET e PUT, só admin grava). O leiaute é dado em `regulatory/data/ecd/*.json`; `registry.py` escolhe a versão pela vigência, `writer.py` serializa os registros e `ecd_preview.py` monta a prévia e as conferências | `ecd_registrations` | Relatórios › Prévia da ECD | [002](adr/002-registry-regulatorio-versionado.md), [031](adr/031-registry-minimo-e-previa-ecd.md) |
+| `exports` | `/legal-entities/{id}/exports` (`operational_v1`, `ecd_preview_v1` ou `reinf_r4000_preview_v1`), `/exports/{id}` e `/exports/{id}/file` | `operational_exports` | Evidências; Relatórios › Prévia da ECD e Prévia da EFD-Reinf | [023](adr/023-exportacao-operacional.md), [031](adr/031-registry-minimo-e-previa-ecd.md), [032](adr/032-previa-efd-reinf-r4000.md) |
+| `regulatory` | `/legal-entities/{id}/ecd-registration` (GET e PUT, só admin grava) e `/regulatory/reinf/natures`. O leiaute é dado em `regulatory/data/ecd/*.json`; `registry.py` escolhe a versão pela vigência, `writer.py` serializa os registros e `ecd_preview.py` monta a prévia e as conferências. Na EFD-Reinf, os XSDs oficiais ficam sem modificação em `regulatory/data/reinf/v2_01_02/`, a Tabela 01 em `natureza-rendimentos.json`, e `reinf_preview.py` monta e valida os eventos com lxml | `ecd_registrations` | Relatórios › Prévia da ECD e Prévia da EFD-Reinf | [002](adr/002-registry-regulatorio-versionado.md), [031](adr/031-registry-minimo-e-previa-ecd.md), [032](adr/032-previa-efd-reinf-r4000.md) |
+| `withholdings` | `/legal-entities/{id}/withholding-payments` (GET; POST e DELETE para preparer, approver e admin). `validators.py` confere documento, natureza, valores e data; a prévia da EFD-Reinf repete a conferência sobre o que está gravado | `withholding_payments` | Relatórios › Prévia da EFD-Reinf | [032](adr/032-previa-efd-reinf-r4000.md) |
 | `portal` | `/portal/...` | usa as de `document_requests`, `submissions` e `identity` | Portal do cliente | [025](adr/025-portal-do-cliente.md) |
 | `signatories` | `/me/professional-registration`, `/legal-entities/{id}/signatories` (GET e PUT). A leitura `signatories_for` em `signatories/service.py` alimenta `ledger/statements.py` e o J930 da ECD; a escrita fica em `signatories/editing.py` | `professional_registrations`, `entity_signatories` | Perfil; Administração › Assinaturas; assinaturas da DRE e do Balanço | [030](adr/030-signatarios-das-demonstracoes.md) |
 | `audit` | `/audit-events`, `/audit-events/verify` | `audit_events` | Rotinas › Auditoria | [010](adr/010-rls-e-triggers.md) |
@@ -94,6 +95,7 @@ flowchart LR
 | `JournalPublished` | `reconciliation.service.resolve_case_from_journal` | publicação de lançamento criado a partir de um caso |
 | `OperationalExportRequested` | `exports.service.run_operational_export` | pedido de exportação |
 | `EcdPreviewRequested` | `exports.service.run_ecd_preview` | pedido da prévia da ECD (`kind: ecd_preview_v1`); guarda o .txt no storage como documento `generated` |
+| `ReinfPreviewRequested` | `exports.service.run_reinf_preview` | pedido da prévia da EFD-Reinf R-4000 (`kind: reinf_r4000_preview_v1`); guarda o .zip no storage como documento `generated` |
 | `DocumentRequestCreated`, `DocumentRequestReturned` | `identity.notices.deliver_notice` | pedido novo e devolução; o lembrete de prazo sai de `sweep_reminders` |
 
 O worker usa a sessão admin e chama `apply_tenant` antes de cada handler. `outbox_events` é a única tabela de negócio sem `FORCE ROW LEVEL SECURITY`, porque o relay lê todos os escritórios ([0004_force_rls.py](../apps/api/alembic/versions/0004_force_rls.py)).
@@ -153,6 +155,7 @@ stateDiagram-v2
 | Operação | `accepted`, `running`, `completed`, `failed` | `imports/service.py`, `worker.py` |
 | Envio sem pedido | `new`, `classified`, `discarded` | `submissions/service.py` |
 | Pedido de reabertura | `pending`, `approved` | `periods/service.py` |
+| Pagamento com retenção | sem estado: existe ou foi excluído. Só entra e sai com a competência aberta (`require_period(..., for_posting=True)`). | `withholdings/service.py` |
 
 ## Onde cada invariante é garantida
 
@@ -169,6 +172,7 @@ Várias regras têm duas barreiras: o serviço recusa com mensagem clara, e o ba
 | Cliente preso à empresa | `ensure_client` e `principal.legal_entity_id` | membership `client` exige `legal_entity_id` ([0010](../apps/api/alembic/versions/0010_exports_and_client_scope.py)) |
 | Segregação de funções | `_ensure_not_creator` no lançamento; o mesmo princípio na publicação de lote e na aprovação de reabertura. Confirmar pedido e aprovar conciliação dependem só do papel. | — |
 | Dinheiro em decimal | [platform/money.py](../apps/api/src/contabil/platform/money.py) | `numeric(20, 6)` |
+| Pagamento com retenção coerente | `payment_problems` em `withholdings/validators.py` (de novo na prévia) | checks da [0018](../apps/api/alembic/versions/0018_withholding_payments.py): tipo, documento, natureza, bruto > 0, retido ≤ base, sem CSRF em pessoa física |
 
 ## Interface
 
@@ -217,7 +221,10 @@ flowchart TB
 - **`ecd_registrations.registry_date` muda de sentido com `registry_kind`.** Na Junta é a data do arquivamento; no cartório, sem NIRE, é a data de abertura. As duas vão para o I030.DT_ARQ. A tela troca o rótulo; a coluna é a mesma. A `conversion_date` (migração 0017) vai para o I030.DT_ARQ_CONV e só vale na Junta: `validate_registration` a recusa no cartório e a zera ao salvar.
 - **O CNPJ pode ter letras.** `valid_cnpj` aceita o alfanumérico (IN RFB 2.229/2024) e grava em maiúscula. Código que trata o CNPJ como só dígitos (`formatCnpj`, `cnpj_br`, a busca da barra) deixa o alfanumérico sem máscara ou não o encontra pelos dígitos.
 - **CPF não vai para a trilha nem para a demonstração.** A auditoria do perfil guarda só UF e categoria; a DRE e o Balanço levam nome e legenda. O CPF do representante sai mascarado para quem não é admin.
-- **Rotas com PUT.** O perfil e os signatários usam `PUT`; o CORS de `main.py` libera o método.
+- **Rotas com PUT e DELETE.** O perfil e os signatários usam `PUT`; a exclusão de pagamento com retenção usa `DELETE`. O CORS de `main.py` libera os dois.
+- **DELETE idempotente responde 204 sem corpo.** `persist(..., 204, {})` grava a chave e `stored_response` devolve a resposta vazia, também na repetição.
+- **Os XSDs da EFD-Reinf não podem ser editados.** São CC BY-ND 3.0 e ficam byte a byte (o `.gitattributes` desliga a conversão de fim de linha). A assinatura obrigatória é atendida na validação por um `<Signature/>` vazio numa cópia em memória e pelo schema auxiliar próprio `xmldsig-marcador-previa.xsd`; o XML do zip sai sem assinatura.
+- **O id do evento da EFD-Reinf usa a raiz do CNPJ.** `ID` + `1` + raiz de 8 posições com zeros à direita + data e hora de Brasília + sequência, como o `ideContri/nrInsc` (Anexo II, `REGRA_VALIDA_ID_EVENTO`).
 
 ## Mapa gerado
 

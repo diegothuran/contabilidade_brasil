@@ -614,6 +614,8 @@ def _enrich(
         _ensure_open_request(session, preparer, entity_id, name, notes, "Amostra: recibo de frete", "receipt")
         _ensure_returned_request(session, preparer, approver, entity_id, name, notes)
     _ensure_client(session, preparer, entity_id, story, name)
+    if behavior == "andamento":
+        _ensure_withholdings(session, preparer, entity_id, today, name, notes)
     if statements and behavior in {"andamento", "banco"}:
         _ensure_client_submission(session, preparer, entity_id, story, name, notes)
     if behavior == "fechada":
@@ -621,6 +623,73 @@ def _enrich(
     elif behavior == "banco":
         _ensure_year_end_draft(session, preparer, entity_id, year, name, notes)
         _ensure_ecd(session, preparer, entity_id, story, year, name, notes, storage=statements)
+
+
+# Pagamentos com retenção fictícios da competência corrente, para a prévia da EFD-Reinf (ADR 032).
+# CNPJ e CPF inventados, com dígitos verificadores calculados. Os valores são de exemplo e não saem de
+# alíquota nenhuma: o sistema não calcula imposto.
+WITHHOLDING_SAMPLES = (
+    {
+        "beneficiary_kind": "pj",
+        "beneficiary_document": cnpj_digits("920000000101"),
+        "beneficiary_name": "Contabilidade Fictícia Ltda. (teste)",
+        "nature_code": "15015",
+        "gross_amount": "2000.00",
+        "ir_base": "2000.00",
+        "ir_amount": "30.00",
+        "csrf_base": "2000.00",
+        "csrf_amount": "93.00",
+        "description": "Amostra fictícia: honorários de serviço contábil.",
+    },
+    {
+        "beneficiary_kind": "pj",
+        "beneficiary_document": cnpj_digits("920000000102"),
+        "beneficiary_name": "Limpeza Fictícia Ltda. (teste)",
+        "nature_code": "15043",
+        "gross_amount": "800.00",
+        "ir_base": "800.00",
+        "ir_amount": "8.00",
+        "csrf_base": "800.00",
+        "csrf_amount": "37.20",
+        "description": "Amostra fictícia: limpeza do mês.",
+    },
+    {
+        "beneficiary_kind": "pf",
+        "beneficiary_document": cpf_digits("920000001"),
+        "beneficiary_name": "Locador Fictício (teste)",
+        "nature_code": "13002",
+        "gross_amount": "3000.00",
+        "ir_base": "3000.00",
+        "ir_amount": "150.00",
+        "csrf_base": None,
+        "csrf_amount": None,
+        "description": "Amostra fictícia: aluguel da loja.",
+    },
+)
+
+
+def _ensure_withholdings(session: Session, preparer: Principal, entity_id: str, today: date, name: str, notes: list[str]) -> None:
+    """Três pagamentos com retenção na competência corrente, se ela estiver aberta e ainda sem pagamento."""
+    from contabil.platform.constants import POSTING_PERIOD_STATUSES
+    from contabil.tables import WithholdingPayment
+    from contabil.withholdings.service import insert_payment
+    from contabil.withholdings.validators import PaymentInput, payment_problems
+
+    apply_tenant(session, preparer.tenant_id)
+    period = session.get(AccountingPeriod, f"{entity_id}-{today.year}-{today.month:02d}")
+    if period is None or period.status not in POSTING_PERIOD_STATUSES:
+        return
+    if session.scalar(
+        select(WithholdingPayment.id).where(WithholdingPayment.legal_entity_id == entity_id, WithholdingPayment.period_id == period.id).limit(1)
+    ):
+        return
+    paid_on = date(today.year, today.month, min(today.day, 10))
+    for sample in WITHHOLDING_SAMPLES:
+        clean, errors = payment_problems(PaymentInput(payment_date=paid_on, **sample), period_start=period.start_date, period_end=period.end_date)
+        if clean is None:
+            notes.append(f"{name}: pagamento com retenção de amostra recusado ({errors[0]['msg']})")
+            continue
+        insert_payment(session, preparer.tenant_id, preparer.user_id, entity_id, period, clean)
 
 
 # Cadastro fictício da ECD (ADR 031): sede em Recife-PE. O NIRE é inventado e só começa com 26,

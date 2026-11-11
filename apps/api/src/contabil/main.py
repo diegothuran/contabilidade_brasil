@@ -33,8 +33,10 @@ from contabil.platform.correlation import correlation_id
 from contabil.platform.db import get_engine
 from contabil.platform.deps import require_office
 from contabil.platform.errors import DomainError, IdempotentReplay, problem_response
+from contabil.platform.idempotency import stored_response
 from contabil.platform.settings import get_settings
 from contabil.tenancy.router import router as tenancy_router
+from contabil.withholdings.router import router as withholdings_router
 
 logger = logging.getLogger("contabil")
 
@@ -109,7 +111,7 @@ def create_app() -> FastAPI:
     app.add_middleware(
         CORSMiddleware,
         allow_origins=origins,
-        allow_methods=["GET", "POST", "PUT", "PATCH", "OPTIONS"],
+        allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
         allow_headers=["Authorization", "Content-Type", "Idempotency-Key", "X-Correlation-Id", "X-Tenant-Id"],
         expose_headers=["X-Correlation-Id", "Content-Disposition"],
     )
@@ -125,8 +127,8 @@ def create_app() -> FastAPI:
         return problem_response(exc.status_code, exc.title, exc.detail, errors=exc.errors)
 
     @app.exception_handler(IdempotentReplay)
-    async def handle_replay(_: Request, exc: IdempotentReplay) -> JSONResponse:
-        return JSONResponse(exc.body, status_code=exc.status_code)
+    async def handle_replay(_: Request, exc: IdempotentReplay):
+        return stored_response(exc.status_code, exc.body)
 
     @app.exception_handler(RequestValidationError)
     async def handle_validation(_: Request, exc: RequestValidationError) -> JSONResponse:
@@ -177,6 +179,7 @@ def create_app() -> FastAPI:
     app.include_router(audit_router, prefix="/v1", dependencies=office)
     app.include_router(signatories_router, prefix="/v1", dependencies=office)
     app.include_router(regulatory_router, prefix="/v1", dependencies=office)
+    app.include_router(withholdings_router, prefix="/v1", dependencies=office)
     app.include_router(portal_router, prefix="/v1")
     if settings.static_dir:
         _mount_spa(app, settings.static_dir)
