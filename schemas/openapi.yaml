@@ -472,12 +472,13 @@ paths:
                 municipality_ibge: { type: string, minLength: 7, maxLength: 9 }
                 registry_kind: { type: string, enum: [junta, cartorio] }
                 nire: { type: [string, 'null'], maxLength: 20 }
-                registry_date: { type: [string, 'null'], format: date, description: 'Vai para o I030.DT_ARQ. Na Junta (registry_kind junta), data do arquivamento dos atos constitutivos; no cartório (cartorio, sem NIRE), data de abertura da empresa. Não pode ser futura.' }
+                registry_date: { type: [string, 'null'], format: date, description: 'Vai para o I030.DT_ARQ. Na Junta (registry_kind junta), data do arquivamento dos atos constitutivos; no cartório (cartorio, sem NIRE), data de abertura do CNPJ. Não pode ser futura.' }
+                conversion_date: { type: [string, 'null'], format: date, description: 'Vai para o I030.DT_ARQ_CONV: data em que a Junta arquivou a conversão de sociedade simples em empresária. Só na Junta; no cartório o campo fica vazio. Não pode ser futura.' }
                 special_situation: { type: [string, 'null'], enum: ['1', '2', '3', '4', null] }
                 book_number: { type: integer, minimum: 1, maximum: 999999 }
       responses:
         '200': { description: Cadastro gravado, content: { application/json: { schema: { $ref: '#/components/schemas/EcdRegistration' } } } }
-        '400': { description: 'UF, município, NIRE, data ou livro inválidos; errors aponta o campo' }
+        '400': { description: 'UF, município, NIRE, datas ou livro inválidos; errors aponta o campo' }
         '403': { description: Só admin altera }
         '404': { description: Empresa de outro escritório ou inexistente }
   /v1/document-requests/{request_id}/content:
@@ -1538,7 +1539,8 @@ components:
         municipality_ibge: { type: [string, 'null'] }
         registry_kind: { type: [string, 'null'], enum: [junta, cartorio, null] }
         nire: { type: [string, 'null'] }
-        registry_date: { type: [string, 'null'], format: date, description: 'Data do I030.DT_ARQ: arquivamento na Junta, ou data de abertura quando o registro é cartório (sem NIRE).' }
+        registry_date: { type: [string, 'null'], format: date, description: 'Data do I030.DT_ARQ: arquivamento na Junta, ou data de abertura do CNPJ quando o registro é cartório (sem NIRE).' }
+        conversion_date: { type: [string, 'null'], format: date, description: 'Data do I030.DT_ARQ_CONV: arquivamento da conversão de sociedade simples em empresária. Nula no cartório e em quem nunca converteu.' }
         special_situation: { type: [string, 'null'] }
         book_number: { type: [integer, 'null'] }
         updated_at: { type: [string, 'null'], format: date-time }

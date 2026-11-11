@@ -34,6 +34,7 @@ def _registration(**overrides):
         "registry_date": date(2020, 5, 4),
         "special_situation": None,
         "book_number": 3,
+        "conversion_date": None,
     }
     base.update(overrides)
     return SimpleNamespace(**base)
@@ -129,3 +130,10 @@ def test_alphanumeric_cnpj_flows_into_the_preview_file_and_its_name():
     assert records["I030"]["CNPJ"] == ALPHANUMERIC_CNPJ
     assert not [item for item in writer.violations if item.field == "CNPJ"]
     assert preview_file_name(ALPHANUMERIC_CNPJ, 2026) == "ECD-PREVIA-12ABC34501DE35-2026.txt"
+
+
+def test_converted_company_sends_the_conversion_filing_date_in_dt_arq_conv():
+    records, writer = _records(_registration(conversion_date=date(2023, 9, 1)))
+    assert records["I030"]["DT_ARQ"] == "04052020"
+    assert records["I030"]["DT_ARQ_CONV"] == "01092023"
+    assert not [item for item in writer.violations if item.field == "DT_ARQ_CONV"]

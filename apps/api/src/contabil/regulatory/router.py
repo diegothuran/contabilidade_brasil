@@ -20,6 +20,7 @@ class EcdRegistrationBody(BaseModel):
     registry_kind: str = Field(min_length=1, max_length=20)
     nire: str | None = Field(default=None, max_length=20)
     registry_date: date | None = None
+    conversion_date: date | None = None
     special_situation: str | None = Field(default=None, max_length=1)
     book_number: int = Field(ge=1, le=999999)
 
@@ -41,6 +42,7 @@ def put_ecd_registration(legal_entity_id: str, body: EcdRegistrationBody, reques
             registry_kind=body.registry_kind,
             nire=body.nire,
             registry_date=body.registry_date,
+            conversion_date=body.conversion_date,
             special_situation=body.special_situation,
             book_number=body.book_number,
         ),

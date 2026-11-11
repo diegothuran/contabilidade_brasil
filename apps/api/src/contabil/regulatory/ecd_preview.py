@@ -312,6 +312,7 @@ def _block_zero(writer: RecordWriter, layout: Layout, entity, registration, star
             "NIRE": registration.nire if registration else None,
             "CNPJ": entity.cnpj,
             "DT_ARQ": registration.registry_date if registration else None,
+            "DT_ARQ_CONV": registration.conversion_date if registration else None,
             "DT_EX_SOCIAL": end,
         },
     )
