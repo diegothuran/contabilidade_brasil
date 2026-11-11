@@ -142,7 +142,7 @@ Nada nesta tela fala em journal, balancete, papéis do escritório, exportação
 
 ## 14. Changelog
 
-- `0.10.1` — Prévia da ECD: o rótulo da data dos dados da escrituração segue o registro ("Data do arquivamento" na Junta, "Data de abertura" no cartório, com dica), e as pendências passam a apontar NIRE fora da UF ou fora do tipo de registro.
+- `0.10.1` — Prévia da ECD: o rótulo da data dos dados da escrituração segue o registro ("Data do arquivamento" na Junta, "Data de abertura" no cartório, com dica), e as pendências passam a apontar NIRE fora da UF ou fora do tipo de registro. A Nova empresa aceita o CNPJ alfanumérico; a tela ainda o mostra sem máscara.
 - `0.10.0` — Prévia da ECD: tela nova em Relatórios com os dados da escrituração (só admin salva), a geração do arquivo do leiaute 9 pelo worker, as pendências com link e o download do .txt marcado como prévia. Não transmite nem assina.
 - `0.9.0` — Assinaturas: a DRE e o Balanço terminam com o responsável técnico e o representante legal, na tela, na impressão e no CSV. Sem cadastro, a linha diz isso e a tela avisa com link. Entram o Perfil (CRC da pessoa) e a tela de assinaturas da empresa, só admin, ligada a partir da Administração.
 - `0.8.1` — O detalhe do lançamento mostra a origem por extenso. O encerramento traz uma nota sobre o tipo E e o registro I355 da ECD. O painel de encerramento avisa que resultado lançado depois do encerramento gera um encerramento complementar.

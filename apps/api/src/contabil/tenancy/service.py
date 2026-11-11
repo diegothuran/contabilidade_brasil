@@ -29,12 +29,14 @@ def require_entity(session: Session, tenant_id: str, legal_entity_id: str) -> Le
 
 
 def normalize_cnpj(value: str) -> str:
-    return "".join(char for char in value if char.isdigit())
+    """Tira a máscara e passa letras para maiúscula: o CNPJ pode ser alfanumérico (IN RFB 2.229/2024)."""
+    return "".join(char for char in value.upper() if char.isascii() and char.isalnum())
 
 
 def valid_cnpj(value: str) -> bool:
+    """12 caracteres em [0-9A-Z] e 2 dígitos verificadores numéricos, pelo módulo 11 (ASCII − 48)."""
     digits = normalize_cnpj(value)
-    if len(digits) != 14 or digits == digits[0] * 14:
+    if len(digits) != 14 or not digits[12:].isdigit() or digits == digits[0] * 14:
         return False
     return cnpj_digits(digits[:12]) == digits
 

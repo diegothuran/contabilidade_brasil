@@ -27,6 +27,7 @@ O leiaute foi transcrito do **Manual de Orientação do Leiaute 9 da ECD**, anex
 - O 0007 é obrigatório no Diário completo (G); o código 00 diz "nenhuma inscrição em outras entidades".
 - J100 e J150 com linha de detalhe exigem I052 com o mesmo código de aglutinação numa conta analítica. O J100 tem exatamente duas linhas de nível 1 (A e P); o J150 tem uma só, totalizadora.
 - O bloco C não é importado: o PVA o preenche a partir da ECD anterior.
+- O manual de janeiro de 2026 já aceita o CNPJ alfanumérico da IN RFB nº 2.229/2024: 12 caracteres em [0-9A-Z] e 2 dígitos verificadores numéricos, pelo módulo 11 com valor = código ASCII − 48. O `CNPJ` do 0000 e do I030 é tipo C de 14 posições no dado, então o escritor não muda.
 
 **Não conferido (`unverified` no dado)**
 - A importação no PVA (abaixo).
@@ -60,7 +61,7 @@ O leiaute foi transcrito do **Manual de Orientação do Leiaute 9 da ECD**, anex
   - **I350 e I355** trazem os saldos de resultado antes do encerramento, iguais aos da DRE.
   - **J100 e J150** reaproveitam o Balanço e a DRE gerenciais. Os grupos são as contas raiz.
   - **J930** usa os signatários da ADR 030.
-- O arquivo sai marcado como prévia no nome (`ECD-PREVIA-<cnpj>-<ano>.txt`) e na natureza do livro (`DIARIO GERAL - PREVIA NAO TRANSMITIR`, no I030 e no J900). A tela e a resposta trazem o aviso fixo "Prévia para conferência no PVA. Não transmitir."
+- O arquivo sai marcado como prévia no nome (`ECD-PREVIA-<cnpj>-<ano>.txt`, com o CNPJ como está gravado, numérico ou alfanumérico) e na natureza do livro (`DIARIO GERAL - PREVIA NAO TRANSMITIR`, no I030 e no J900). A tela e a resposta trazem o aviso fixo "Prévia para conferência no PVA. Não transmitir."
 - `issues` lista o que falta, com severidade (`blocker`, `warning`, `assumption`, `out_of_scope`) e onde corrigir:
   - cadastro ausente, contador ou representante ausente;
   - cadastro gravado que fura a regra do NIRE: Junta sem NIRE, cartório com NIRE ou NIRE que não começa com o código da UF do 0000 (`REGRA_NIRE_UF`). A gravação já recusa esses casos; a prévia confere de novo porque não confia em dado gravado por seed, migração ou SQL. O `IND_NIRE` sai da presença do NIRE, então o par `IND_NIRE`/`NIRE` é sempre coerente no arquivo;
@@ -81,6 +82,10 @@ O leiaute foi transcrito do **Manual de Orientação do Leiaute 9 da ECD**, anex
 - O worker chama `run_ecd_preview`. Ele guarda o .txt no storage como documento (`document_type = other`, `source_type = generated`) e grava na exportação `{file_name, sha256, document_id, issues, checks, counts, result}`.
 - `GET /v1/exports/{id}` devolve esse resumo, e `GET /v1/exports/{id}/file` baixa o arquivo.
 - Pedem a prévia preparer, approver ou admin; o viewer recebe 403.
+
+**CNPJ alfanumérico**
+- A validação central (`tenancy/service.py`, `valid_cnpj`, com o cálculo em `seed/cnpj.py`) aceita o CNPJ alfanumérico pelo algoritmo oficial: tira a máscara, passa letras para maiúscula e exige 12 caracteres em [0-9A-Z] seguidos de 2 dígitos. O CNPJ numérico tem o mesmo resultado de antes. O exemplo `12.ABC.345/01DE-35` foi conferido com essa implementação; ele está nos testes `test_cnpj.py` e `test_ecd_preview_fields.py`, que também levam o CNPJ ao 0000, ao I030 e ao nome do arquivo.
+- A coluna `legal_entities.cnpj` já é `String(14)`; não houve migração. Fica para depois: a máscara da tela (`formatCnpj`) e do CSV (`cnpj_br`) só formata CNPJ de dígitos e mostra o alfanumérico sem máscara; a busca de empresa da barra compara só os dígitos.
 
 ## Validação no PVA
 

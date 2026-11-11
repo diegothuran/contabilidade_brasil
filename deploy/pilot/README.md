@@ -139,7 +139,7 @@ O pedido novo e a devolução saem pelo outbox logo depois. O lembrete de três 
 
 ## Primeira empresa
 
-O admin entra na sala, abre **Rotinas do razão** e depois **Nova empresa**. A barra de contexto, no topo, é o seletor da empresa. O cadastro pede nome, CNPJ e ano. A empresa nasce com matriz, o modelo mínimo de teste e 12 períodos abertos. Use CNPJ fictício: o dado fica nos Estados Unidos. Os lançamentos ficam em **Dados e ledger**. A caminhada da Orbe fica em **Demonstração** e não grava nada.
+O admin entra na sala, abre **Rotinas do razão** e depois **Nova empresa**. A barra de contexto, no topo, é o seletor da empresa. O cadastro pede nome, CNPJ e ano. O CNPJ pode ser numérico ou alfanumérico (por exemplo, 12.ABC.345/01DE-35); a API confere os dígitos verificadores. A empresa nasce com matriz, o modelo mínimo de teste e 12 períodos abertos. Use CNPJ fictício: o dado fica nos Estados Unidos. Os lançamentos ficam em **Dados e ledger**. A caminhada da Orbe fica em **Demonstração** e não grava nada.
 
 ## Empresas de teste
 

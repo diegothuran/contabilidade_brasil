@@ -215,6 +215,7 @@ flowchart TB
 - **O CRC é por escritório.** `professional_registrations` tem `tenant_id`; quem troca de escritório não leva o registro. Signatário de empresa sem registro no escritório ativo some da DRE, e `signatories_for` devolve o contador como `None`.
 - **A prévia da ECD não é o leiaute no código.** Campo, tamanho, constante e ordem vêm do JSON do registry. Mudar o leiaute é acrescentar um arquivo com outra vigência; o escritor não ganha `if` por campo. O arquivo usa ISO-8859-1 e CR+LF, e o `.gitattributes` mantém o fixture `examples/ecd-preview.example.txt` sem conversão de fim de linha.
 - **`ecd_registrations.registry_date` muda de sentido com `registry_kind`.** Na Junta é a data do arquivamento; no cartório, sem NIRE, é a data de abertura. As duas vão para o I030.DT_ARQ. A tela troca o rótulo; a coluna é a mesma.
+- **O CNPJ pode ter letras.** `valid_cnpj` aceita o alfanumérico (IN RFB 2.229/2024) e grava em maiúscula. Código que trata o CNPJ como só dígitos (`formatCnpj`, `cnpj_br`, a busca da barra) deixa o alfanumérico sem máscara ou não o encontra pelos dígitos.
 - **CPF não vai para a trilha nem para a demonstração.** A auditoria do perfil guarda só UF e categoria; a DRE e o Balanço levam nome e legenda. O CPF do representante sai mascarado para quem não é admin.
 - **Rotas com PUT.** O perfil e os signatários usam `PUT`; o CORS de `main.py` libera o método.
 

@@ -26,7 +26,7 @@ O primeiro público é um escritório com cerca de **20 a 200 CNPJs**, em dois o
 | Área | O que funciona | Onde fica na sala |
 | --- | --- | --- |
 | Escritório e acesso | Login OIDC, escritório (tenant) isolado no banco por RLS, papéis `preparer`, `approver`, `admin`, `viewer` e `client`. O cliente fica numa empresa só. | Barra lateral do escritório, ou a casca do cliente |
-| Empresas | O admin cadastra a empresa com CNPJ validado e único no escritório. Ela nasce com matriz, modelo mínimo de contas e 12 períodos abertos. | Rotinas do razão › Nova empresa |
+| Empresas | O admin cadastra a empresa com CNPJ validado (numérico ou alfanumérico, IN RFB 2.229/2024) e único no escritório. Ela nasce com matriz, modelo mínimo de contas e 12 períodos abertos. | Rotinas do razão › Nova empresa |
 | Plano de contas | Contas sintéticas e analíticas por empresa. Só conta analítica (postável) recebe lançamento. | Rotinas do razão › Plano de contas |
 | Lançamentos | Rascunho equilibrado, envio, aprovação e publicação. Quem cria não aprova nem publica. Publicado não se edita: corrige-se por estorno vinculado. | Hoje, Dados e ledger, Rotinas do razão › Novo lançamento |
 | Balancete | Débito, crédito e saldo por conta e competência, com drill-down até a linha. | Rotinas do razão › Balancete |

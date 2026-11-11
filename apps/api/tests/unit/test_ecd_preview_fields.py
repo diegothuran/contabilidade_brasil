@@ -11,10 +11,14 @@ from contabil.regulatory.ecd_preview import (
     _number,
     _presented_side,
     _side,
+    preview_file_name,
     registration_issues,
 )
 from contabil.regulatory.registry import layout_for
 from contabil.regulatory.writer import RecordWriter
+from contabil.tenancy.service import valid_cnpj
+
+ALPHANUMERIC_CNPJ = "12ABC34501DE35"
 
 
 def _layout():
@@ -118,3 +122,10 @@ def test_credit_balance_goes_out_without_sign_and_with_the_c_indicator():
     assert signed.line("I250", {"COD_CTA": "1", "VL_DC": balance, "IND_DC": "C"}) == "|I250|1||1500,25|C|||||"
     assert [(item.field, item.rule) for item in signed.violations] == [("VL_DC", "sign")]
 
+def test_alphanumeric_cnpj_flows_into_the_preview_file_and_its_name():
+    assert valid_cnpj(ALPHANUMERIC_CNPJ)
+    records, writer = _records(_registration(), cnpj=ALPHANUMERIC_CNPJ)
+    assert records["0000"]["CNPJ"] == ALPHANUMERIC_CNPJ
+    assert records["I030"]["CNPJ"] == ALPHANUMERIC_CNPJ
+    assert not [item for item in writer.violations if item.field == "CNPJ"]
+    assert preview_file_name(ALPHANUMERIC_CNPJ, 2026) == "ECD-PREVIA-12ABC34501DE35-2026.txt"

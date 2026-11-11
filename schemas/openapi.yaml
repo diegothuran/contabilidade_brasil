@@ -1094,7 +1094,7 @@ paths:
               required: [name, cnpj, fiscal_year]
               properties:
                 name: { type: string, minLength: 1, maxLength: 200 }
-                cnpj: { type: string, minLength: 1, maxLength: 32 }
+                cnpj: { type: string, minLength: 1, maxLength: 32, description: 'Com ou sem máscara. Numérico ou alfanumérico (IN RFB 2.229/2024): 12 caracteres em [0-9A-Z] e 2 dígitos verificadores; letras minúsculas viram maiúsculas.' }
                 fiscal_year: { type: integer, minimum: 2000, maximum: 2100 }
       responses:
         '201': { description: Empresa criada }
