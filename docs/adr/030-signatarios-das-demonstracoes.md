@@ -6,9 +6,9 @@ Decisão provisória. Ela responde em parte à pergunta 50 do [caderno](../accou
 
 ## Contexto
 
-A DRE e o Balanço gerenciais da [ADR 029](029-encerramento-e-demonstracoes.md) saem sem assinatura. Demonstração contábil é assinada pelo contador responsável, com nome, categoria e número no CRC, e pelo representante legal da empresa. A Declaração de Habilitação Profissional (DHP) ou a certidão de regularidade acompanha a demonstração (Resoluções CFC 871/2000 e 1.363/2011).
+A DRE e o Balanço gerenciais da [ADR 029](029-encerramento-e-demonstracoes.md) saem sem assinatura. Demonstração contábil é assinada pelo contador responsável, com nome, categoria e número no CRC, e pelo representante legal da empresa. A regularidade do contador é comprovada pela Certidão de Habilitação Profissional (CHP) da Resolução CFC 1.637/2021, em vigor desde 03/01/2022. Ela vale 90 dias e sai só pelo site do CRC de registro. A CHP substituiu a Certidão de Regularidade Profissional (Resolução CFC 1.402/2012), que por sua vez substituiu a DHP (Resoluções CFC 871/2000 e 1.363/2011). A pesquisa de 11/11/2026 não achou norma que obrigue a anexar a certidão à demonstração.
 
-A ECD pede os mesmos dados no registro J930: pelo menos um signatário é o contador, com CRC, UF do CRC, certidão de regularidade e validade, e o representante legal assina com outro código. A prévia da ECD (ADR 031, em outra frente) lê o mesmo cadastro.
+A ECD pede os mesmos dados no registro J930: pelo menos um signatário é o contador, com CRC, UF do CRC, certidão de regularidade e validade, e o representante legal assina com outro código. O manual do Leiaute 9 ainda chama o campo de "Certidão de Regularidade Profissional"; o número e a validade informados ali são os da CHP. Por isso as telas mantêm o nome "certidão de regularidade". A prévia da ECD (ADR 031, em outra frente) lê o mesmo cadastro.
 
 O usuário decidiu que o CRC fica no perfil do contador e que cada empresa escolhe qual contador do escritório é o responsável técnico.
 
