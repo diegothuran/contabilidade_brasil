@@ -1,6 +1,6 @@
 # Roteiro de entrevista com o contador
 
-Este roteiro é para quem conduz a conversa. O contador não precisa lê-lo. Ele organiza as perguntas abertas do [caderno do contador](accountant-discovery-workbook.md) pelo que cada resposta destrava e divide a conversa em três sessões. O texto completo de cada pergunta fica no caderno; aqui está só a forma de perguntar e a ordem.
+Este roteiro é para quem conduz a conversa. O contador não precisa lê-lo. Ele organiza as perguntas abertas do [caderno do contador](accountant-discovery-workbook.md) pelo que cada resposta destrava e divide a conversa em quatro sessões. A [pesquisa de 11/11/2026](references/pesquisa-perguntas-contador-2026-11.md) já respondeu a parte normativa de várias perguntas; a Sessão 4 leva essas respostas para ele confirmar. O texto completo de cada pergunta fica no caderno; aqui está só a forma de perguntar e a ordem.
 
 O produto não decide regra contábil nem fiscal sozinho. Tudo o que depende do contador está como pergunta. Resposta "não sei" vira POC ou pergunta para outra pessoa, nunca código.
 
@@ -82,6 +82,26 @@ O produto não decide regra contábil nem fiscal sozinho. Tudo o que depende do 
 | 55 | Apuração do resultado no encerramento | Depois | [ADR 029](adr/029-encerramento-e-demonstracoes.md) | direto para o PL |
 | 56 | O que bloqueia o encerramento | Depois | [ADR 029](adr/029-encerramento-e-demonstracoes.md) | lançamento pendente no ano; dezembro aberto; resultado posterior gera encerramento complementar |
 | 23 | Assinatura ICP-Brasil | Depois | [ADR 020](adr/020-fechamento-com-evidencia.md) | não assina |
+| 57 | CHP vencida: bloquear ou avisar | Depois | [ADR 030](adr/030-signatarios-das-demonstracoes.md) | não bloqueia |
+| 58 | Software da ECD e comparação no PVA | Depois | [ADR 031](adr/031-registry-minimo-e-previa-ecd.md) | prévia sem transmissão |
+| 59 | Junta ou cartório; data de abertura | Depois | [ADR 031](adr/031-registry-minimo-e-previa-ecd.md) | `junta` ou `cartorio` no cadastro |
+| 60 | Livros autenticados na JUCEPE | Depois | [ADR 031](adr/031-registry-minimo-e-previa-ecd.md) | — |
+| 61 | Mapeamento referencial na ECD ou na ECF | Depois | [ADR 031](adr/031-registry-minimo-e-previa-ecd.md) | sem `COD_PLAN_REF` e sem I051 |
+| 62 | Retenções por mês na carteira | E | matriz do DISC-002 | — |
+| 63 | R-4000 ou outra obrigação | E | POC-007 | — |
+| 64 | Folga e prova de indisponibilidade | E | POC-007 | — |
+| 65 | A1 em servidor ou A3 em nuvem | E | POC-008 | — |
+| 66 | Segunda aprovação sempre ou por valor | E | [ADR 004](adr/004-aprovacao-humana.md) | — |
+| 67 | Linha da DRE de tarifa, IOF e multa | Depois | registry ([ADR 002](adr/002-registry-regulatorio-versionado.md)) | — |
+| 68 | Subcontas por natureza fiscal | Depois | plano de contas | — |
+| 69 | Adoção do CPC 51 | Depois | registry ([ADR 002](adr/002-registry-regulatorio-versionado.md)) | — |
+| 70 | CHP em pacote para terceiros | Depois | [ADR 030](adr/030-signatarios-das-demonstracoes.md) | não avisa |
+| 71 | Quem confere o registro ativo no CRC-PE | Depois | [ADR 030](adr/030-signatarios-das-demonstracoes.md) | sistema não consulta |
+| 72 | Histórico sugerido pela IA | Depois | [ADR 004](adr/004-aprovacao-humana.md) | — |
+| 73 | Responder no portal o que chega pelo WhatsApp | D | [ADR 026](adr/026-devolucao-e-conversa.md) | só portal e e-mail |
+| 74 | Cadência de lembrete por escritório | D | [ADR 028](adr/028-aviso-por-email.md) | cadência fixa |
+| 75 | "Não tenho este mês" como sinal | D | [ADR 025](adr/025-portal-do-cliente.md) | — |
+| 76 | Fechamento travado por pedido | D | [ADR 020](adr/020-fechamento-com-evidencia.md) | pedido aberto ou recebido bloqueia |
 
 ## Sessão 1 — validar o que o piloto já faz (60 minutos)
 
@@ -140,6 +160,26 @@ Depois pergunte pela última vez em que deu errado: rejeição, retificação ou
 
 Perguntas 6, 7, 9, 10, 12, 15, 17, 18 e 21 a 23, mais as da Sessão 1 que não couberam. Nenhuma delas bloqueia a Fase D nem a Fase E. Vale fazer quando o contador tiver um exemplo à mão: um arquivo de migração, um OFX de banco, uma política de guarda.
 
+## Sessão 4 — confirmar a pesquisa de 11/11/2026 (75 minutos)
+
+**Quando:** na próxima conversa com o contador. Se a Sessão 2 ainda não aconteceu, os blocos 1 e 2 desta sessão entram no lugar dos blocos 1 e 2 dela.
+
+**Antes.** Leia a [pesquisa de 11/11/2026](references/pesquisa-perguntas-contador-2026-11.md) e o resumo no [caderno](accountant-discovery-workbook.md#o-que-a-pesquisa-pública-já-responde-pesquisa-de-11112026). Leve impressa a matriz de obrigações da pesquisa, com o prazo legal já preenchido e uma coluna em branco para ele marcar. Separe o que é fonte secundária: esses itens ele confirma ou corrige, não aceita em silêncio.
+
+**Como.** Esta sessão inverte a ordem de sempre. Em vez de perguntar "como funciona?", leia o que a fonte diz e pergunte "no seu escritório é assim?". Ele confirma fatos; só produz a resposta quando a fonte não chega ao escritório. Ele não precisa ler o manual da Receita na sessão.
+
+**Bloco 1 — carteira em números (10 min).** Perguntas 62 e 59, depois 34 se ainda não respondida. Peça números aproximados: quantos clientes retêm IR, CSLL, PIS ou Cofins por mês, quantos são sociedade simples no cartório. Não peça a lista de clientes.
+
+**Bloco 2 — a matriz e o piloto (20 min).** Perguntas 63, 41 e 64. Mostre a matriz e peça que ele risque o que não entrega e marque o que entrega. Leia o ranking da pesquisa e pergunte se a R-4000 faz sentido com o volume que ele acabou de dar. Se não fizer, quem nomeia a alternativa é ele. Para cada obrigação marcada, peça só o prazo interno e quantos dias de folga ele deixa. Termine com: "da última vez que o sistema caiu perto do prazo, o que você guardou?".
+
+**Bloco 3 — certificado e aprovação (10 min).** Perguntas 65 e 66. Fale de certificado sem pedir para ver nenhum. Diga que nenhuma norma exige a segunda aprovação e pergunte se ele quer mesmo assim, e a partir de que valor.
+
+**Bloco 4 — ECD (15 min).** Perguntas 58 a 61, na ordem. Abra a prévia da ECD no piloto. Em cada uma, diga o que o manual já responde e pergunte só a parte que falta: o software atual, a data de abertura da sociedade simples, livros na JUCEPE e onde ele mapeia o plano referencial.
+
+**Bloco 5 — DRE, certidão e histórico (10 min).** Perguntas 67 a 72 e 57. Abra a DRE do piloto e aponte uma tarifa e um IOF. Na 70 e na 71, diga que a norma não obriga bloquear e pergunte quem confere o registro dele no CRC-PE hoje.
+
+**Bloco 6 — portal (10 min).** Perguntas 73 a 76, com 27 e 28 se ficaram sem resposta na Sessão 1. Mostre um pedido aberto e pergunte o que ele faz quando o cliente responde pelo WhatsApp. Na 75, lembre que o cliente não confirma o próprio pedido: o "não tenho este mês" só avisa o escritório. Na 76, diga que os concorrentes pesquisados não travam o fechamento e espere a resposta.
+
 ## Folha de anotação
 
 Use uma linha por pergunta. É esta folha que volta para o repositório.
@@ -159,3 +199,4 @@ Com a folha preenchida:
 3. A matriz do DISC-002 é preenchida com as respostas 34 a 38, e a Fase E do [plano de implementação](specs/04-implementation-plan.md) passa a citar a obrigação escolhida.
 4. Com a obrigação escolhida, o POC-007 ganha um card com o fluxo das perguntas 39 a 46, e o POC-008 com a resposta 45.
 5. Toda resposta "não sei" vira pergunta na próxima sessão ou um card de POC. Nenhuma vira código.
+6. Na Sessão 4, o fato de fonte secundária que ele confirmar entra no caderno com a data e "confirmado pelo contador". O que ele corrigir substitui a pesquisa no caderno.
