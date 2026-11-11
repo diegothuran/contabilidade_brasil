@@ -255,7 +255,7 @@ export function EcdPage() {
               <span>{form.registry_kind === "cartorio" ? "Data de abertura" : "Data do arquivamento"}</span>
               <input type="date" value={form.registry_date} onChange={(event) => setForm({ ...form, registry_date: event.target.value })} />
               {form.registry_kind === "cartorio" ? (
-                <small className="muted" data-testid="ecd-opening-date-hint">Sem NIRE, a ECD usa a data de abertura da empresa no I030.</small>
+                <small className="muted" data-testid="ecd-opening-date-hint">Sem NIRE, a ECD usa a data de abertura do CNPJ no I030.</small>
               ) : null}
             </label>
             <label>
