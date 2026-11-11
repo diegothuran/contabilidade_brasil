@@ -15,6 +15,7 @@ type Registration = {
   registry_kind: "junta" | "cartorio" | null;
   nire: string | null;
   registry_date: string | null;
+  conversion_date: string | null;
   special_situation: string | null;
   book_number: number | null;
 };
@@ -39,6 +40,7 @@ type Form = {
   registry_kind: "junta" | "cartorio";
   nire: string;
   registry_date: string;
+  conversion_date: string;
   special_situation: string;
   book_number: string;
 };
@@ -69,7 +71,7 @@ const SITUATIONS = [
 ] as const;
 
 function emptyForm(): Form {
-  return { uf: "PE", municipality_ibge: "", registry_kind: "junta", nire: "", registry_date: "", special_situation: "", book_number: "1" };
+  return { uf: "PE", municipality_ibge: "", registry_kind: "junta", nire: "", registry_date: "", conversion_date: "", special_situation: "", book_number: "1" };
 }
 
 function toForm(registration: Registration): Form {
@@ -82,6 +84,7 @@ function toForm(registration: Registration): Form {
     registry_kind: registration.registry_kind ?? "junta",
     nire: registration.nire ?? "",
     registry_date: registration.registry_date ?? "",
+    conversion_date: registration.conversion_date ?? "",
     special_situation: registration.special_situation ?? "",
     book_number: String(registration.book_number ?? 1),
   };
@@ -146,6 +149,7 @@ export function EcdPage() {
           registry_kind: form.registry_kind,
           nire: form.registry_kind === "junta" ? form.nire.trim() || null : null,
           registry_date: form.registry_date || null,
+          conversion_date: form.registry_kind === "junta" ? form.conversion_date || null : null,
           special_situation: form.special_situation || null,
           book_number: Number(form.book_number),
         },
@@ -252,9 +256,19 @@ export function EcdPage() {
               </label>
             ) : null}
             <label>
-              <span>Arquivamento dos atos constitutivos</span>
+              <span>{form.registry_kind === "cartorio" ? "Data de abertura" : "Data do arquivamento"}</span>
               <input type="date" value={form.registry_date} onChange={(event) => setForm({ ...form, registry_date: event.target.value })} />
+              {form.registry_kind === "cartorio" ? (
+                <small className="muted" data-testid="ecd-opening-date-hint">Sem NIRE, a ECD usa a data de abertura do CNPJ no I030.</small>
+              ) : null}
             </label>
+            {form.registry_kind === "junta" ? (
+              <label>
+                <span>Data da conversão (opcional)</span>
+                <input type="date" value={form.conversion_date} onChange={(event) => setForm({ ...form, conversion_date: event.target.value })} />
+                <small className="muted" data-testid="ecd-conversion-date-hint">Só para quem era sociedade simples e virou empresária: a data em que a Junta arquivou a conversão. Vai para o I030.</small>
+              </label>
+            ) : null}
             <label>
               <span>Situação especial</span>
               <select value={form.special_situation} onChange={(event) => setForm({ ...form, special_situation: event.target.value })}>

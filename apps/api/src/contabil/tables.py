@@ -631,6 +631,7 @@ class EcdRegistration(Base):
     registry_kind: Mapped[str] = mapped_column(String(20))
     nire: Mapped[str | None] = mapped_column(String(11), nullable=True)
     registry_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    conversion_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     special_situation: Mapped[str | None] = mapped_column(String(1), nullable=True)
     book_number: Mapped[int] = mapped_column(Integer)
     updated_by: Mapped[str] = mapped_column(String(160))

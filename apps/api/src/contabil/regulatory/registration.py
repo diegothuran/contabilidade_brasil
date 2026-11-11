@@ -1,8 +1,15 @@
 """Cadastro da escrituração da ECD por empresa (ADR 031).
 
 Guarda o que o razão não sabe e o 0000 e o I030 pedem: UF e município da sede, onde o livro é
-registrado (Junta Comercial com NIRE, ou cartório de pessoas jurídicas sem NIRE), a data do
-arquivamento dos atos constitutivos, a situação especial e o número de ordem do livro.
+registrado (Junta Comercial com NIRE, ou cartório de pessoas jurídicas sem NIRE), a data que vai
+para o I030.DT_ARQ, a situação especial e o número de ordem do livro.
+
+A coluna `registry_date` muda de sentido com o registro (Manual do Leiaute 9 da ECD, ADE Cofis
+nº 01/2026): na Junta é a data do arquivamento dos atos constitutivos; sem NIRE (cartório) é a data
+de abertura da empresa.
+
+A `conversion_date` vai para o I030.DT_ARQ_CONV: a data em que a Junta arquivou a conversão da
+sociedade simples em empresária. Só existe para quem hoje está na Junta.
 """
 
 from __future__ import annotations
@@ -25,6 +32,7 @@ from contabil.tables import EcdRegistration
 from contabil.tenancy.service import require_entity
 
 REGISTRY_KINDS = ("junta", "cartorio")
+REGISTRY_DATE_LABELS = {"junta": "data do arquivamento", "cartorio": "data de abertura"}
 _MUNICIPALITY = re.compile(r"^[0-9]{7}$")
 _NIRE = re.compile(r"^[0-9]{11}$")
 
@@ -38,6 +46,7 @@ class RegistrationInput:
     registry_date: date | None
     special_situation: str | None
     book_number: int
+    conversion_date: date | None = None
 
 
 def _digits(value: str | None) -> str:
@@ -76,7 +85,13 @@ def validate_registration(data: RegistrationInput, today: date | None = None) ->
         errors.append({"loc": ["nire"], "msg": "Sociedade registrada em cartório não tem NIRE. Deixe o campo vazio."})
     reference = today or brasilia_today()
     if data.registry_date is not None and data.registry_date > reference:
-        errors.append({"loc": ["registry_date"], "msg": "A data do arquivamento não pode ser futura."})
+        label = REGISTRY_DATE_LABELS.get(kind, "data do arquivamento")
+        errors.append({"loc": ["registry_date"], "msg": f"A {label} não pode ser futura."})
+    if data.conversion_date is not None:
+        if kind == "cartorio":
+            errors.append({"loc": ["conversion_date"], "msg": "A data da conversão é de quem virou sociedade empresária e foi para a Junta. Sociedade em cartório deixa o campo vazio."})
+        elif data.conversion_date > reference:
+            errors.append({"loc": ["conversion_date"], "msg": "A data da conversão não pode ser futura."})
     special = (data.special_situation or "").strip() or None
     if special is not None and special not in _special_situations():
         errors.append({"loc": ["special_situation"], "msg": "Situação especial fora da tabela do leiaute."})
@@ -92,6 +107,7 @@ def validate_registration(data: RegistrationInput, today: date | None = None) ->
         registry_date=data.registry_date,
         special_situation=special,
         book_number=data.book_number,
+        conversion_date=data.conversion_date if kind == "junta" else None,
     )
 
 
@@ -111,6 +127,7 @@ def registration_dict(legal_entity_id: str, row: EcdRegistration | None) -> dict
             "registry_kind": None,
             "nire": None,
             "registry_date": None,
+            "conversion_date": None,
             "special_situation": None,
             "book_number": None,
             "updated_at": None,
@@ -123,6 +140,7 @@ def registration_dict(legal_entity_id: str, row: EcdRegistration | None) -> dict
         "registry_kind": row.registry_kind,
         "nire": row.nire,
         "registry_date": row.registry_date.isoformat() if row.registry_date else None,
+        "conversion_date": row.conversion_date.isoformat() if row.conversion_date else None,
         "special_situation": row.special_situation,
         "book_number": row.book_number,
         "updated_at": format_utc(row.updated_at) if row.updated_at else None,
@@ -149,6 +167,7 @@ def save_registration(session: Session, tenant_id: str, legal_entity_id: str, ac
     row.registry_kind = clean.registry_kind
     row.nire = clean.nire
     row.registry_date = clean.registry_date
+    row.conversion_date = clean.conversion_date
     row.special_situation = clean.special_situation
     row.book_number = clean.book_number
     row.updated_by = actor

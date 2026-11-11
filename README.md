@@ -26,13 +26,13 @@ O primeiro público é um escritório com cerca de **20 a 200 CNPJs**, em dois o
 | Área | O que funciona | Onde fica na sala |
 | --- | --- | --- |
 | Escritório e acesso | Login OIDC, escritório (tenant) isolado no banco por RLS, papéis `preparer`, `approver`, `admin`, `viewer` e `client`. O cliente fica numa empresa só. | Barra lateral do escritório, ou a casca do cliente |
-| Empresas | O admin cadastra a empresa com CNPJ validado e único no escritório. Ela nasce com matriz, modelo mínimo de contas e 12 períodos abertos. | Rotinas do razão › Nova empresa |
+| Empresas | O admin cadastra a empresa com CNPJ validado (numérico ou alfanumérico, IN RFB 2.229/2024) e único no escritório. Ela nasce com matriz, modelo mínimo de contas e 12 períodos abertos. | Rotinas do razão › Nova empresa |
 | Plano de contas | Contas sintéticas e analíticas por empresa. Só conta analítica (postável) recebe lançamento. | Rotinas do razão › Plano de contas |
 | Lançamentos | Rascunho equilibrado, envio, aprovação e publicação. Quem cria não aprova nem publica. Publicado não se edita: corrige-se por estorno vinculado. | Hoje, Dados e ledger, Rotinas do razão › Novo lançamento |
 | Balancete | Débito, crédito e saldo por conta e competência, com drill-down até a linha. | Rotinas do razão › Balancete |
 | Demonstrações | DRE e Balanço gerenciais da competência, com impressão e CSV. Terminam com as assinaturas do contador responsável (nome e CRC) e do representante legal; sem cadastro, a linha diz que falta. | Relatórios › DRE e Balanço |
 | Signatários | Cada pessoa do escritório cadastra o próprio CRC. O admin escolhe o contador e o representante legal de cada empresa. | Perfil; Administração › Assinaturas |
-| Prévia da ECD | Arquivo do leiaute 9 do ano, montado do razão para conferir no PVA, com a lista do que falta. O leiaute é dado versionado no registry. Não transmite nem assina. | Relatórios › Prévia da ECD |
+| Prévia da ECD | Arquivo do leiaute 9 do ano, montado do razão para conferir no PVA, com a lista do que falta. O leiaute é dado versionado no registry. Os dados da escrituração pedem a data do arquivamento na Junta ou, no cartório sem NIRE, a data de abertura do CNPJ. Na Junta, a empresa que era sociedade simples informa também a data da conversão. Não transmite nem assina. | Relatórios › Prévia da ECD |
 | Períodos | O checklist bloqueia o fechamento. O snapshot fica gravado com SHA-256. Reabrir pede motivo e aprovação de outra pessoa e não altera o snapshot. | Fechamentos |
 | Pendências | Pedido de documento na competência. Aberto ou recebido bloqueia o fechamento. Hoje mostra a fila do escritório. | Hoje e Pendências |
 | Importação | Lote CSV em simulação, relatório de diferenças e publicação por outra pessoa. Identificador já importado não entra de novo. | Migrações |

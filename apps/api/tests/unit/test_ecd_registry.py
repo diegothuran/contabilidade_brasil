@@ -170,6 +170,8 @@ def test_registration_accepts_recife_with_a_jucepe_nire_and_a_cartorio_without_n
         ({"registry_kind": "outro"}, "registry_kind"),
         ({"special_situation": "9"}, "special_situation"),
         ({"registry_date": date(2027, 1, 1)}, "registry_date"),
+        ({"conversion_date": date(2027, 1, 1)}, "conversion_date"),
+        ({"registry_kind": "cartorio", "nire": None, "conversion_date": date(2023, 9, 1)}, "conversion_date"),
         ({"book_number": 0}, "book_number"),
     ],
 )
@@ -178,3 +180,10 @@ def test_registration_refuses_what_does_not_match_the_uf(overrides, field):
         validate_registration(_registration(**({"nire": "26200000011"} | overrides)), today=date(2026, 11, 8))
     assert error.value.status_code == 400
     assert field in {item["loc"][0] for item in error.value.errors}
+
+
+def test_registration_keeps_the_conversion_date_only_at_the_junta():
+    clean = validate_registration(_registration(nire="26200000011", conversion_date=date(2023, 9, 1)), today=date(2026, 11, 8))
+    assert clean.conversion_date == date(2023, 9, 1)
+    cartorio = validate_registration(_registration(registry_kind="cartorio", nire=None), today=date(2026, 11, 8))
+    assert cartorio.conversion_date is None
