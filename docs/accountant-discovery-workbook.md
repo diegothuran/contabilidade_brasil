@@ -34,7 +34,7 @@ Listar os documentos e respostas que o cliente precisa entregar. Registrar quem 
 
 A Fase D fecha quando cinco clientes de teste resolvem as pendências com o contador e ele diz se o fluxo dispensa a planilha paralela.
 
-**Preparar.** Carregar as empresas de teste no escritório e convidar em Administração o cliente de cada uma, como no [roteiro do piloto](../deploy/pilot/README.md#empresas-de-teste). Cada empresa fica com um pedido aberto, com prazo e tipo de documento. Os dados são fictícios. Para o lembrete chegar, o e-mail de cada cliente precisa estar verificado no SES enquanto a conta estiver em sandbox ([aviso ao cliente](../deploy/pilot/README.md#aviso-ao-cliente)).
+**Preparar.** Carregar as empresas de teste no escritório e criar o login fictício do cliente de cada uma com `python -m contabil.pilot_round --tenant-id ESCRITORIO`, como no [roteiro do piloto](../deploy/pilot/README.md#empresas-de-teste). O comando abre na competência do dia os pedidos da rodada, com prazo e tipo de documento. Os dados são fictícios. Em 11/11/2026, sem carteira real, o usuário decidiu fazer a rodada com esses clientes fictícios e sem o aviso por e-mail; quem faz o papel de cliente é avisado por fora. Com cliente real, o convite volta a ser em Administração e o e-mail precisa estar verificado no SES enquanto a conta estiver em sandbox ([aviso ao cliente](../deploy/pilot/README.md#aviso-ao-cliente)).
 
 **Observar.** Durante a rodada, anotar onde o cliente travou, o que foi pedido ou respondido por fora (WhatsApp, e-mail, telefone, planilha) e por quê. Cada contato por fora é um candidato a regra do portal, não uma falha do cliente.
 

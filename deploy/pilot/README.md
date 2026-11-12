@@ -181,6 +181,12 @@ Hoje mostra a fila de pedidos que bloqueiam o fechamento. Abrir um item troca a 
 
 Cada empresa de teste ganha um usuário `cliente-` seguido do nome interno da história (`andamento`, `fechada`, `banco`, `vazia` e `rascunhos`; no Litoral, `pousada`, `oficina`, `mercado`, `clinica` e `grafica`). Esse usuário existe no banco, ligado só àquela empresa, mas ainda não tem login. Para criar o login, o administrador convida o mesmo nome de usuário em Administração, com o papel Cliente, a mesma empresa e um e-mail de teste. A API reconhece o cliente que já existe, não duplica o acesso e manda o e-mail com a senha temporária. Convidar esse nome com outro papel ou outra empresa continua sendo recusado. O cliente envia o arquivo. Quem confirma continua sendo o escritório. Os cinco casos do escritório piloto são o recibo confirmado da Padaria, o extrato aberto do Studio, a nota aberta do Vale, o contrato aberto do Ateliê e o recibo de frete aberto da Transportes.
 
+Sem cliente real, a rodada usa clientes fictícios. O comando abaixo cria no Cognito o login de cada usuário `cliente-` do escritório, com e-mail fictício no domínio reservado `example.com` e uma senha temporária que ele imprime uma vez. Nenhum e-mail sai. Ele também abre, na competência do dia, os pedidos da rodada de cada empresa, com título começando por "Rodada:" e prazo de sete dias: o extrato bancário do mês e mais um documento do ramo. Pode ser repetido: login e pedido que já existem ficam como estão, e a senha de um login que já existe não muda. Ele usa as mesmas chaves do convite (`COGNITO_ADMIN_*`, só `AdminCreateUser` e `AdminGetUser`). No primeiro acesso, quem entra como cliente troca a senha temporária. Guarde as senhas fora do repositório. Com o e-mail fictício, o aviso ao cliente não chega, mesmo com o SES ligado: avise quem faz o papel de cliente por fora.
+
+```bash
+heroku run --no-tty --exit-code --app NOME-API -- python -m contabil.pilot_round --tenant-id escritorio
+```
+
 Depois da rodada com os clientes, o relatório abaixo mostra o ciclo de cada pedido: quem enviou o arquivo, os dias até receber e até confirmar, se chegou no prazo, e um resumo. Ele só lê o banco e imprime no terminal, sem gravar arquivo. `--since AAAA-MM-DD` limita aos pedidos abertos a partir dessa data. O roteiro da rodada está no [caderno do contador](../../docs/accountant-discovery-workbook.md#rodada-da-fase-d).
 
 ```bash
