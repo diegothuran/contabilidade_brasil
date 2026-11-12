@@ -187,6 +187,12 @@ Sem cliente real, a rodada usa clientes fictícios. O comando abaixo cria no Cog
 heroku run --no-tty --exit-code --app NOME-API -- python -m contabil.pilot_round --tenant-id escritorio
 ```
 
+Para ver a rodada acontecer sem ninguém fazer o papel de cliente, o comando abaixo simula os cinco clientes sobre esses pedidos. Cada um segue um roteiro fixo: a Padaria envia tudo e o escritório confirma; o Studio manda o extrato do mês errado, recebe a devolução, explica na conversa e reenvia; o Vale Azul pergunta antes, recebe a resposta e envia o extrato, que fica esperando confirmação, e não manda os comprovantes; o Ateliê não responde; a Transportes manda os recibos pelo envio avulso, o escritório classifica o envio e cancela o pedido repetido. O escritório age com o preparador e o aprovador fictícios das amostras. Mensagens, motivos e arquivos começam com "[simulação]". Os horários são os da execução, sem data inventada. Precisa do bucket, porque envia arquivo. Rodar de novo não repete o roteiro de quem já foi simulado. Depois, o `pilot_report` mostra o ciclo. A simulação exercita o fluxo; ela não diz se o fluxo dispensa a planilha, o que continua sendo decisão do contador.
+
+```bash
+heroku run --no-tty --exit-code --app NOME-API -- python -m contabil.pilot_simulation --tenant-id escritorio
+```
+
 Depois da rodada com os clientes, o relatório abaixo mostra o ciclo de cada pedido: quem enviou o arquivo, os dias até receber e até confirmar, se chegou no prazo, e um resumo. Ele só lê o banco e imprime no terminal, sem gravar arquivo. `--since AAAA-MM-DD` limita aos pedidos abertos a partir dessa data. O roteiro da rodada está no [caderno do contador](../../docs/accountant-discovery-workbook.md#rodada-da-fase-d).
 
 ```bash
