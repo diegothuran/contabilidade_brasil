@@ -143,6 +143,9 @@ def classify_submission(
             returned_reason=None,
         )
     )
+    # Sem relationship entre as tabelas, o flush pode atualizar o envio antes de inserir o pedido e
+    # violar a chave estrangeira classified_request_id. Grava o pedido primeiro.
+    session.flush()
     row.status = "classified"
     row.classified_request_id = request.id
     session.flush()
