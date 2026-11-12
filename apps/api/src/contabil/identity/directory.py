@@ -71,6 +71,35 @@ class CognitoDirectory:
             logger.warning("cognito admin_create_user code=%s", _error_code(exc))
             raise DomainError(502, "Falha ao convidar", "O diretório não concluiu o convite.") from exc
 
+    def create_test_login(self, username: str, email: str, tenant_id: str, temporary_password: str) -> bool:
+        """Login de cliente fictício do piloto: senha temporária informada e nenhum e-mail enviado.
+
+        Devolve False quando o usuário já existe no mesmo escritório; a senha dele não muda.
+        """
+        try:
+            self._client.admin_create_user(
+                UserPoolId=self._pool,
+                Username=username,
+                UserAttributes=[
+                    {"Name": "email", "Value": email},
+                    {"Name": "email_verified", "Value": "true"},
+                    {"Name": "custom:tenant_id", "Value": tenant_id},
+                ],
+                TemporaryPassword=temporary_password,
+                MessageAction="SUPPRESS",
+            )
+        except ClientError as exc:
+            if _error_code(exc) == "UsernameExistsException":
+                self._require_same_office(username, tenant_id)
+                return False
+            if _error_code(exc) == "AliasExistsException":
+                raise DomainError(409, "E-mail já usado", "Este e-mail já está ligado a outro usuário.") from exc
+            if _error_code(exc) == "InvalidPasswordException":
+                raise DomainError(400, "Senha recusada", "A política de senha do diretório recusou a senha temporária.") from exc
+            logger.warning("cognito admin_create_user code=%s", _error_code(exc))
+            raise DomainError(502, "Falha ao criar login", "O diretório não criou o login de teste.") from exc
+        return True
+
     def _require_same_office(self, username: str, tenant_id: str) -> None:
         try:
             current = self._client.admin_get_user(UserPoolId=self._pool, Username=username)

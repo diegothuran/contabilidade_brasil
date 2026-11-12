@@ -35,7 +35,7 @@ Cada módulo fica em `apps/api/src/contabil/<módulo>/`, com `router.py` (HTTP) 
 | `audit` | `/audit-events`, `/audit-events/verify` | `audit_events` | Rotinas › Auditoria | [010](adr/010-rls-e-triggers.md) |
 | `platform` | `/healthz`, `/readyz` | `idempotency_keys`, `outbox_events` | — | [006](adr/006-adaptadores-e-idempotencia.md), [008](adr/008-outbox-postgresql.md) |
 
-Fora dos módulos: [bootstrap.py](../apps/api/src/contabil/bootstrap.py) cria o escritório e o primeiro admin; [pilot_samples.py](../apps/api/src/contabil/pilot_samples.py) carrega as empresas fictícias do piloto; [pilot_report.py](../apps/api/src/contabil/pilot_report.py) mostra o ciclo dos pedidos; [seed/](../apps/api/src/contabil/seed) é o seed local; [migrate.py](../apps/api/src/contabil/migrate.py) roda o Alembic no release.
+Fora dos módulos: [bootstrap.py](../apps/api/src/contabil/bootstrap.py) cria o escritório e o primeiro admin; [pilot_samples.py](../apps/api/src/contabil/pilot_samples.py) carrega as empresas fictícias do piloto; [pilot_round.py](../apps/api/src/contabil/pilot_round.py) cria o login fictício dos clientes de teste e abre os pedidos da rodada; [pilot_report.py](../apps/api/src/contabil/pilot_report.py) mostra o ciclo dos pedidos; [seed/](../apps/api/src/contabil/seed) é o seed local; [migrate.py](../apps/api/src/contabil/migrate.py) roda o Alembic no release.
 
 ## Caminho de uma escrita
 
