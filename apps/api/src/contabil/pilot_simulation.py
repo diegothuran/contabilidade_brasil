@@ -208,7 +208,7 @@ def _simulate_client(
                 _key, file_name, body = step[2], step[3], step[4]
                 receive_content(
                     session, client, ids[_key], file_name=file_name, media_type="text/plain",
-                    content=f"{MARK} {body}\nDocumento fictício, sem valor fiscal.\n".encode(),
+                    content=f"{MARK} {body}\nEmpresa: {company}.\nDocumento fictício, sem valor fiscal.\n".encode(),
                 )
             elif action == "comment":
                 author = client if actor == "client" else office["preparer"]
@@ -222,7 +222,7 @@ def _simulate_client(
             elif action == "submission":
                 created = create_submission(
                     session, client, file_name=step[3], media_type="text/plain",
-                    content=f"{MARK} {step[4]}\nDocumento fictício, sem valor fiscal.\n".encode(),
+                    content=f"{MARK} {step[4]}\nEmpresa: {company}.\nDocumento fictício, sem valor fiscal.\n".encode(),
                     note=f"{MARK} Não achei onde anexar no pedido, mando por aqui.",
                 )
                 submission_id = created["submission_id"]
