@@ -37,6 +37,9 @@ paths:
         '200': { description: Página de journals }
     post:
       summary: Cria journal em draft
+      description: >-
+        Aceita source_type manual ou adjustment. As outras origens (importação, banco, encerramento, reversão)
+        nascem no módulo de origem e são recusadas aqui com 400.
       operationId: createJournal
       parameters:
         - $ref: '#/components/parameters/IdempotencyKey'

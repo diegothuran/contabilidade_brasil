@@ -57,6 +57,7 @@ TABLES = (
 def reset_world() -> None:
     session = session_factory(admin=True)()
     try:
+        session.execute(text("SET LOCAL app.allow_truncate = 'on'"))
         session.execute(text(f"TRUNCATE {', '.join(TABLES)} RESTART IDENTITY CASCADE"))
         session.add_all([Tenant(id="tenant_demo", name="Escritório Demo"), Tenant(id="tenant_other", name="Escritório Outro")])
         users = [
@@ -87,6 +88,16 @@ def reset_world() -> None:
     except Exception:
         session.rollback()
         raise
+    finally:
+        session.close()
+
+
+def add_entity(entity_id: str, tenant_id: str, name: str, base: str) -> None:
+    """Segunda empresa no mesmo escritório, com o mesmo plano e os mesmos períodos da primeira."""
+    session = session_factory(admin=True)()
+    try:
+        _entity(session, entity_id, tenant_id, name, base)
+        session.commit()
     finally:
         session.close()
 

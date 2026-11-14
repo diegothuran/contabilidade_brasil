@@ -34,3 +34,4 @@
 | [030](030-signatarios-das-demonstracoes.md) | O CRC fica no perfil de cada pessoa do escritório. O admin escolhe o contador e o representante legal de cada empresa, e a DRE e o Balanço saem assinados. |
 | [031](031-registry-minimo-e-previa-ecd.md) | O leiaute da ECD é dado versionado num registry mínimo. A prévia do ano sai marcada, com pendências, e não é transmitida. |
 | [032](032-previa-efd-reinf-r4000.md) | A Fase E começa pela prévia da EFD-Reinf R-4000: pagamentos com retenção informados, eventos validados no XSD oficial sem modificação, zip sem assinatura e sem envio. |
+| [033](033-correcoes-da-auditoria-de-novembro.md) | Correções P0 da auditoria: nome de usuário de outro escritório é recusado no convite, memória de importação e documento por empresa, origem do lançamento restrita, linha não troca de journal, TRUNCATE bloqueado e configuração de exemplo recusada fora de desenvolvimento. |

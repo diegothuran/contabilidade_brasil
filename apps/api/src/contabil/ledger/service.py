@@ -66,12 +66,19 @@ def _ready(session: Session, journal: JournalEntry, lines: list[JournalLine]) ->
         raise DomainError(400, "Data inválida", "O lançamento precisa de data.")
 
 
+# Origens que um preparador pode declarar em POST /v1/journals. As demais nascem
+# no módulo de origem, que chama create_journal com system_source=True.
+PUBLIC_SOURCES = frozenset({"manual", "adjustment"})
+
+
 def create_journal(session: Session, principal: Principal, body: JournalCreate, *, system_source: bool = False) -> dict:
     ensure_role(principal, "preparer", "admin")
     if body.source_type == "reversal":
         raise DomainError(400, "Origem inválida", "Reversão é criada pela operação de reverter.")
     if body.source_type == CLOSING_SOURCE and not system_source:
         raise DomainError(400, "Origem inválida", "O encerramento do exercício é criado pela rotina de encerramento.")
+    if body.source_type not in PUBLIC_SOURCES and not system_source:
+        raise DomainError(400, "Origem inválida", "Lançamento pela tela é manual ou de ajuste; as outras origens vêm do módulo de origem.")
     entity = require_entity(session, principal.tenant_id, body.legal_entity_id)
     if body.currency != entity.currency:
         raise DomainError(400, "Moeda inválida", "A moeda do lançamento deve ser a moeda da empresa.")

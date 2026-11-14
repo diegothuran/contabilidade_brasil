@@ -425,7 +425,8 @@ export function RastroShell() {
           <button className="context-link" type="button" onClick={() => notify("Escopo do contexto", "O filtro atual inclui empresa, competência, regime e UF. Filtros de tabela não mudam este contexto. A empresa do sistema permanece a mesma.")}>Ver escopo</button>
         </section> : <LiveContextBar />}
 
-        <div className="page-container">
+        {/* A chave remonta as rotas ao trocar de empresa: nenhum id da empresa anterior fica no estado. */}
+        <div className="page-container" key={session.entityId}>
           <Routes>
             <Route path="/app/rastro" element={<OfficeHome />} />
             <Route path="/app/rastro/fechamentos" element={<Routine><PeriodsPage /></Routine>} />

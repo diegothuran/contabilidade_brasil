@@ -58,8 +58,16 @@ def document_dict(document: SourceDocument) -> dict:
     }
 
 
-def _find_hash(session: Session, tenant_id: str, sha256: str) -> SourceDocument | None:
-    return session.scalar(select(SourceDocument).where(SourceDocument.tenant_id == tenant_id, SourceDocument.sha256 == sha256))
+def _find_hash(session: Session, tenant_id: str, legal_entity_id: str | None, sha256: str) -> SourceDocument | None:
+    """O mesmo arquivo pode existir em empresas diferentes do escritório (decisão D3)."""
+    entity = (
+        SourceDocument.legal_entity_id.is_(None)
+        if legal_entity_id is None
+        else SourceDocument.legal_entity_id == legal_entity_id
+    )
+    return session.scalar(
+        select(SourceDocument).where(SourceDocument.tenant_id == tenant_id, entity, SourceDocument.sha256 == sha256)
+    )
 
 
 def store_document(
@@ -93,14 +101,15 @@ def store_document(
     if not file_name or len(file_name) > 300:
         raise DomainError(400, "Nome inválido", "O arquivo precisa de um nome com até 300 caracteres.")
     digest = hashlib.sha256(content).hexdigest()
-    existing = _find_hash(session, principal.tenant_id, digest)
+    existing = _find_hash(session, principal.tenant_id, legal_entity_id or None, digest)
     if existing is not None:
         return document_dict(existing), 200
     key = document_key(principal.tenant_id, digest)
     store = get_object_store()
     import io
 
-    store.put(key, io.BytesIO(content), len(content), media_type or "application/octet-stream")
+    if not store.exists(key):
+        store.put(key, io.BytesIO(content), len(content), media_type or "application/octet-stream")
     document = SourceDocument(
         id=new_id("doc"),
         schema_version=SCHEMA_VERSION,
@@ -129,7 +138,7 @@ def store_document(
     except IntegrityError:
         session.rollback()
         apply_tenant(session, principal.tenant_id)
-        raced = _find_hash(session, principal.tenant_id, digest)
+        raced = _find_hash(session, principal.tenant_id, legal_entity_id or None, digest)
         if raced is None:
             raise
         return document_dict(raced), 200

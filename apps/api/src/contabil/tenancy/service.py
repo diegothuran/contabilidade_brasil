@@ -164,10 +164,13 @@ def invite_user(
             "display_name": user.display_name if user is not None else visible_name,
             "roles": chosen,
         }
+    if session.get(AppUser, username) is not None:
+        # O nome de usuário é global. Um nome que já existe sem vínculo neste escritório
+        # pertence a outro; reaproveitá-lo daria a este admin o login de outra pessoa.
+        raise DomainError(409, "Nome indisponível", "Este nome de usuário não está disponível. Escolha outro.")
     directory.create_user(username, email, visible_name, principal.tenant_id)
-    if session.get(AppUser, username) is None:
-        session.add(AppUser(id=username, display_name=visible_name))
-        session.flush()
+    session.add(AppUser(id=username, display_name=visible_name))
+    session.flush()
     session.add(
         Membership(
             id=new_id("mem"),

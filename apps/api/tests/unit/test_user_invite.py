@@ -15,11 +15,15 @@ class _UnusedSession:
 
 
 class _Recorder:
-    def __init__(self) -> None:
+    def __init__(self, existing_user: object | None = None) -> None:
         self.added: list[object] = []
+        self.existing_user = existing_user
 
     def scalar(self, *_args, **_kwargs):
         return None
+
+    def get(self, *_args, **_kwargs):
+        return self.existing_user
 
     def add(self, row: object) -> None:
         self.added.append(row)
@@ -110,6 +114,25 @@ def test_other_office_does_not_write_membership() -> None:
             roles=["viewer"],
         )
     assert caught.value.status_code == 409
+    assert session.added == []
+
+
+def test_username_from_another_office_is_refused_before_the_directory() -> None:
+    """fix-1: nome que já existe sem vínculo neste escritório é de outro escritório."""
+    session = _Recorder(existing_user=object())
+    directory = _NameRecorder()
+    with pytest.raises(DomainError) as caught:
+        invite_user(
+            session,  # type: ignore[arg-type]
+            _principal(),
+            directory,
+            username="ana",
+            display_name="Ana",
+            email="ana@example.com",
+            roles=["viewer"],
+        )
+    assert caught.value.status_code == 409
+    assert directory.names == []
     assert session.added == []
 
 
