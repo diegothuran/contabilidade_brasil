@@ -89,10 +89,13 @@ def _cost_center(session: Session, tenant_id: str, legal_entity_id: str, code: s
     )
 
 
-def _external(session: Session, tenant_id: str, source_system: str, entity_type: str, external_id: str) -> ExternalRef | None:
+def _external(
+    session: Session, tenant_id: str, legal_entity_id: str, source_system: str, entity_type: str, external_id: str
+) -> ExternalRef | None:
     return session.scalar(
         select(ExternalRef).where(
             ExternalRef.tenant_id == tenant_id,
+            ExternalRef.legal_entity_id == legal_entity_id,
             ExternalRef.source_system == source_system,
             ExternalRef.entity_type == entity_type,
             ExternalRef.external_id == external_id,
@@ -533,7 +536,7 @@ def _classify_account(session, batch, item: Classified, values: dict, seen: set[
         _fail(item, "DUPLICATE_EXTERNAL_ID_IN_FILE", "O identificador externo está repetido no arquivo.")
         return
     seen.add(external_id)
-    if _external(session, batch.tenant_id, batch.source_system, "account", external_id):
+    if _external(session, batch.tenant_id, batch.legal_entity_id, batch.source_system, "account", external_id):
         item.status = "already_imported"
         return
     if values.get("account_type") not in ACCOUNT_TYPES:
@@ -583,7 +586,7 @@ def _classify_opening(session, batch, item: Classified, values: dict, seen: set[
         _fail(item, "DUPLICATE_EXTERNAL_ID_IN_FILE", "A conta de abertura está repetida no arquivo.")
         return
     seen.add(external_id)
-    if _external(session, batch.tenant_id, batch.source_system, "opening", external_id):
+    if _external(session, batch.tenant_id, batch.legal_entity_id, batch.source_system, "opening", external_id):
         item.status = "already_imported"
         return
     debit = _money(values.get("debit", ""))
@@ -631,7 +634,7 @@ def _classify_journal_line(session, batch, item: Classified, values: dict, known
     if not external_id or not code or not values.get("description") or not values.get("line_description"):
         _fail(item, "MISSING_COLUMN", "Lançamento, conta, descrição e histórico são obrigatórios.")
         return
-    if _external(session, batch.tenant_id, batch.source_system, "journal", external_id):
+    if _external(session, batch.tenant_id, batch.legal_entity_id, batch.source_system, "journal", external_id):
         item.status = "already_imported"
         return
     amount = _money(values.get("amount", ""))
@@ -823,7 +826,7 @@ def _publish_journals(session, batch: ImportBatch, files: dict, rows: list[Impor
     for row in rows:
         groups.setdefault(row.external_id or "", []).append(row)
     for external_id, group in groups.items():
-        if _external(session, batch.tenant_id, batch.source_system, "journal", external_id):
+        if _external(session, batch.tenant_id, batch.legal_entity_id, batch.source_system, "journal", external_id):
             continue
         lines = []
         for row in group:
@@ -867,12 +870,13 @@ def _publish_journals(session, batch: ImportBatch, files: dict, rows: list[Impor
 
 
 def _remember(session: Session, batch: ImportBatch, entity_type: str, external_id: str, internal_id: str) -> None:
-    if _external(session, batch.tenant_id, batch.source_system, entity_type, external_id):
+    if _external(session, batch.tenant_id, batch.legal_entity_id, batch.source_system, entity_type, external_id):
         return
     session.add(
         ExternalRef(
             id=new_id("ext"),
             tenant_id=batch.tenant_id,
+            legal_entity_id=batch.legal_entity_id,
             source_system=batch.source_system,
             entity_type=entity_type,
             external_id=external_id,
@@ -909,7 +913,7 @@ def _write_report(session: Session, batch: ImportBatch, rows: list[ImportRow]) -
         if row.status == "already_imported" and row.external_id:
             kind = row.raw.get("kind")
             entity_type = {"chart_of_accounts": "account", "opening_balance": "opening", "journal": "journal"}.get(kind or "", "journal")
-            ref = _external(session, batch.tenant_id, batch.source_system, entity_type, row.external_id)
+            ref = _external(session, batch.tenant_id, batch.legal_entity_id, batch.source_system, entity_type, row.external_id)
             bucket["notes"].append(f"já importado em batch {ref.batch_id}" if ref else "já importado")
     ledger = _ledger_totals(session, batch)
     report_rows = []

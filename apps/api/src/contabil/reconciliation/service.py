@@ -496,6 +496,7 @@ def create_journal_from_case(session: Session, principal: Principal, case_id: st
                 ),
             ],
         ),
+        system_source=True,
     )
     case.journal_id = created["journal_id"]
     case.updated_at = _now()

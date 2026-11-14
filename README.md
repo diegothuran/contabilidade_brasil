@@ -126,12 +126,14 @@ flowchart LR
 ### Garantias no código
 
 - **Partidas dobradas:** publicação exige débitos iguais a créditos; dinheiro é `Decimal`, nunca float.
-- **Imutabilidade:** journal publicado não muda; trigger no banco reforça a regra ([ADR 001](docs/adr/001-ledger-immutavel.md), [ADR 010](docs/adr/010-rls-e-triggers.md)).
+- **Imutabilidade:** journal publicado não muda; trigger no banco reforça a regra, inclusive contra linha que troca de journal, e `TRUNCATE` não apaga o livro nem a trilha ([ADR 001](docs/adr/001-ledger-immutavel.md), [ADR 010](docs/adr/010-rls-e-triggers.md), [ADR 033](docs/adr/033-correcoes-da-auditoria-de-novembro.md)).
+- **Origem do lançamento:** pela tela, só lançamento manual ou de ajuste. Importação, banco e encerramento nascem no próprio módulo ([ADR 033](docs/adr/033-correcoes-da-auditoria-de-novembro.md)).
 - **Isolamento:** toda tabela de negócio tem `tenant_id` e RLS forçada, inclusive para o dono da tabela ([ADR 005](docs/adr/005-isolamento-de-tenant.md)). O cliente fica preso à empresa da membership: as rotas do escritório respondem 403 para ele, e o banco exige empresa em toda membership `client` ([ADR 025](docs/adr/025-portal-do-cliente.md)).
 - **Aprovação humana:** nenhum efeito contábil sai sem uma segunda pessoa autorizada ([ADR 004](docs/adr/004-aprovacao-humana.md)).
 - **Idempotência:** POSTs que mudam estado aceitam `Idempotency-Key`; o mesmo pedido devolve a mesma resposta ([ADR 006](docs/adr/006-adaptadores-e-idempotencia.md)).
 - **Jobs:** importação, extrato e exportação vão para o outbox, com retry limitado e dead-letter. A resposta traz `operation_id` e `correlation_id`, e `GET /v1/operations` lista as operações ([ADR 008](docs/adr/008-outbox-postgresql.md), [ADR 012](docs/adr/012-jobs-outbox.md), [ADR 023](docs/adr/023-exportacao-operacional.md)).
-- **Evidência:** o arquivo original fica no object storage com hash; o banco guarda metadado e referência ([ADR 011](docs/adr/011-object-storage-s3.md)).
+- **Evidência:** o arquivo original fica no object storage com hash; o banco guarda metadado e referência ([ADR 011](docs/adr/011-object-storage-s3.md)). O mesmo arquivo pode estar em duas empresas do escritório, cada uma com o seu documento ([ADR 033](docs/adr/033-correcoes-da-auditoria-de-novembro.md)).
+- **Configuração:** a imagem do piloto roda com `ENVIRONMENT=pilot` e não sobe com valor de desenvolvimento, sem as claims de identidade ou com `SEED_DEMO` ([ADR 033](docs/adr/033-correcoes-da-auditoria-de-novembro.md)).
 
 O desenho completo, inclusive módulos ainda não construídos, está em [docs/architecture.md](docs/architecture.md) e no [modelo de domínio](docs/domain-model.md). O [mapa do código](docs/mapa-do-codigo.md) liga cada módulo às rotas, tabelas, telas e ADRs, mostra o caminho de uma escrita e os estados de cada objeto.
 

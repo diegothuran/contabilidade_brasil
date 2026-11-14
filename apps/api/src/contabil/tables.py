@@ -3,7 +3,19 @@ from __future__ import annotations
 from datetime import date, datetime
 from decimal import Decimal
 
-from sqlalchemy import Boolean, CheckConstraint, Date, DateTime, ForeignKey, Integer, Numeric, String, UniqueConstraint
+from sqlalchemy import (
+    Boolean,
+    CheckConstraint,
+    Date,
+    DateTime,
+    ForeignKey,
+    Index,
+    Integer,
+    Numeric,
+    String,
+    UniqueConstraint,
+    text,
+)
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -236,7 +248,23 @@ class OutboxEvent(Base):
 
 class SourceDocument(Base):
     __tablename__ = "source_documents"
-    __table_args__ = (UniqueConstraint("tenant_id", "sha256", name="uq_documents_tenant_sha"),)
+    __table_args__ = (
+        Index(
+            "uq_documents_entity_sha",
+            "tenant_id",
+            "legal_entity_id",
+            "sha256",
+            unique=True,
+            postgresql_where=text("legal_entity_id IS NOT NULL"),
+        ),
+        Index(
+            "uq_documents_office_sha",
+            "tenant_id",
+            "sha256",
+            unique=True,
+            postgresql_where=text("legal_entity_id IS NULL"),
+        ),
+    )
 
     id: Mapped[str] = mapped_column(String(160), primary_key=True)
     schema_version: Mapped[str] = mapped_column(String(20))
@@ -315,11 +343,14 @@ class ImportRow(Base):
 class ExternalRef(Base):
     __tablename__ = "external_refs"
     __table_args__ = (
-        UniqueConstraint("tenant_id", "source_system", "entity_type", "external_id", name="uq_external_refs"),
+        UniqueConstraint(
+            "tenant_id", "legal_entity_id", "source_system", "entity_type", "external_id", name="uq_external_refs"
+        ),
     )
 
     id: Mapped[str] = mapped_column(String(160), primary_key=True)
     tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.id"))
+    legal_entity_id: Mapped[str] = mapped_column(ForeignKey("legal_entities.id"))
     source_system: Mapped[str] = mapped_column(String(160))
     entity_type: Mapped[str] = mapped_column(String(40))
     external_id: Mapped[str] = mapped_column(String(200))

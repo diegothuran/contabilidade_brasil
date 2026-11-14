@@ -91,6 +91,8 @@ heroku config:set --app NOME-API \
 
 Não defina `STATIC_DIR`, `SEED_DEMO` nem `OBJECT_STORAGE_CREATE_BUCKETS`. O app da interface não tem config: tudo o que ele usa está no build.
 
+A imagem do piloto fixa `ENVIRONMENT=pilot` ([ADR 033](../../docs/adr/033-correcoes-da-auditoria-de-novembro.md)). Com ela, a API recusa a subida se `DATABASE_URL`, os valores `OIDC_*` ou as chaves do storage forem de desenvolvimento (`dev-only`, `localhost`), se `OIDC_USERNAME_CLAIM` ou `OIDC_TENANT_CLAIM` não estiverem definidos, ou se `SEED_DEMO` estiver ligado. O log da subida diz qual variável falta. A lista completa, com valores de exemplo, está em [env.example](env.example). Confira antes do primeiro deploy desta versão: o release roda as migrações com a mesma checagem.
+
 ## Primeiro escritório
 
 O `--user-id` é o `cognito:username` (em geral o e-mail ou o `sub`, o que o token trouxer nesse claim). O bootstrap e o convite gravam esse nome em minúsculas, como o user pool do piloto devolve no token.

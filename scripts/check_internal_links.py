@@ -12,7 +12,7 @@ LINK = re.compile(r"\[[^\]]+\]\(([^)#]+)(?:#[^)]+)?\)")
 def main() -> None:
     missing: list[str] = []
     for path in ROOT.rglob("*.md"):
-        if any(part in {".git", ".pytest_cache", "__pycache__", "node_modules", "dist", "playwright-report", "test-results", "blob-report"} for part in path.parts):
+        if any(part in {".git", ".cartographer", ".pytest_cache", "__pycache__", "node_modules", "dist", "playwright-report", "test-results", "blob-report"} for part in path.parts):
             continue
         for target in LINK.findall(path.read_text(encoding="utf-8")):
             if "://" in target or target.startswith("mailto:"):

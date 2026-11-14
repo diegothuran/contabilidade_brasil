@@ -217,6 +217,16 @@ A [pesquisa de 11/11/2026](references/pesquisa-perguntas-contador-2026-11.md) re
     - **Beneficiário do Simples Nacional.** A Lei 10.833/2003, art. 32, dispensa a retenção da CSRF no pagamento a optante do Simples. A pesquisa não confirmou em fonte primária a dispensa do IR na fonte para esse beneficiário. Como o escritório trata hoje o IR retido de prestador do Simples, e com base em que norma?
     - **CSRF agregada ou separada.** A prévia informa a CSRF agregada (`vlrBaseAgreg` e `vlrAgreg`, 4,65%). O leiaute também aceita CSLL, Cofins e PIS/Pasep em separado. Qual forma o escritório usa, e algum cliente retém só parte dos três tributos?
 
+## Perguntas da auditoria de código de 14/11/2026
+
+A auditoria de 14/11/2026 achou regras que o código aplica sem decisão do escritório. As correções que não dependiam de decisão estão na [ADR 033](adr/033-correcoes-da-auditoria-de-novembro.md).
+
+78. **Mesmo arquivo em duas empresas.** O mesmo arquivo (mesmo conteúdo) pode estar em empresas diferentes do escritório?
+   > **Resposta (usuário, 14/11/2026):** sim, principalmente quando o cliente troca de contador. O reenvio na mesma empresa continua reconhecido como o mesmo documento ([ADR 033](adr/033-correcoes-da-auditoria-de-novembro.md)).
+79. **Dispensa no checklist** (20). Hoje `approver` ou `admin` marca qualquer item do checklist como "não aplicável", com um motivo de 10 caracteres, e a mesma pessoa pode fechar a competência ([ADR 020](adr/020-fechamento-com-evidencia.md)). Pedido de documento em aberto e balancete desequilibrado podem ser dispensados assim, ou devem sempre bloquear? Se a contagem do item crescer depois da dispensa, a dispensa continua valendo?
+80. **Signatário no fechamento** (23). Depois de fechada a competência, a DRE e o Balanço reimpressos devem sair com o contador e o representante da época do fechamento, ou com os de hoje? Hoje saem com os de hoje.
+81. **Trilha de auditoria e reabertura** (20). Quem pode ler a trilha de auditoria inteira do escritório? Hoje qualquer papel lê. Quem fechou a competência pode aprovar a reabertura pedida por outra pessoa? Hoje pode.
+
 ## O que as normas já respondem (pesquisa de 06/11/2026)
 
 As regras abaixo são nacionais. O CRC-PE aplica as resoluções do CFC, e a pesquisa não achou regra própria de Pernambuco para estes pontos. Cada item diz o que a norma decide e o que continua sendo escolha do escritório. A pergunta continua aberta até o contador confirmar.

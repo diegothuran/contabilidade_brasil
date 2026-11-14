@@ -4,7 +4,10 @@ import logging
 import signal
 import threading
 import time
+from collections.abc import Callable
+from dataclasses import dataclass
 from datetime import datetime, timezone
+from typing import TypeVar
 
 from sqlalchemy import select, text
 from sqlalchemy.orm import Session
@@ -18,6 +21,8 @@ from contabil.platform.auth import apply_tenant
 from contabil.platform.clock import brasilia_today
 from contabil.platform.db import session_factory
 from contabil.tables import Operation, Tenant
+
+T = TypeVar("T")
 
 logger = logging.getLogger("contabil.worker")
 _MAX_ATTEMPTS = 3
@@ -140,28 +145,44 @@ def verify_tenants(session: Session) -> None:
             logger.error("audit chain broken tenant=%s event=%s", tenant_id, result["broken_event_id"])
 
 
+@dataclass
+class CycleState:
+    last_remind: float = 0.0
+    last_verify: float = 0.0
+
+
+def _isolated(name: str, factory: Callable[[], Session], task: Callable[[Session], T]) -> T | None:
+    """Roda uma tarefa do ciclo com sessão, commit e rollback próprios."""
+    session = factory()
+    try:
+        result = task(session)
+        session.commit()
+        return result
+    except Exception:
+        session.rollback()
+        logger.exception("worker task failed task=%s", name)
+        return None
+    finally:
+        session.close()
+
+
+def run_cycle(state: CycleState, now: float, factory: Callable[[], Session] | None = None) -> int:
+    """Um ciclo do worker. A falha de uma tarefa não desfaz o trabalho das outras."""
+    make = factory or session_factory(admin=True)
+    count = _isolated("outbox", make, relay_once) or 0
+    if now - state.last_remind > 3600:
+        state.last_remind = now
+        _isolated("reminders", make, lambda session: sweep_reminders(session, brasilia_today()))
+    if now - state.last_verify > 30:
+        state.last_verify = now
+        _isolated("audit_chain", make, verify_tenants)
+    return count
+
+
 def run_loop(stop: threading.Event) -> None:
-    last_verify = 0.0
-    last_remind = 0.0
+    state = CycleState()
     while not stop.is_set():
-        session = session_factory(admin=True)()
-        count = 0
-        try:
-            count = relay_once(session)
-            now = time.time()
-            if now - last_remind > 3600:
-                sweep_reminders(session, brasilia_today())
-                last_remind = now
-            if now - last_verify > 30:
-                verify_tenants(session)
-                last_verify = now
-            session.commit()
-        except Exception:
-            session.rollback()
-            logger.exception("worker cycle failed")
-            count = 0
-        finally:
-            session.close()
+        count = run_cycle(state, time.time())
         if count == 0 and not stop.is_set():
             stop.wait(1)
 

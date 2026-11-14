@@ -55,21 +55,31 @@ export function CloseRunPage() {
   const [reasons, setReasons] = useState<Record<string, string>>({});
   const [notice, setNotice] = useState("");
   const canDecide = can(me.roles, "approver", "admin");
+  const canOpen = can(me.roles, "preparer", "approver", "admin");
+  // Leitura só lê. A execução de fechamento nasce por ação explícita (abrir checklist),
+  // nunca por um refetch da tela.
   const run = useQuery({
     queryKey: ["close-run", entityId, periodId],
-    queryFn: async () => {
-      const listed = await api<{ items: { period_id: string; status: string; close_run_id?: string | null }[] }>(
-        `/v1/legal-entities/${entityId}/periods`,
-      );
+    queryFn: async (): Promise<{ run: CloseRun | null; status: string }> => {
+      const listed = await api<{
+        items: { period_id: string; status: string; close_run_id?: string | null; close_run_status?: string | null }[];
+      }>(`/v1/legal-entities/${entityId}/periods`);
       const period = listed.items.find((item) => item.period_id === periodId);
       if (!period) {
         throw new ApiError(404, "Não encontrado", "Período não encontrado.");
       }
-      if (period.status === "closed" && period.close_run_id) {
-        return api<CloseRun>(`/v1/close-runs/${period.close_run_id}`);
+      const current = period.close_run_id && (period.status === "closed" || period.close_run_status === "open");
+      if (!current) {
+        return { run: null, status: period.status };
       }
-      const opened = await api<{ close_run_id: string }>(`/v1/periods/${periodId}/close-runs`, { body: {} });
-      return api<CloseRun>(`/v1/close-runs/${opened.close_run_id}`);
+      return { run: await api<CloseRun>(`/v1/close-runs/${period.close_run_id}`), status: period.status };
+    },
+  });
+  const openRun = useMutation({
+    mutationFn: () => api<{ close_run_id: string }>(`/v1/periods/${periodId}/close-runs`, { body: {} }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["close-run", entityId, periodId] });
+      await queryClient.invalidateQueries({ queryKey: ["periods", entityId] });
     },
   });
   const refresh = async () => {
@@ -78,22 +88,23 @@ export function CloseRunPage() {
   };
   const decide = useMutation({
     mutationFn: (action: { itemId: string; status: "completed" | "not_applicable"; reason?: string }) =>
-      api(`/v1/close-runs/${run.data?.close_run_id}/items/${action.itemId}`, {
+      api(`/v1/close-runs/${run.data?.run?.close_run_id}/items/${action.itemId}`, {
         body: { status: action.status, reason: action.reason },
       }),
     onSuccess: refresh,
   });
   const closeRun = useMutation({
-    mutationFn: () => api(`/v1/close-runs/${run.data?.close_run_id}/close`, { body: {} }),
+    mutationFn: () => api(`/v1/close-runs/${run.data?.run?.close_run_id}/close`, { body: {} }),
     onSuccess: async () => {
       setNotice("Competência fechada. O snapshot ficou gravado.");
       await refresh();
     },
   });
 
-  const current = run.data;
+  const current = run.data?.run ?? undefined;
+  const missingRun = run.data !== undefined && run.data.run === null;
   const blockers = blockersOf(current);
-  const error = run.error ?? decide.error ?? closeRun.error;
+  const error = run.error ?? openRun.error ?? decide.error ?? closeRun.error;
   const errorText = error instanceof ApiError ? `${error.title}. ${error.message}` : error ? "Falha na operação." : "";
 
   async function downloadPackage() {
@@ -142,6 +153,18 @@ export function CloseRunPage() {
               </button>
             ) : null}
           </div>
+        </section>
+      ) : null}
+      {missingRun ? (
+        <section className="panel" data-testid="close-run-missing">
+          <p>Esta competência ainda não tem execução de fechamento aberta.</p>
+          {canOpen && run.data?.status !== "closed" ? (
+            <button type="button" data-testid="open-close-run" disabled={openRun.isPending} onClick={() => openRun.mutate()}>
+              Abrir checklist
+            </button>
+          ) : (
+            <p className="muted">Quem prepara ou aprova a competência abre o checklist.</p>
+          )}
         </section>
       ) : null}
       {notice ? <p className="ok">{notice}</p> : null}

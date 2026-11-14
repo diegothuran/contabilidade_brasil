@@ -1,4 +1,4 @@
-# SPEC — Contrato de interface v0.11.0
+# SPEC — Contrato de interface v0.11.1
 
 > Fonte de verdade da experiência do front-end. Atualizações de comportamento, estado, linguagem visual ou estrutura precisam atualizar este arquivo antes do código.
 
@@ -109,7 +109,7 @@ A sala fica em `/app/rastro` e é a primeira tela depois do login. Ela é a úni
 | Menu | O que abre |
 | --- | --- |
 | Hoje | Pendências que bloqueiam o fechamento no escritório, com empresa, prazo e o próximo passo, e os lançamentos recentes da empresa selecionada. Mostra a contagem de documentos enviados pelo cliente sem pedido. |
-| Fechamentos | Checklist da competência, fechamento, hash do snapshot e download do pacote. Reabertura continua na lista. |
+| Fechamentos | Checklist da competência, fechamento, hash do snapshot e download do pacote. Sem execução aberta, mostra "Abrir checklist" para quem prepara ou aprova; a leitura não cria execução. Reabertura continua na lista. |
 | Pendências | Pedidos da competência da barra, a fila do escritório ou os documentos enviados pelo cliente sem pedido. O arquivo entra nas evidências e a confirmação tira o bloqueio do fechamento. Abrir um item da fila troca a empresa e a competência na barra. O pedido recebido pode ser devolvido ao cliente, com motivo. A conversa fica no pedido. Classificar um envio cria um pedido já recebido na competência da barra. |
 | Balancete e razão | Saldo anterior, débito, crédito e saldo atual da competência da barra, com D (devedor) e C (credor), totais e a diferença entre débitos e créditos. A busca filtra por código ou nome; por padrão só aparecem contas com saldo ou movimento. Clicar na conta abre o razão abaixo, do saldo anterior ao saldo atual. Imprimir e Baixar CSV (Excel) ficam no cabeçalho; o razão tem os próprios. A impressão esconde menu, barra e botões, leva empresa, CNPJ, competência, data de emissão e o aviso de relatório gerencial, e imprime só o relatório do botão usado. O cartão em Rotinas do razão e a rota antiga continuam. |
 | DRE | Em Relatórios, ao lado do balancete, pelos links Balancete · DRE · Balanço. Receitas, despesas e resultado do mês e do acumulado no ano, agrupados pela conta raiz do plano, só com contas que têm valor. Os cartões mostram receitas, despesas e lucro ou prejuízo do ano. O encerramento do exercício não entra. Imprimir e Baixar CSV (Excel) no cabeçalho, com o aviso de demonstração gerencial sem layout oficial. |
@@ -143,6 +143,7 @@ Nada nesta tela fala em journal, balancete, papéis do escritório, exportação
 
 ## 14. Changelog
 
+- `0.11.1` — Fechamentos só lê: sem execução aberta, a tela diz isso e mostra "Abrir checklist" para preparer, approver e admin; a consulta não cria execução. Trocar de empresa remonta a página, e nenhum id da empresa anterior fica no formulário. O convite de um nome que já existe em outro escritório responde "Nome indisponível". O mesmo arquivo pode ser enviado em duas empresas ([ADR 033](../adr/033-correcoes-da-auditoria-de-novembro.md)).
 - `0.11.0` — Prévia da EFD-Reinf: tela nova em Relatórios com os pagamentos com retenção da competência (documento mascarado em parte), o formulário "Novo pagamento" com a recusa por campo, a geração do zip dos eventos R-4000 pelo worker, as conferências em texto e as pendências por severidade com link. Não calcula imposto, não assina e não transmite.
 - `0.10.2` — Prévia da ECD: a dica do cartório diz "data de abertura do CNPJ", e na Junta entra o campo opcional "Data da conversão", que vai para o I030.DT_ARQ_CONV.
 - `0.10.1` — Prévia da ECD: o rótulo da data dos dados da escrituração segue o registro ("Data do arquivamento" na Junta, "Data de abertura" no cartório, com dica), e as pendências passam a apontar NIRE fora da UF ou fora do tipo de registro. A Nova empresa aceita o CNPJ alfanumérico; a tela ainda o mostra sem máscara.

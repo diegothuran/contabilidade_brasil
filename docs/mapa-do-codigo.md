@@ -98,7 +98,7 @@ flowchart LR
 | `ReinfPreviewRequested` | `exports.service.run_reinf_preview` | pedido da prévia da EFD-Reinf R-4000 (`kind: reinf_r4000_preview_v1`); guarda o .zip no storage como documento `generated` |
 | `DocumentRequestCreated`, `DocumentRequestReturned` | `identity.notices.deliver_notice` | pedido novo e devolução; o lembrete de prazo sai de `sweep_reminders` |
 
-O worker usa a sessão admin e chama `apply_tenant` antes de cada handler. `outbox_events` é a única tabela de negócio sem `FORCE ROW LEVEL SECURITY`, porque o relay lê todos os escritórios ([0004_force_rls.py](../apps/api/alembic/versions/0004_force_rls.py)).
+O worker usa a sessão admin e chama `apply_tenant` antes de cada handler. Cada ciclo (`run_cycle`) roda o relay, os lembretes e a verificação da cadeia de auditoria em sessões separadas: a falha de uma tarefa não desfaz o commit das outras. `outbox_events` é a única tabela de negócio sem `FORCE ROW LEVEL SECURITY`, porque o relay lê todos os escritórios ([0004_force_rls.py](../apps/api/alembic/versions/0004_force_rls.py)).
 
 ## Estados
 
@@ -164,7 +164,11 @@ Várias regras têm duas barreiras: o serviço recusa com mensagem clara, e o ba
 | Invariante | Serviço | Banco |
 | --- | --- | --- |
 | Partidas dobradas | `_ensure_balanced` em `ledger/service.py` | constraint trigger `assert_journal_balanced`, adiado para o commit ([0001](../apps/api/alembic/versions/0001_phase_a.py)) |
-| Publicado não muda | estados em `ledger/service.py` | triggers `guard_journal_entry` e `guard_journal_line` |
+| Publicado não muda | estados em `ledger/service.py` | triggers `guard_journal_entry` e `guard_journal_line`; a linha não troca de journal ([0021](../apps/api/alembic/versions/0021_journal_line_guards.py)) |
+| Livro e trilha sem TRUNCATE | — | trigger `block_truncate` em `audit_events`, `journal_entries` e `journal_lines` ([0021](../apps/api/alembic/versions/0021_journal_line_guards.py)) |
+| Origem do lançamento | `PUBLIC_SOURCES` em `ledger/service.py`: a rota aceita `manual` e `adjustment`; o módulo de origem passa `system_source=True` | — |
+| Importação e documento por empresa | `_external` em `imports/service.py` e `_find_hash` em `documents/service.py` filtram pela empresa | `uq_external_refs` com `legal_entity_id` ([0019](../apps/api/alembic/versions/0019_external_refs_entity.py)); índices `uq_documents_entity_sha` e `uq_documents_office_sha` ([0020](../apps/api/alembic/versions/0020_documents_entity_sha.py)) |
+| Nome de usuário de um só escritório | `invite_user` em `tenancy/service.py` recusa nome que já existe em `app_users` sem vínculo no escritório | chave primária de `app_users` |
 | Auditoria só cresce | `append_event` encadeia o hash ([audit/hash.py](../apps/api/src/contabil/audit/hash.py)) | trigger `audit_append_only` |
 | Original do documento | hash SHA-256 em `documents/service.py` | trigger `guard_source_document`; o app só pode alterar classificação, versões derivadas e campos de retenção ([0002](../apps/api/alembic/versions/0002_phase_b.py)) |
 | Snapshot do fechamento | gravado uma vez em `closing/service.py` | trigger `guard_close_snapshot` ([0007](../apps/api/alembic/versions/0007_close_runs.py)) |
@@ -216,6 +220,9 @@ flowchart TB
 - **O Heroku guarda só as últimas 1500 linhas de log.** Para investigar um erro, peça a ação de novo com `heroku logs --tail` aberto. O `X-Correlation-Id` da resposta liga a tela à linha do log.
 - **`heroku run` no Windows quebra comando de várias linhas.** Mande o script pela entrada padrão: `heroku run --no-tty --app NOME -- python - < script.py`.
 - **No OpenAPI, descrição com vírgula dentro de `{ ... }` vai entre aspas.**
+- **`TRUNCATE` do livro exige `app.allow_truncate`.** A limpeza dos testes (`tests/integration/world.py`) liga `SET LOCAL app.allow_truncate = 'on'` antes do `TRUNCATE`. Script de suporte que precise apagar o livro faz o mesmo, de propósito.
+- **`ENVIRONMENT` decide a checagem da configuração.** `development` aceita os padrões de localhost. A imagem do piloto fixa `pilot`; aí a API não sobe com `dev-only`, `localhost`, claim de identidade ausente ou `SEED_DEMO`. O erro de subida diz qual variável.
+- **A tela de fechamento não cria execução.** A leitura usa `GET`; a execução nasce no botão "Abrir checklist" (`POST /v1/periods/{period_id}/close-runs`).
 - **O CRC é por escritório.** `professional_registrations` tem `tenant_id`; quem troca de escritório não leva o registro. Signatário de empresa sem registro no escritório ativo some da DRE, e `signatories_for` devolve o contador como `None`.
 - **A prévia da ECD não é o leiaute no código.** Campo, tamanho, constante e ordem vêm do JSON do registry. Mudar o leiaute é acrescentar um arquivo com outra vigência; o escritor não ganha `if` por campo. O arquivo usa ISO-8859-1 e CR+LF, e o `.gitattributes` mantém o fixture `examples/ecd-preview.example.txt` sem conversão de fim de linha.
 - **`ecd_registrations.registry_date` muda de sentido com `registry_kind`.** Na Junta é a data do arquivamento; no cartório, sem NIRE, é a data de abertura. As duas vão para o I030.DT_ARQ. A tela troca o rótulo; a coluna é a mesma. A `conversion_date` (migração 0017) vai para o I030.DT_ARQ_CONV e só vale na Junta: `validate_registration` a recusa no cartório e a zera ao salvar.
