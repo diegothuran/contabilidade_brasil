@@ -21,3 +21,18 @@ O primeiro contador do questionário (05/11/2026) respondeu que não deveria hav
 ## Consequências
 
 O worker segue com a conexão administrativa, então a RLS não se aplica a ele. O serviço filtra `tenant_id` e o trigger da transação continua valendo. Candidato fora da lista só entra se a linha for da mesma conta, no lado coerente, com o mesmo valor, publicada e sem vínculo ativo. Não há contas a pagar nem receber neste corte.
+
+
+## Alertas do extrato (14/11/2026)
+
+O extrato também gera avisos, sem decidir nada:
+
+- **Pagamento em duplicidade:** duas saídas de mesmo valor na mesma conta, dentro da janela, com descrição parecida.
+- **Transferência entre contas próprias:** saída numa conta e entrada noutra da mesma empresa, mesmo valor, dentro da janela.
+
+Regras de projeto:
+
+- Os alertas são calculados na leitura, sem tabela nova, só entre transações da mesma empresa. Nunca cruzam `legal_entity_id`.
+- Não bloqueiam o fechamento. Servem de atenção para quem revisa; a contagem da competência aparece no resumo da conta.
+- Os limiares ficam em `configs/conferencias.yaml` (versão `2026.11-provisorio`: 3 dias para duplicidade, 2 dias para transferência) e seguem como perguntas ao contador.
+- Cartão e empréstimo ficam fora: a fatura do cartão e a parcela do empréstimo repetem valor e descrição por natureza, o que geraria falso positivo, e ainda não há regra do contador para distingui-los.

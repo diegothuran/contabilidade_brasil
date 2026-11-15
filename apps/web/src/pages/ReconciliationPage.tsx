@@ -16,6 +16,7 @@ type Case = {
   reason: string | null;
   bank_transaction: { date: string; amount: string; direction: string; description: string };
   candidates: Candidate[];
+  alerts: { kind: string; transaction_ids: string[]; explanation: string; rule_version: string }[];
 };
 type Summary = {
   ledger_balance: string;
@@ -26,6 +27,7 @@ type Summary = {
   pending_outflow_total: string;
   unmatched_ledger_count: number;
   unmatched_ledger_total: string;
+  alert_count: number;
 };
 
 const DIRECTION: Record<string, string> = { inflow: "Entrada", outflow: "Saída" };
@@ -144,7 +146,7 @@ export function ReconciliationPage() {
         <p>
           Saldo do razão {summary.data.ledger_balance} · saldo do último extrato {summary.data.statement_balance ?? "—"} · pendências{" "}
           {summary.data.pending_inflow_count} entradas ({summary.data.pending_inflow_total}) e {summary.data.pending_outflow_count} saídas ({summary.data.pending_outflow_total}) ·{" "}
-          {summary.data.unmatched_ledger_count} linhas do razão sem vínculo ({summary.data.unmatched_ledger_total})
+          {summary.data.unmatched_ledger_count} linhas do razão sem vínculo ({summary.data.unmatched_ledger_total}) · {summary.data.alert_count} ponto(s) de atenção
         </p>
       ) : null}
       {can(me.roles, "preparer", "approver", "admin") ? (
@@ -172,6 +174,11 @@ export function ReconciliationPage() {
             {item.bank_transaction.date} · {DIRECTION[item.bank_transaction.direction] ?? item.bank_transaction.direction} · {item.bank_transaction.amount}
           </p>
           <p>{item.bank_transaction.description}</p>
+          {item.alerts.map((alert) => (
+            <p key={`${alert.kind}-${alert.transaction_ids.join("-")}`} data-testid="case-alert">
+              <span className="badge">Atenção</span> {alert.explanation}
+            </p>
+          ))}
           {item.reason ? <p className="muted">{item.reason}</p> : null}
           {item.journal_id ? <p>Lançamento <Link to={`/app/journals/${item.journal_id}`}>{item.journal_id}</Link></p> : null}
           <ul>
