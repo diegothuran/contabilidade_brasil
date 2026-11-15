@@ -19,6 +19,7 @@ from contabil.platform.money import format_amount, format_signed
 from contabil.platform.outbox import enqueue
 from contabil.platform.principal import Principal, ensure_role
 from contabil.platform.settings import get_settings
+from contabil.reconciliation.alerts import alerts_for_transactions, period_alert_count
 from contabil.reconciliation.matching import find_candidates
 from contabil.reconciliation.statement_parser import StatementParseError, fingerprint, parse_statement
 from contabil.tables import (
@@ -73,7 +74,7 @@ def statement_dict(row: BankStatement) -> dict:
     }
 
 
-def case_dict(session: Session, case: ReconciliationCase) -> dict:
+def case_dict(session: Session, case: ReconciliationCase, *, alerts: list[dict] | None = None) -> dict:
     transaction = session.scalar(
         select(BankTransaction).where(BankTransaction.id == case.transaction_id, BankTransaction.tenant_id == case.tenant_id)
     )
@@ -97,6 +98,7 @@ def case_dict(session: Session, case: ReconciliationCase) -> dict:
             "external_id": transaction.external_id,
         },
         "candidates": [_candidate(item) for item in case.candidates],
+        "alerts": alerts or [],
         "selected_candidate_id": case.selected_candidate_id,
         "approved_by": case.approved_by,
         "audit_event_id": case.audit_event_id,
@@ -332,11 +334,25 @@ def list_cases(
         last = rows[limit - 1]
         rows = rows[:limit]
         next_cursor = encode_cursor(last.created_at, last.id)
-    return {"items": [case_dict(session, row) for row in rows], "next_cursor": next_cursor}
+    transactions = session.scalars(
+        select(BankTransaction).where(
+            BankTransaction.tenant_id == principal.tenant_id,
+            BankTransaction.id.in_([row.transaction_id for row in rows]),
+        )
+    ).all()
+    alerts = alerts_for_transactions(session, principal.tenant_id, bank.legal_entity_id, transactions)
+    return {
+        "items": [case_dict(session, row, alerts=alerts.get(row.transaction_id)) for row in rows],
+        "next_cursor": next_cursor,
+    }
 
 
 def get_case(session: Session, principal: Principal, case_id: str) -> dict:
-    return case_dict(session, _case_or_404(session, principal.tenant_id, case_id))
+    case = _case_or_404(session, principal.tenant_id, case_id)
+    bank = _bank_or_404(session, principal.tenant_id, case.bank_account_id)
+    transaction = _transaction_of(session, case)
+    alerts = alerts_for_transactions(session, principal.tenant_id, bank.legal_entity_id, [transaction])
+    return case_dict(session, case, alerts=alerts.get(transaction.id))
 
 
 def approve_case(session: Session, principal: Principal, case_id: str, candidate_id: str) -> dict:
@@ -674,6 +690,9 @@ def bank_account_summary(session: Session, principal: Principal, bank_account_id
         "pending_outflow_total": format_amount(outflow_total),
         "unmatched_ledger_count": len(unmatched),
         "unmatched_ledger_total": format_amount(sum(unmatched, Decimal("0"))),
+        "alert_count": period_alert_count(
+            session, principal.tenant_id, bank.legal_entity_id, period, bank_account_id=bank.id
+        ),
     }
 
 
