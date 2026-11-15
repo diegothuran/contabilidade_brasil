@@ -34,5 +34,6 @@ Regras de projeto:
 
 - Os alertas são calculados na leitura, sem tabela nova, só entre transações da mesma empresa. Nunca cruzam `legal_entity_id`.
 - Não bloqueiam o fechamento. Servem de atenção para quem revisa; a contagem da competência aparece no resumo da conta.
+- O checklist `2026.11-1` ganha o item "Pontos de atenção do extrato" (`statement_alerts`, categoria `bank`), não bloqueante: fica pendente enquanto houver alerta com transação na competência e não impede o fechamento. Toda resposta que devolve o caso, inclusive aprovar, rejeitar, ignorar, reverter e ressugerir, traz os alertas do próprio caso.
 - Os limiares ficam em `configs/conferencias.yaml` (versão `2026.11-provisorio`: 3 dias para duplicidade, 2 dias para transferência) e seguem como perguntas ao contador.
 - Cartão e empréstimo ficam fora: a fatura do cartão e a parcela do empréstimo repetem valor e descrição por natureza, o que geraria falso positivo, e ainda não há regra do contador para distingui-los.

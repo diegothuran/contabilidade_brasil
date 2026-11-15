@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-CHECKLIST_VERSION = "2026.10-2"
+CHECKLIST_VERSION = "2026.11-1"
 CLOSE_SCHEMA_VERSION = "1.1.0"
 # Same pending set as reconciliation.service: open, suggested and reversed stay in the match queue.
 PENDING_RECONCILIATION = frozenset({"open", "suggested", "reversed"})
@@ -116,6 +116,27 @@ ITEMS: tuple[ItemSpec, ...] = (
         "/app/rastro/pendencias",
         "Código Civil, art. 1.194",
         "document_requests_open",
+    ),
+    # Conferências de atenção (2026.11-1): apontam, não bloqueiam. Limiares em configs/conferencias.yaml.
+    ItemSpec(
+        "statement_alerts",
+        "bank",
+        "Pontos de atenção do extrato",
+        False,
+        "count",
+        "/app/rastro/conciliacao",
+        "ITG 2000 (R1), item 14",
+        "statement_alerts",
+    ),
+    ItemSpec(
+        "trial_balance_checks",
+        "reports",
+        "Conferências do balancete",
+        False,
+        "count",
+        "/app/rastro/balancete",
+        "ITG 2000 (R1), item 12",
+        "trial_balance_checks",
     ),
 )
 
