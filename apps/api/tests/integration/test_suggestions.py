@@ -14,7 +14,7 @@ from contabil.suggestions.worker import run_counterpart_suggestions
 from contabil.tables import Account, BankAccount, BankTransaction, Operation, ReconciliationCase
 
 from tests.integration.test_phase_a import _auth, _post
-from tests.integration.test_phase_c import _drain
+from tests.integration.test_phase_c import _drain, _validate
 from tests.integration.world import add_entity
 
 
@@ -262,3 +262,138 @@ def test_worker_batches_of_40(client, tokens, world):
     assert fake.calls == 2
     assert fake.sizes == [40, 5]
     assert sorted(row[0] for row in _rows("SELECT transactions_sent FROM suggestion_runs")) == [5, 40]
+
+
+def _request(client, token: str, bank_id: str):
+    return _post(client, token, f"/v1/bank-accounts/{bank_id}/counterpart-suggestions", {"period_id": "le_test-2026-09"})
+
+
+def _suggestion_operations() -> int:
+    return _rows("SELECT count(*) FROM operations WHERE kind = 'counterpart_suggestions'")[0][0]
+
+
+def _with_key(settings_env, limit: int | None = None) -> None:
+    settings_env.setenv("CLAUDE_API_KEY", "chave-de-teste-sem-uso")
+    if limit is not None:
+        settings_env.setenv("SUGGESTION_DAILY_LIMIT", str(limit))
+    get_settings.cache_clear()
+
+
+def test_request_without_key_is_503(client, tokens, world, settings_env):
+    del world
+    settings_env.setenv("CLAUDE_API_KEY", "")
+    get_settings.cache_clear()
+    bank_id = _bank(client, tokens["preparer"])
+    response = _request(client, tokens["preparer"], bank_id)
+    assert response.status_code == 503, response.text
+    assert response.json()["title"] == "Sugestão por IA indisponível"
+    assert _suggestion_operations() == 0
+
+
+def test_request_over_limit_is_429_and_creates_no_operation(client, tokens, world, settings_env):
+    del world
+    bank_id = _bank(client, tokens["preparer"])
+    _statement(client, tokens["preparer"], bank_id, [("2026-09-05", "TARIFA PACOTE", "-45.90"), ("2026-09-06", "ALUGUEL", "-900.00")])
+    _with_key(settings_env, limit=1)
+    response = _request(client, tokens["preparer"], bank_id)
+    assert response.status_code == 429, response.text
+    assert response.json()["title"] == "Limite diário de sugestões por IA atingido"
+    assert _suggestion_operations() == 0
+    assert _rows("SELECT count(*) FROM outbox_events WHERE event_type = 'CounterpartSuggestionRequested'") == [(0,)]
+
+
+def test_request_creates_operation_and_event(client, tokens, world, settings_env):
+    del world
+    bank_id = _bank(client, tokens["preparer"])
+    _statement(client, tokens["preparer"], bank_id, [("2026-09-05", "TARIFA PACOTE", "-45.90")])
+    _with_key(settings_env)
+    # Nenhum teste chama a rede: o worker recebe um cliente falso no lugar do SDK.
+    settings_env.setattr(
+        "contabil.suggestions.worker.AnthropicModelClient",
+        lambda api_key, model: FakeModelClient({"t1": ("5.1.01", "média")}),
+    )
+    key = uuid4().hex
+    path = f"/v1/bank-accounts/{bank_id}/counterpart-suggestions"
+    response = _post(client, tokens["preparer"], path, {"period_id": "le_test-2026-09"}, key)
+    assert response.status_code == 202, response.text
+    body = response.json()
+    assert body["status"] == "accepted" and body["kind"] == "counterpart_suggestions"
+    replay = _post(client, tokens["preparer"], path, {"period_id": "le_test-2026-09"}, key)
+    assert replay.json()["operation_id"] == body["operation_id"]
+    assert _suggestion_operations() == 1
+    events = _rows("SELECT payload FROM outbox_events WHERE event_type = 'CounterpartSuggestionRequested'")
+    assert events == [
+        ({"bank_account_id": bank_id, "period_id": "le_test-2026-09", "operation_id": body["operation_id"], "legal_entity_id": "le_test"},)
+    ]
+    audit = _rows("SELECT metadata FROM audit_events WHERE metadata->>'action' = 'counterpart_suggestions_requested'")
+    assert len(audit) == 1
+    _drain()
+    assert _rows(f"SELECT status FROM operations WHERE id = '{body['operation_id']}'") == [("completed",)]
+    case = _case_by_description(client, tokens["preparer"], bank_id, "TARIFA PACOTE")
+    assert case["model_suggestions_enabled"] is True
+    assert [(item["account_id"], item["source"], item["confidence"]) for item in case["counterpart_suggestions"]] == [
+        ("le_test-5.1.01", "model", "média")
+    ]
+    _validate("reconciliation-case.schema.json", case)
+
+
+def test_case_shows_history_then_model_without_duplicates(client, tokens, world):
+    del world
+    bank_id = _bank(client, tokens["preparer"])
+    _statement(client, tokens["preparer"], bank_id, [("2026-09-05", "TARIFA PACOTE SERVICOS", "-45.90")])
+    first = _case_by_description(client, tokens["preparer"], bank_id, "TARIFA PACOTE SERVICOS")
+    _resolve_with(client, tokens, first["case_id"], "le_test-5.1.01")
+    _statement(client, tokens["preparer"], bank_id, [("2026-09-20", "TARIFA PACOTE SERVICOS", "-45.90")])
+    second_id = [item["case_id"] for item in _cases(client, tokens["preparer"], bank_id) if item["case_id"] != first["case_id"]][0]
+    _run_worker(bank_id, FakeModelClient({"t1": ("2.1.01", "baixa")}))
+    case = client.get(f"/v1/reconciliation-cases/{second_id}", headers=_auth(tokens["preparer"])).json()
+    assert case["model_suggestions_enabled"] is False
+    assert [(item["account_id"], item["source"]) for item in case["counterpart_suggestions"]] == [
+        ("le_test-5.1.01", "history"),
+        ("le_test-2.1.01", "model"),
+    ]
+    _validate("reconciliation-case.schema.json", case)
+    _run_worker(bank_id, FakeModelClient({"t1": ("5.1.01", "alta")}))
+    case = client.get(f"/v1/reconciliation-cases/{second_id}", headers=_auth(tokens["preparer"])).json()
+    assert [(item["account_id"], item["source"]) for item in case["counterpart_suggestions"]] == [("le_test-5.1.01", "history")]
+    resolved = client.get(f"/v1/reconciliation-cases/{first['case_id']}", headers=_auth(tokens["preparer"])).json()
+    assert resolved["counterpart_suggestions"] == []
+
+
+def test_journal_records_suggestion_source(client, tokens, world):
+    del world
+    bank_id = _bank(client, tokens["preparer"])
+    _statement(client, tokens["preparer"], bank_id, [("2026-09-05", "TARIFA PACOTE", "-45.90")])
+    case = _case_by_description(client, tokens["preparer"], bank_id, "TARIFA PACOTE")
+    path = f"/v1/reconciliation-cases/{case['case_id']}/journal"
+    invalid = _post(client, tokens["preparer"], path, {"counterpart_account_id": "le_test-5.1.01", "suggestion_source": "palpite"})
+    assert invalid.status_code == 422
+    created = _post(
+        client,
+        tokens["preparer"],
+        path,
+        {"counterpart_account_id": "le_test-5.1.01", "suggestion_source": "history", "suggestion_rank": 1},
+    )
+    assert created.status_code == 201, created.text
+    events = _rows("SELECT metadata FROM audit_events WHERE metadata->>'action' = 'reconciliation_counterpart_chosen'")
+    assert events == [
+        (
+            {
+                "action": "reconciliation_counterpart_chosen",
+                "case_id": case["case_id"],
+                "journal_id": created.json()["journal_id"],
+                "suggestion_source": "history",
+                "suggestion_rank": 1,
+            },
+        )
+    ]
+
+
+def test_client_cannot_request(client, tokens, world, settings_env):
+    del world
+    bank_id = _bank(client, tokens["preparer"])
+    _with_key(settings_env)
+    assert _request(client, tokens["cliente"], bank_id).status_code == 403
+    assert _request(client, tokens["viewer"], bank_id).status_code == 403
+    assert _request(client, tokens["outsider"], bank_id).status_code == 404
+    assert _suggestion_operations() == 0

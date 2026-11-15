@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Literal
+
 from fastapi import APIRouter, Depends, Query, Request
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -55,6 +57,9 @@ class JournalFromCase(BaseModel):
     counterpart_account_id: str = Field(min_length=1, max_length=160)
     description: str | None = Field(default=None, max_length=2000)
     cost_center_id: str | None = Field(default=None, max_length=160)
+    # Origem da conta escolhida, para medir o acerto das sugestões (ADR 035).
+    suggestion_source: Literal["history", "model", "manual"] = "manual"
+    suggestion_rank: int | None = Field(default=None, ge=1, le=3)
 
 
 @router.post("/bank-accounts", status_code=201, response_model=None)

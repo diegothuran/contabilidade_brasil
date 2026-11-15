@@ -21,6 +21,7 @@ from contabil.platform.principal import Principal, ensure_role
 from contabil.platform.settings import get_settings
 from contabil.reconciliation.matching import find_candidates
 from contabil.reconciliation.statement_parser import StatementParseError, fingerprint, parse_statement
+from contabil.suggestions.service import counterpart_suggestions
 from contabil.tables import (
     Account,
     AccountingPeriod,
@@ -39,6 +40,8 @@ from contabil.tenancy.service import before_cursor, encode_cursor, page_limit, r
 _CASE_STATUSES = frozenset({"open", "suggested", "approved", "rejected", "reversed", "ignored"})
 _PENDING_STATUSES = frozenset({"open", "suggested", "reversed"})
 _DECIDED_AWAY = frozenset({"open", "suggested", "rejected"})
+# Caso que ainda aceita lançamento novo recebe sugestão de contrapartida.
+_FINAL_STATUSES = frozenset({"approved", "ignored"})
 
 
 def bank_account_dict(row: BankAccount) -> dict:
@@ -102,6 +105,10 @@ def case_dict(session: Session, case: ReconciliationCase) -> dict:
         "audit_event_id": case.audit_event_id,
         "journal_id": case.journal_id,
         "reason": case.reason,
+        "counterpart_suggestions": (
+            [] if case.status in _FINAL_STATUSES else counterpart_suggestions(session, case.tenant_id, case, transaction, bank)
+        ),
+        "model_suggestions_enabled": bool(get_settings().claude_api_key),
     }
 
 
@@ -500,6 +507,21 @@ def create_journal_from_case(session: Session, principal: Principal, case_id: st
     )
     case.journal_id = created["journal_id"]
     case.updated_at = _now()
+    append_event(
+        session,
+        tenant_id=principal.tenant_id,
+        event_type="other",
+        actor_ref=principal.user_id,
+        target_type="reconciliation_case",
+        target_ref=case.id,
+        metadata={
+            "action": "reconciliation_counterpart_chosen",
+            "case_id": case.id,
+            "journal_id": created["journal_id"],
+            "suggestion_source": getattr(body, "suggestion_source", "manual"),
+            "suggestion_rank": getattr(body, "suggestion_rank", None),
+        },
+    )
     session.flush()
     return created
 
