@@ -188,3 +188,56 @@ def test_withdraw_needs_reason_and_approver(client, tokens, world):
     assert done.status_code == 200, done.text
     assert done.json()["status"] == "withdrawn"
     assert done.json()["withdrawn_reason"] == "Número errado no resumo"
+
+
+def test_client_sees_only_published_own_entity(client, tokens, world):
+    del world
+    _seed_ledger(client, tokens)
+    _close(client, tokens)
+    assert _post(client, tokens["preparer"], URL).status_code == 201
+    listed = client.get("/v1/portal/summaries", headers=_auth(tokens["cliente"]))
+    assert listed.status_code == 200, listed.text
+    assert listed.json()["items"] == []
+    published = _published_after_draft(client, tokens)
+    listed = client.get("/v1/portal/summaries", headers=_auth(tokens["cliente"])).json()["items"]
+    assert [item["summary_id"] for item in listed] == [published["summary_id"]]
+    one = client.get(f"/v1/portal/summaries/{published['summary_id']}", headers=_auth(tokens["cliente"]))
+    assert one.status_code == 200
+    assert one.json()["payload"]["sentences"][0].startswith("Em setembro/2026")
+
+    add_entity("le_two", "tenant_demo", "Empresa Dois", "300000000001")
+    _seed_ledger(client, tokens, entity="le_two", period="le_two-2026-09")
+    _close(client, tokens, "le_two-2026-09")
+    other_url = "/v1/periods/le_two-2026-09/client-summary"
+    assert _post(client, tokens["preparer"], other_url).status_code == 201
+    other = _post(client, tokens["approver"], f"{other_url}/publish")
+    assert other.status_code == 200, other.text
+    response = client.get(f"/v1/portal/summaries/{other.json()['summary_id']}", headers=_auth(tokens["cliente"]))
+    assert response.status_code == 404
+    listed = client.get("/v1/portal/summaries", headers=_auth(tokens["cliente"])).json()["items"]
+    assert len(listed) == 1
+
+
+def _published_after_draft(client, tokens) -> dict:
+    published = _post(client, tokens["approver"], f"{URL}/publish")
+    assert published.status_code == 200, published.text
+    return published.json()
+
+
+def test_client_loses_summary_after_reopen(client, tokens, world):
+    del world
+    _seed_ledger(client, tokens)
+    _close(client, tokens)
+    published = _published(client, tokens)
+    path = f"/v1/portal/summaries/{published['summary_id']}"
+    assert client.get(path, headers=_auth(tokens["cliente"])).status_code == 200
+    _reopen(client, tokens)
+    assert client.get(path, headers=_auth(tokens["cliente"])).status_code == 404
+    assert client.get("/v1/portal/summaries", headers=_auth(tokens["cliente"])).json()["items"] == []
+
+
+def test_office_user_cannot_use_portal_route(client, tokens, world):
+    del world
+    assert client.get("/v1/portal/summaries", headers=_auth(tokens["admin"])).status_code == 403
+    assert client.get("/v1/portal/summaries/csum_x", headers=_auth(tokens["preparer"])).status_code == 403
+    assert client.get(URL, headers=_auth(tokens["cliente"])).status_code == 403
