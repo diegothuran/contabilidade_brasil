@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from uuid import uuid4
 
 import pytest
@@ -9,9 +10,9 @@ from contabil.platform.auth import apply_tenant
 from contabil.platform.db import get_admin_engine, get_engine, session_factory
 from contabil.platform.settings import get_settings
 from contabil.suggestions.history import history_suggestions
-from contabil.suggestions.model import FakeModelClient
-from contabil.suggestions.worker import run_counterpart_suggestions
-from contabil.tables import Account, BankAccount, BankTransaction, Operation, ReconciliationCase
+from contabil.suggestions.model import FakeModelClient, ModelCallError
+from contabil.suggestions.worker import run_counterpart_suggestions, used_today
+from contabil.tables import Account, BankAccount, BankTransaction, Operation, ReconciliationCase, SuggestionRun
 
 from tests.integration.test_phase_a import _auth, _post
 from tests.integration.test_phase_c import _drain, _validate
@@ -204,7 +205,9 @@ def test_worker_saves_valid_suggestions(client, tokens, world):
     assert {(row[0], row[1], row[2]) for row in saved} == {("le_test-5.1.01", "alta", "model"), ("le_test-3.1.01", "baixa", "model")}
     assert all(row[3] == f"{get_settings().suggestion_model}/contrapartida-1" and row[4] == operation_id for row in saved)
     runs = _rows("SELECT transactions_sent, input_tokens, output_tokens, stop_reason, prompt_version FROM suggestion_runs")
-    assert runs == [(2, 100, 20, "end_turn", "contrapartida-1")]
+    # Reserva antes da chamada e resultado depois, os dois só de inserção.
+    assert sorted(runs) == [(0, 100, 20, "end_turn", "contrapartida-1"), (2, 0, 0, "reserved", "contrapartida-1")]
+    assert _rows(f"SELECT error_code FROM operations WHERE id = '{operation_id}'") == [(None,)]
     assert _rows(f"SELECT status FROM operations WHERE id = '{operation_id}'") == [("running",)]
 
 
@@ -235,7 +238,7 @@ def test_worker_discards_other_entity_account(client, tokens, world):
     _run_worker(bank_id, fake)
     assert fake.calls == 1
     assert _rows("SELECT count(*) FROM account_suggestions") == [(0,)]
-    assert _rows("SELECT transactions_sent FROM suggestion_runs") == [(1,)]
+    assert sorted(_rows("SELECT transactions_sent, stop_reason FROM suggestion_runs")) == [(0, "end_turn"), (1, "reserved")]
 
 
 def test_worker_stops_at_daily_limit(client, tokens, world, settings_env):
@@ -261,7 +264,98 @@ def test_worker_batches_of_40(client, tokens, world):
     _run_worker(bank_id, fake)
     assert fake.calls == 2
     assert fake.sizes == [40, 5]
-    assert sorted(row[0] for row in _rows("SELECT transactions_sent FROM suggestion_runs")) == [5, 40]
+    assert sorted(row[0] for row in _rows("SELECT transactions_sent FROM suggestion_runs")) == [0, 0, 5, 40]
+
+
+def _forty_five(client, tokens) -> str:
+    bank_id = _bank(client, tokens["preparer"])
+    rows = [(f"2026-09-{(index % 28) + 1:02d}", f"COMPRA LOJA {chr(65 + index % 26)}{index // 26}", f"-{index + 1}.00") for index in range(45)]
+    _statement(client, tokens["preparer"], bank_id, rows)
+    return bank_id
+
+
+def _used_today(now=None) -> int:
+    session = session_factory(admin=True)()
+    try:
+        apply_tenant(session, "tenant_demo")
+        return used_today(session, "tenant_demo", now=now)
+    finally:
+        session.close()
+
+
+def test_failed_batch_keeps_runs_and_retry_skips_saved_cases(client, tokens, world):
+    del world
+    bank_id = _forty_five(client, tokens)
+    operation_id = _operation()
+    failing = FakeModelClient({"*": ("5.1.01", "média")}, fail_on_calls={2})
+    with pytest.raises(ModelCallError):
+        _run_worker(bank_id, failing, operation_id)
+    assert failing.sizes == [40, 5]
+    # O rollback do handler não apaga o que foi gravado na transação autônoma.
+    assert sorted(_rows("SELECT transactions_sent, stop_reason FROM suggestion_runs")) == [
+        (0, "end_turn"),
+        (0, "error"),
+        (5, "reserved"),
+        (40, "reserved"),
+    ]
+    assert _rows("SELECT count(*) FROM account_suggestions") == [(40,)]
+    assert _used_today() == 45
+    retry = FakeModelClient({"*": ("5.1.01", "média")})
+    _run_worker(bank_id, retry, operation_id)
+    assert retry.sizes == [5]
+    assert _rows("SELECT count(*) FROM account_suggestions") == [(45,)]
+    assert _rows(f"SELECT count(DISTINCT case_id) FROM account_suggestions WHERE operation_id = '{operation_id}'") == [(45,)]
+
+
+def test_daily_limit_counts_reservation_and_stops_before_second_batch(client, tokens, world, settings_env):
+    del world
+    bank_id = _forty_five(client, tokens)
+    settings_env.setenv("SUGGESTION_DAILY_LIMIT", "44")
+    get_settings.cache_clear()
+    fake = FakeModelClient({"*": ("5.1.01", "média")})
+    operation_id = _run_worker(bank_id, fake)
+    assert fake.sizes == [40]
+    assert _used_today() == 40
+    assert _rows(f"SELECT error_code FROM operations WHERE id = '{operation_id}'") == [("limite_diario",)]
+
+
+def test_incomplete_answer_completes_with_warning(client, tokens, world):
+    del world
+    bank_id = _bank(client, tokens["preparer"])
+    _statement(client, tokens["preparer"], bank_id, [("2026-09-05", "TARIFA PACOTE", "-45.90")])
+    operation_id = _run_worker(bank_id, FakeModelClient({"t1": ("5.1.01", "alta")}, stop_reason="max_tokens"))
+    assert _rows("SELECT count(*) FROM account_suggestions") == [(0,)]
+    assert sorted(_rows("SELECT transactions_sent, input_tokens, stop_reason FROM suggestion_runs")) == [(0, 100, "max_tokens"), (1, 0, "reserved")]
+    assert _rows(f"SELECT error_code FROM operations WHERE id = '{operation_id}'") == [("resposta_incompleta",)]
+
+
+def test_used_today_turns_at_brasilia_midnight(client, world):
+    del client, world
+    operation_id = _operation()
+    session = session_factory(admin=True)()
+    try:
+        apply_tenant(session, "tenant_demo")
+        for sent, moment in ((7, datetime(2026, 9, 15, 2, 59, tzinfo=timezone.utc)), (3, datetime(2026, 9, 15, 3, 1, tzinfo=timezone.utc))):
+            session.add(
+                SuggestionRun(
+                    id=f"sgrun_{uuid4().hex}",
+                    tenant_id="tenant_demo",
+                    operation_id=operation_id,
+                    model="teste",
+                    prompt_version="contrapartida-1",
+                    transactions_sent=sent,
+                    input_tokens=0,
+                    output_tokens=0,
+                    stop_reason="reserved",
+                    created_at=moment,
+                )
+            )
+        session.commit()
+    finally:
+        session.close()
+    # 02:59 UTC é 23:59 de 14/09 em Brasília; 03:01 UTC já é 15/09.
+    assert _used_today(datetime(2026, 9, 15, 2, 59, 30, tzinfo=timezone.utc)) == 10
+    assert _used_today(datetime(2026, 9, 15, 12, 0, tzinfo=timezone.utc)) == 3
 
 
 def _request(client, token: str, bank_id: str):

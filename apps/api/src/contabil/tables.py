@@ -724,10 +724,17 @@ class AccountSuggestion(Base):
 
 
 class SuggestionRun(Base):
-    """Um lote enviado ao modelo: tokens, stop_reason e transações, para custo e teto diário (ADR 035)."""
+    """Registro de um lote, só de inserção (ADR 035).
+
+    Antes da chamada entra a reserva (`transactions_sent` = tamanho do lote, `stop_reason` = "reserved");
+    depois, o resultado (`transactions_sent` = 0, tokens e o stop_reason real, ou "error").
+    """
 
     __tablename__ = "suggestion_runs"
-    __table_args__ = (Index("ix_suggestion_runs_day", "tenant_id", "created_at"),)
+    __table_args__ = (
+        CheckConstraint("transactions_sent >= 0", name="ck_suggestion_runs_sent"),
+        Index("ix_suggestion_runs_day", "tenant_id", "created_at"),
+    )
 
     id: Mapped[str] = mapped_column(String(160), primary_key=True)
     tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.id"))
