@@ -12,7 +12,7 @@ from dataclasses import dataclass
 from decimal import Decimal
 from typing import Any, Protocol
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 
 from contabil.suggestions.pseudonymize import pseudonymize
 from contabil.suggestions.types import CONFIDENCES
@@ -21,7 +21,9 @@ PROMPT_VERSION = "contrapartida-1"
 BATCH_SIZE = 40
 MAX_TOKENS = 4096
 JUSTIFICATION_LIMIT = 300
-_STOPS_WITHOUT_ANSWER = frozenset({"refusal", "max_tokens"})
+INVALID_OUTPUT = "invalid_output"
+# stop_reason que deixam o lote sem resposta aproveitável; a operação conclui com aviso.
+INCOMPLETE_STOPS = frozenset({"refusal", "max_tokens", INVALID_OUTPUT})
 _DIRECTIONS = {"inflow": "entrada", "outflow": "saída"}
 
 SYSTEM_PROMPT = (
@@ -74,33 +76,64 @@ class AnthropicModelClient:
     def suggest(self, *, system: str, user: str) -> ModelResult:
         import anthropic
 
+        # `create` e validação própria: `parse` levanta erro com a saída do modelo quando o JSON vem
+        # truncado ou recusado, e a exceção perderia os tokens e levaria conteúdo ao log.
         try:
-            response = self._sdk.messages.parse(
+            response = self._sdk.messages.create(
                 model=self.model,
                 max_tokens=MAX_TOKENS,
-                output_config={"effort": "low"},
+                output_config={"effort": "low", "format": {"type": "json_schema", "schema": answer_schema()}},
                 system=system,
                 messages=[{"role": "user", "content": user}],
-                output_format=ModelAnswer,
             )
-        except (anthropic.APIStatusError, anthropic.APIConnectionError) as exc:
+        except anthropic.APIError as exc:
             raise ModelCallError(f"falha na chamada ao modelo: {exc.__class__.__name__}") from None
-        stop_reason = str(response.stop_reason or "")
-        usage = response.usage
-        answer = None if stop_reason in _STOPS_WITHOUT_ANSWER else response.parsed_output
-        return ModelResult(
-            answer=answer,
-            stop_reason=stop_reason,
-            input_tokens=int(getattr(usage, "input_tokens", 0) or 0),
-            output_tokens=int(getattr(usage, "output_tokens", 0) or 0),
+        usage = getattr(response, "usage", None)
+        text = "".join(
+            getattr(block, "text", "") for block in (getattr(response, "content", None) or []) if getattr(block, "type", "") == "text"
+        )
+        return read_answer(
+            str(getattr(response, "stop_reason", "") or ""),
+            text,
+            int(getattr(usage, "input_tokens", 0) or 0),
+            int(getattr(usage, "output_tokens", 0) or 0),
         )
 
 
-class FakeModelClient:
-    """Cliente determinístico para teste: responde (código, confiança) para os refs conhecidos do lote."""
+def answer_schema() -> dict:
+    import anthropic
 
-    def __init__(self, picks_by_ref: dict[str, tuple[str, str]]) -> None:
+    return anthropic.transform_schema(ModelAnswer)
+
+
+def read_answer(stop_reason: str, text: str, input_tokens: int, output_tokens: int) -> ModelResult:
+    """Só `end_turn` com JSON válido vira resposta. O resto devolve None com os tokens reais."""
+    answer: ModelAnswer | None = None
+    if stop_reason == "end_turn":
+        try:
+            answer = ModelAnswer.model_validate_json(text)
+        except ValidationError:
+            stop_reason = INVALID_OUTPUT
+    return ModelResult(answer=answer, stop_reason=stop_reason, input_tokens=input_tokens, output_tokens=output_tokens)
+
+
+class FakeModelClient:
+    """Cliente determinístico para teste, com o mesmo caminho de leitura da SDK real.
+
+    `picks_by_ref` leva o ref (ou "*" para todos) a (código, confiança). `stop_reason` diferente de
+    `end_turn` devolve texto truncado; `fail_on_calls` faz a chamada de número N falhar como a API.
+    """
+
+    def __init__(
+        self,
+        picks_by_ref: dict[str, tuple[str, str]],
+        *,
+        stop_reason: str = "end_turn",
+        fail_on_calls: set[int] | None = None,
+    ) -> None:
         self.picks_by_ref = picks_by_ref
+        self.stop_reason = stop_reason
+        self.fail_on_calls = fail_on_calls or set()
         self.calls = 0
         self.sizes: list[int] = []
 
@@ -109,13 +142,17 @@ class FakeModelClient:
         self.calls += 1
         refs = [item["ref"] for item in json.loads(user)["transacoes"]]
         self.sizes.append(len(refs))
-        picks = [
-            ModelPick(transaction_ref=ref, account_code=code, confidence=confidence, justification="Sugestão de teste")
-            for ref in refs
-            if ref in self.picks_by_ref
-            for code, confidence in [self.picks_by_ref[ref]]
-        ]
-        return ModelResult(answer=ModelAnswer(picks=picks), stop_reason="end_turn", input_tokens=100, output_tokens=20)
+        if self.calls in self.fail_on_calls:
+            raise ModelCallError("falha na chamada ao modelo: APIConnectionError")
+        picks = []
+        for ref in refs:
+            chosen = self.picks_by_ref.get(ref) or self.picks_by_ref.get("*")
+            if chosen is not None:
+                picks.append({"transaction_ref": ref, "account_code": chosen[0], "confidence": chosen[1], "justification": "Sugestão de teste"})
+        text = json.dumps({"picks": picks})
+        if self.stop_reason != "end_turn":
+            text = text[: len(text) // 2]
+        return read_answer(self.stop_reason, text, 100, 20)
 
 
 def value_band(amount: Decimal) -> str:

@@ -96,12 +96,14 @@ def test_value_bands():
 
 
 class _FakeMessages:
+    """Imita `messages.create` da SDK: devolve blocos de texto, stop_reason e usage."""
+
     def __init__(self, response=None, error: Exception | None = None) -> None:
         self.response = response
         self.error = error
         self.kwargs: dict = {}
 
-    def parse(self, **kwargs):
+    def create(self, **kwargs):
         self.kwargs = kwargs
         if self.error is not None:
             raise self.error
@@ -112,24 +114,47 @@ def _sdk(response=None, error: Exception | None = None) -> SimpleNamespace:
     return SimpleNamespace(messages=_FakeMessages(response, error))
 
 
+def _response(stop_reason: str, text: str) -> SimpleNamespace:
+    return SimpleNamespace(
+        stop_reason=stop_reason,
+        content=[SimpleNamespace(type="text", text=text)],
+        usage=SimpleNamespace(input_tokens=12, output_tokens=3),
+    )
+
+
+_VALID = '{"picks": [{"transaction_ref": "t1", "account_code": "5.1.01", "confidence": "alta", "justification": "Tarifa"}]}'
+
+
 def test_refusal_yields_no_answer():
-    parsed = ModelAnswer(picks=[ModelPick(transaction_ref="t1", account_code="5.1.01", confidence="alta", justification="x")])
-    for stop_reason in ("refusal", "max_tokens"):
-        sdk = _sdk(SimpleNamespace(stop_reason=stop_reason, parsed_output=parsed, usage=SimpleNamespace(input_tokens=12, output_tokens=3)))
+    cases = {
+        "refusal": "Não posso ajudar com isso.",
+        "max_tokens": '{"picks": [{"transaction_ref": "t1", "account_co',
+    }
+    for stop_reason, text in cases.items():
+        sdk = _sdk(_response(stop_reason, text))
         result = AnthropicModelClient("chave-de-teste", "claude-haiku-5-5", sdk=sdk).suggest(system="s", user="u")
         assert result.answer is None
         assert result.stop_reason == stop_reason
         assert (result.input_tokens, result.output_tokens) == (12, 3)
-    sdk = _sdk(SimpleNamespace(stop_reason="end_turn", parsed_output=parsed, usage=SimpleNamespace(input_tokens=12, output_tokens=3)))
+    sdk = _sdk(_response("end_turn", _VALID))
     result = AnthropicModelClient("chave-de-teste", "claude-haiku-5-5", sdk=sdk).suggest(system="s", user="u")
-    assert result.answer == parsed
+    assert result.answer is not None and result.answer.picks[0].account_code == "5.1.01"
     kwargs = sdk.messages.kwargs
     assert kwargs["model"] == "claude-haiku-5-5"
     assert kwargs["max_tokens"] == 4096
-    assert kwargs["output_config"] == {"effort": "low"}
-    assert kwargs["output_format"] is ModelAnswer
+    assert kwargs["output_config"]["effort"] == "low"
+    assert kwargs["output_config"]["format"]["type"] == "json_schema"
+    assert kwargs["output_config"]["format"]["schema"]["properties"]["picks"]["type"] == "array"
     assert kwargs["messages"] == [{"role": "user", "content": "u"}]
-    assert "temperature" not in kwargs and "top_p" not in kwargs
+    assert "temperature" not in kwargs and "top_p" not in kwargs and "output_format" not in kwargs
+
+
+def test_invalid_output_yields_no_answer_without_content():
+    for text in ('{"picks": [{"transaction_ref": "t1"', "JOAQUIM PEREIRA", '{"outra": 1}'):
+        result = AnthropicModelClient("chave-de-teste", "claude-haiku-5-5", sdk=_sdk(_response("end_turn", text))).suggest(system="s", user="u")
+        assert result.answer is None
+        assert result.stop_reason == "invalid_output"
+        assert (result.input_tokens, result.output_tokens) == (12, 3)
 
 
 def test_api_error_does_not_carry_content():
@@ -148,3 +173,17 @@ def test_fake_client_answers_known_refs():
     result = fake.suggest(system="s", user=user)
     assert fake.calls == 1
     assert [(pick.transaction_ref, pick.account_code) for pick in result.answer.picks] == [("t1", "5.1.01")]
+    everyone = FakeModelClient({"*": ("5.1.01", "baixa")}).suggest(system="s", user=user)
+    assert [pick.transaction_ref for pick in everyone.answer.picks] == ["t1", "t2"]
+
+
+def test_fake_client_behaves_like_the_sdk():
+    _system, user = build_prompt([("5.1.01", "Despesas", "expense")], [("t1", "outflow", "10.00", "TARIFA")])
+    for stop_reason in ("refusal", "max_tokens"):
+        result = FakeModelClient({"t1": ("5.1.01", "alta")}, stop_reason=stop_reason).suggest(system="s", user=user)
+        assert result.answer is None and result.stop_reason == stop_reason and result.input_tokens == 100
+    failing = FakeModelClient({}, fail_on_calls={2})
+    failing.suggest(system="s", user=user)
+    with pytest.raises(ModelCallError):
+        failing.suggest(system="s", user=user)
+    assert failing.calls == 2
