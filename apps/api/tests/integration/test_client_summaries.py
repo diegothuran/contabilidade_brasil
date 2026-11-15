@@ -26,10 +26,10 @@ def test_published_payload_is_immutable(client, tokens, world):
     del client, tokens, world
     with get_admin_engine().begin() as connection:
         _insert_summary(connection)
-    with pytest.raises(DBAPIError):
+    with pytest.raises(DBAPIError, match="payload is immutable"):
         with get_admin_engine().begin() as connection:
             connection.execute(text("UPDATE client_summaries SET payload = CAST('{}' AS jsonb) WHERE id = 'cs_x'"))
-    with pytest.raises(DBAPIError):
+    with pytest.raises(DBAPIError, match="cannot be deleted"):
         with get_admin_engine().begin() as connection:
             connection.execute(text("DELETE FROM client_summaries WHERE id = 'cs_x'"))
 
@@ -301,20 +301,24 @@ def test_office_get_shows_withdrawn_summary_with_reason(client, tokens, world):
     assert live["status"] == "draft" and live["summary_id"] == again.json()["summary_id"]
 
 
+MOVED = "cannot change tenant, entity or period"
+
+
 @pytest.mark.parametrize(
-    "statement",
+    ("statement", "message"),
     [
-        "UPDATE client_summaries SET status = 'draft' WHERE id = 'cs_x'",
-        "UPDATE client_summaries SET period_id = 'le_test-2026-08' WHERE id = 'cs_x'",
-        "UPDATE client_summaries SET legal_entity_id = 'le_other' WHERE id = 'cs_x'",
-        "UPDATE client_summaries SET tenant_id = 'tenant_other' WHERE id = 'cs_x'",
+        ("UPDATE client_summaries SET status = 'draft' WHERE id = 'cs_x'", "cannot go back to draft"),
+        ("UPDATE client_summaries SET period_id = 'le_test-2026-08' WHERE id = 'cs_x'", MOVED),
+        ("UPDATE client_summaries SET legal_entity_id = 'le_other' WHERE id = 'cs_x'", MOVED),
+        ("UPDATE client_summaries SET tenant_id = 'tenant_other' WHERE id = 'cs_x'", MOVED),
     ],
 )
-def test_guard_blocks_backward_status_and_moves(client, tokens, world, statement):
+def test_guard_blocks_backward_status_and_moves(client, tokens, world, statement, message):
+    """Casa a mensagem do trigger, para o teste não passar por erro de chave estrangeira."""
     del client, tokens, world
     with get_admin_engine().begin() as connection:
         _insert_summary(connection)
-    with pytest.raises(DBAPIError):
+    with pytest.raises(DBAPIError, match=message):
         with get_admin_engine().begin() as connection:
             connection.execute(text(statement))
 
@@ -323,6 +327,6 @@ def test_guard_blocks_leaving_withdrawn(client, tokens, world):
     del client, tokens, world
     with get_admin_engine().begin() as connection:
         _insert_summary(connection, "withdrawn")
-    with pytest.raises(DBAPIError):
+    with pytest.raises(DBAPIError, match="withdrawn client summary cannot come back"):
         with get_admin_engine().begin() as connection:
             connection.execute(text("UPDATE client_summaries SET status = 'published' WHERE id = 'cs_x'"))

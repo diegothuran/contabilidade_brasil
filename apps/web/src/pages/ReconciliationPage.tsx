@@ -8,6 +8,15 @@ type Account = { account_id: string; code: string; name: string; postable: boole
 type BankAccount = { bank_account_id: string; account_id: string; name: string; account_number_masked: string };
 type Statement = { statement_id: string; status: string; error_message: string | null; transactions_new: number; transactions_duplicate: number };
 type Candidate = { candidate_id: string; score: number; explanation: string[] };
+type CounterpartSuggestion = {
+  account_id: string;
+  code: string;
+  name: string;
+  confidence: string;
+  justification: string;
+  source: "history" | "model";
+  provider_version: string;
+};
 type Case = {
   case_id: string;
   bank_account_id: string;
@@ -17,6 +26,8 @@ type Case = {
   bank_transaction: { date: string; amount: string; direction: string; description: string };
   candidates: Candidate[];
   alerts: { kind: string; transaction_ids: string[]; explanation: string; rule_version: string }[];
+  counterpart_suggestions?: CounterpartSuggestion[];
+  model_suggestions_enabled?: boolean;
 };
 type Summary = {
   ledger_balance: string;
@@ -32,6 +43,28 @@ type Summary = {
 
 const DIRECTION: Record<string, string> = { inflow: "Entrada", outflow: "Saída" };
 
+// Operação de sugestão por IA concluída com aviso (operations.error_code) ou com falha.
+const SUGGESTION_WARNING: Record<string, string> = {
+  limite_diario: "Limite diário de sugestões por IA atingido: parte dos casos ficou sem sugestão da IA.",
+  resposta_incompleta: "A IA não respondeu todos os casos. Confira os que ficaram sem sugestão.",
+};
+type SuggestionNotice = { kind: "error" | "warning"; text: string };
+
+// Sugestão é sempre "sugerida" (SPEC §7, ADR 035): a tela pré-seleciona e a pessoa confirma.
+function suggestionLabel(suggestion: CounterpartSuggestion): string {
+  const account = `${suggestion.code} ${suggestion.name} (confiança ${suggestion.confidence})`;
+  return suggestion.source === "model" ? `Sugerido pela IA: ${account} — confira` : `Sugerido pelo histórico: ${account}`;
+}
+
+// Só a primeira sugestão aceita conta como acerto (rank 1); trocar a conta é escolha manual.
+function chosenOrigin(suggestions: CounterpartSuggestion[], accountId: string): { suggestion_source: string; suggestion_rank: 1 | null } {
+  const first = suggestions[0];
+  if (first && first.account_id === accountId) {
+    return { suggestion_source: first.source, suggestion_rank: 1 };
+  }
+  return { suggestion_source: "manual", suggestion_rank: null };
+}
+
 export function ReconciliationPage() {
   const { entityId, me, periodId } = useSession();
   const navigate = useNavigate();
@@ -43,7 +76,10 @@ export function ReconciliationPage() {
   const [file, setFile] = useState<File | null>(null);
   const [statementId, setStatementId] = useState<string | null>(null);
   const [reason, setReason] = useState("");
-  const [counterpart, setCounterpart] = useState("");
+  const [chosenCounterparts, setChosenCounterparts] = useState<Record<string, string>>({});
+  const [suggestionOperationId, setSuggestionOperationId] = useState<string | null>(null);
+  // Guarda o desfecho da última operação: a consulta da operação some quando ela termina.
+  const [suggestionNotice, setSuggestionNotice] = useState<SuggestionNotice | null>(null);
   const banks = useQuery({
     queryKey: ["bank-accounts", entityId],
     queryFn: () => api<{ items: BankAccount[] }>(`/v1/bank-accounts?legal_entity_id=${entityId}`),
@@ -76,6 +112,31 @@ export function ReconciliationPage() {
     queryFn: () => api<Summary>(`/v1/bank-accounts/${selectedBank}/summary?period_id=${periodId}`),
   });
 
+  const suggestionOperation = useQuery({
+    queryKey: ["operation", suggestionOperationId],
+    enabled: Boolean(suggestionOperationId),
+    queryFn: () => api<{ status: string; error_code: string | null }>(`/v1/operations/${suggestionOperationId}`),
+    refetchInterval: (query) => (query.state.data?.status === "accepted" || query.state.data?.status === "running" ? 1000 : false),
+  });
+  const suggestionRunning =
+    Boolean(suggestionOperationId) && !["completed", "failed"].includes(suggestionOperation.data?.status ?? "accepted");
+
+  useEffect(() => {
+    const finished = suggestionOperation.data?.status;
+    if (finished === "completed" || finished === "failed") {
+      const code = suggestionOperation.data?.error_code ?? null;
+      if (finished === "failed") {
+        setSuggestionNotice({ kind: "error", text: "A sugestão por IA falhou. Siga com a escolha manual." });
+      } else if (code && SUGGESTION_WARNING[code]) {
+        setSuggestionNotice({ kind: "warning", text: SUGGESTION_WARNING[code] });
+      } else {
+        setSuggestionNotice(null);
+      }
+      setSuggestionOperationId(null);
+      void queryClient.invalidateQueries({ queryKey: ["cases", selectedBank] });
+    }
+  }, [queryClient, selectedBank, suggestionOperation.data]);
+
   useEffect(() => {
     if (linked.data?.bank_account_id) {
       setBankAccountId(linked.data.bank_account_id);
@@ -102,6 +163,13 @@ export function ReconciliationPage() {
     },
     onSuccess: (operation) => setStatementId(operation.statement_id),
   });
+  const requestSuggestions = useMutation({
+    mutationFn: () =>
+      api<{ operation_id: string }>(`/v1/bank-accounts/${selectedBank}/counterpart-suggestions`, { body: { period_id: periodId } }),
+    onMutate: () => setSuggestionNotice(null),
+    onSuccess: (operation) => setSuggestionOperationId(operation.operation_id),
+  });
+  const modelEnabled = (cases.data?.items ?? []).some((item) => item.model_suggestions_enabled);
   const act = useMutation({
     mutationFn: (action: { caseId: string; path: string; body: unknown }) =>
       api<Case | { journal_id: string }>(`/v1/reconciliation-cases/${action.caseId}/${action.path}`, { body: action.body }),
@@ -114,7 +182,7 @@ export function ReconciliationPage() {
       await queryClient.invalidateQueries({ queryKey: ["bank-summary", selectedBank] });
     },
   });
-  const failure = upload.error ?? act.error;
+  const failure = upload.error ?? act.error ?? requestSuggestions.error;
   const errorText = failure instanceof ApiError ? `${failure.title}. ${failure.message}` : failure ? "Falha na conciliação." : null;
 
   return (
@@ -164,10 +232,32 @@ export function ReconciliationPage() {
           <button type="submit" data-testid="import-statement">Enviar extrato</button>
         </form>
       ) : null}
+      {modelEnabled && periodId && can(me.roles, "preparer", "approver", "admin") ? (
+        <p className="row">
+          <button
+            type="button"
+            data-testid="request-ai-suggestions"
+            disabled={suggestionRunning || requestSuggestions.isPending}
+            onClick={() => requestSuggestions.mutate()}
+          >
+            Pedir sugestão à IA
+          </button>
+          {suggestionRunning || requestSuggestions.isPending ? <span className="muted">Pedindo sugestões…</span> : null}
+        </p>
+      ) : null}
+      {suggestionNotice ? (
+        <p className={suggestionNotice.kind === "error" ? "error" : "muted"} data-testid="ai-suggestion-notice">
+          {suggestionNotice.text}
+        </p>
+      ) : null}
       {statement.data?.status === "received" ? <p className="muted">Lendo extrato…</p> : null}
       {statement.data?.status === "failed" ? <p className="error">{statement.data.error_message}</p> : null}
       {errorText ? <p className="error">{errorText}</p> : null}
-      {(cases.data?.items ?? []).map((item) => (
+      {(cases.data?.items ?? []).map((item) => {
+        const suggestions = item.counterpart_suggestions ?? [];
+        const counterpart = chosenCounterparts[item.case_id] ?? suggestions[0]?.account_id ?? "";
+        const selectedSuggestion = suggestions.find((suggestion) => suggestion.account_id === counterpart);
+        return (
         <article key={item.case_id} data-testid="reconciliation-case">
           <p>
             <span className="badge" data-testid="case-status">{STATUS_LABEL[item.status] ?? item.status}</span>{" "}
@@ -209,7 +299,10 @@ export function ReconciliationPage() {
             ) : null}
             {can(me.roles, "preparer", "admin") && !["approved", "ignored"].includes(item.status) ? (
               <>
-                <select value={counterpart} onChange={(event) => setCounterpart(event.target.value)}>
+                <select
+                  value={counterpart}
+                  onChange={(event) => setChosenCounterparts((current) => ({ ...current, [item.case_id]: event.target.value }))}
+                >
                   <option value="">Contrapartida</option>
                   {counterparts.map((account) => (
                     <option key={account.account_id} value={account.account_id}>{account.code} {account.name}</option>
@@ -218,15 +311,27 @@ export function ReconciliationPage() {
                 <button
                   type="button"
                   disabled={!counterpart}
-                  onClick={() => act.mutate({ caseId: item.case_id, path: "journal", body: { counterpart_account_id: counterpart } })}
+                  onClick={() =>
+                    act.mutate({
+                      caseId: item.case_id,
+                      path: "journal",
+                      body: { counterpart_account_id: counterpart, ...chosenOrigin(suggestions, counterpart) },
+                    })
+                  }
                 >
                   Criar lançamento
                 </button>
               </>
             ) : null}
           </div>
+          {selectedSuggestion && !["approved", "ignored"].includes(item.status) ? (
+            <p className="muted" data-testid="counterpart-suggestion" title={selectedSuggestion.justification}>
+              {suggestionLabel(selectedSuggestion)}
+            </p>
+          ) : null}
         </article>
-      ))}
+        );
+      })}
     </section>
   );
 }

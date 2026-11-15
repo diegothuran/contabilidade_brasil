@@ -22,6 +22,7 @@ from contabil.platform.settings import get_settings
 from contabil.reconciliation.alerts import alerts_for_transactions, period_alert_count
 from contabil.reconciliation.matching import find_candidates
 from contabil.reconciliation.statement_parser import StatementParseError, fingerprint, parse_statement
+from contabil.suggestions.service import counterpart_suggestions
 from contabil.tables import (
     Account,
     AccountingPeriod,
@@ -40,6 +41,8 @@ from contabil.tenancy.service import before_cursor, encode_cursor, page_limit, r
 _CASE_STATUSES = frozenset({"open", "suggested", "approved", "rejected", "reversed", "ignored"})
 _PENDING_STATUSES = frozenset({"open", "suggested", "reversed"})
 _DECIDED_AWAY = frozenset({"open", "suggested", "rejected"})
+# Caso que ainda aceita lançamento novo recebe sugestão de contrapartida.
+_FINAL_STATUSES = frozenset({"approved", "ignored"})
 
 
 def bank_account_dict(row: BankAccount) -> dict:
@@ -81,6 +84,9 @@ def case_dict(session: Session, case: ReconciliationCase, *, alerts: list[dict] 
     bank = session.scalar(select(BankAccount).where(BankAccount.id == case.bank_account_id, BankAccount.tenant_id == case.tenant_id))
     if transaction is None or bank is None:
         raise DomainError(404, "Não encontrado", "Caso de conciliação não encontrado.")
+    if alerts is None:
+        # Sem lista pronta (aprovar, rejeitar, ignorar, reverter...), calcula os alertas do próprio caso.
+        alerts = alerts_for_transactions(session, case.tenant_id, bank.legal_entity_id, [transaction]).get(transaction.id, [])
     return {
         "schema_version": case.schema_version,
         "case_id": case.id,
@@ -98,12 +104,16 @@ def case_dict(session: Session, case: ReconciliationCase, *, alerts: list[dict] 
             "external_id": transaction.external_id,
         },
         "candidates": [_candidate(item) for item in case.candidates],
-        "alerts": alerts or [],
+        "alerts": alerts,
         "selected_candidate_id": case.selected_candidate_id,
         "approved_by": case.approved_by,
         "audit_event_id": case.audit_event_id,
         "journal_id": case.journal_id,
         "reason": case.reason,
+        "counterpart_suggestions": (
+            [] if case.status in _FINAL_STATUSES else counterpart_suggestions(session, case.tenant_id, case, transaction, bank)
+        ),
+        "model_suggestions_enabled": bool(get_settings().claude_api_key),
     }
 
 
@@ -342,7 +352,7 @@ def list_cases(
     ).all()
     alerts = alerts_for_transactions(session, principal.tenant_id, bank.legal_entity_id, transactions)
     return {
-        "items": [case_dict(session, row, alerts=alerts.get(row.transaction_id)) for row in rows],
+        "items": [case_dict(session, row, alerts=alerts.get(row.transaction_id, [])) for row in rows],
         "next_cursor": next_cursor,
     }
 
@@ -352,7 +362,7 @@ def get_case(session: Session, principal: Principal, case_id: str) -> dict:
     bank = _bank_or_404(session, principal.tenant_id, case.bank_account_id)
     transaction = _transaction_of(session, case)
     alerts = alerts_for_transactions(session, principal.tenant_id, bank.legal_entity_id, [transaction])
-    return case_dict(session, case, alerts=alerts.get(transaction.id))
+    return case_dict(session, case, alerts=alerts.get(transaction.id, []))
 
 
 def approve_case(session: Session, principal: Principal, case_id: str, candidate_id: str) -> dict:
@@ -516,6 +526,21 @@ def create_journal_from_case(session: Session, principal: Principal, case_id: st
     )
     case.journal_id = created["journal_id"]
     case.updated_at = _now()
+    append_event(
+        session,
+        tenant_id=principal.tenant_id,
+        event_type="other",
+        actor_ref=principal.user_id,
+        target_type="reconciliation_case",
+        target_ref=case.id,
+        metadata={
+            "action": "reconciliation_counterpart_chosen",
+            "case_id": case.id,
+            "journal_id": created["journal_id"],
+            "suggestion_source": getattr(body, "suggestion_source", "manual"),
+            "suggestion_rank": getattr(body, "suggestion_rank", None),
+        },
+    )
     session.flush()
     return created
 

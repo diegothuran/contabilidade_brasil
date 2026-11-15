@@ -726,3 +726,51 @@ class ClientSummary(Base):
     published_by: Mapped[str | None] = mapped_column(String(160), nullable=True)
     published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     withdrawn_reason: Mapped[str | None] = mapped_column(String(500), nullable=True)
+
+
+class AccountSuggestion(Base):
+    """Contrapartida sugerida pelo modelo para um caso de conciliação. Só inserção; vale a mais recente (ADR 035)."""
+
+    __tablename__ = "account_suggestions"
+    __table_args__ = (
+        CheckConstraint("confidence IN ('alta', 'média', 'baixa')", name="ck_account_suggestions_confidence"),
+        CheckConstraint("source IN ('model')", name="ck_account_suggestions_source"),
+        Index("ix_account_suggestions_case", "tenant_id", "case_id", "created_at"),
+    )
+
+    id: Mapped[str] = mapped_column(String(160), primary_key=True)
+    tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.id"))
+    legal_entity_id: Mapped[str] = mapped_column(ForeignKey("legal_entities.id"))
+    case_id: Mapped[str] = mapped_column(ForeignKey("reconciliation_cases.id"))
+    account_id: Mapped[str] = mapped_column(ForeignKey("accounts.id"))
+    confidence: Mapped[str] = mapped_column(String(10))
+    justification: Mapped[str] = mapped_column(String(300))
+    source: Mapped[str] = mapped_column(String(10))
+    provider_version: Mapped[str] = mapped_column(String(120))
+    operation_id: Mapped[str] = mapped_column(ForeignKey("operations.id"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+
+class SuggestionRun(Base):
+    """Registro de um lote, só de inserção (ADR 035).
+
+    Antes da chamada entra a reserva (`transactions_sent` = tamanho do lote, `stop_reason` = "reserved");
+    depois, o resultado (`transactions_sent` = 0, tokens e o stop_reason real, ou "error").
+    """
+
+    __tablename__ = "suggestion_runs"
+    __table_args__ = (
+        CheckConstraint("transactions_sent >= 0", name="ck_suggestion_runs_sent"),
+        Index("ix_suggestion_runs_day", "tenant_id", "created_at"),
+    )
+
+    id: Mapped[str] = mapped_column(String(160), primary_key=True)
+    tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.id"))
+    operation_id: Mapped[str] = mapped_column(ForeignKey("operations.id"))
+    model: Mapped[str] = mapped_column(String(80))
+    prompt_version: Mapped[str] = mapped_column(String(40))
+    transactions_sent: Mapped[int] = mapped_column(Integer)
+    input_tokens: Mapped[int] = mapped_column(Integer)
+    output_tokens: Mapped[int] = mapped_column(Integer)
+    stop_reason: Mapped[str] = mapped_column(String(40))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)

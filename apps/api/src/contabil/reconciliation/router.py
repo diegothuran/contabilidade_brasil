@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+from typing import Literal
+
 from fastapi import APIRouter, Depends, Query, Request
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from contabil.ledger.schemas import ReasonBody
 from contabil.platform.deps import Ctx, get_context
@@ -55,6 +57,16 @@ class JournalFromCase(BaseModel):
     counterpart_account_id: str = Field(min_length=1, max_length=160)
     description: str | None = Field(default=None, max_length=2000)
     cost_center_id: str | None = Field(default=None, max_length=160)
+    # Origem da conta escolhida, para medir o acerto das sugestões (ADR 035): a primeira sugestão
+    # aceita leva a origem dela e rank 1; qualquer outra conta é manual, sem rank.
+    suggestion_source: Literal["history", "model", "manual"] = "manual"
+    suggestion_rank: Literal[1] | None = None
+
+    @model_validator(mode="after")
+    def origin_matches_rank(self) -> "JournalFromCase":
+        if (self.suggestion_source == "manual") != (self.suggestion_rank is None):
+            raise ValueError("suggestion_source manual vai sem suggestion_rank; history e model vão com suggestion_rank 1")
+        return self
 
 
 @router.post("/bank-accounts", status_code=201, response_model=None)

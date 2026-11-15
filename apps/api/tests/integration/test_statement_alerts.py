@@ -118,3 +118,16 @@ def test_bank_summary_alert_count(client, tokens, world):
     )
     assert summary.status_code == 200, summary.text
     assert summary.json()["alert_count"] == 1
+
+
+def test_mutation_responses_carry_the_case_alerts(client, tokens, world):
+    del world
+    bank_id = _bank(client, tokens["preparer"])
+    _statement(client, tokens["preparer"], bank_id, DUP, "dup.ofx")
+    first, second = _cases(client, tokens["preparer"], bank_id)
+    ignored = _post(client, tokens["preparer"], f"/v1/reconciliation-cases/{first['case_id']}/ignore", {"reason": "Conferido no extrato"})
+    assert ignored.status_code == 200, ignored.text
+    assert [a["kind"] for a in ignored.json()["alerts"]] == ["duplicate_payment"]
+    resuggested = _post(client, tokens["preparer"], f"/v1/reconciliation-cases/{second['case_id']}/resuggest", {})
+    assert resuggested.status_code == 200, resuggested.text
+    assert [a["kind"] for a in resuggested.json()["alerts"]] == ["duplicate_payment"]

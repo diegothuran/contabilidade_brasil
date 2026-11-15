@@ -12,6 +12,8 @@ from contabil.tables import Account, AccountingPeriod, AppUser, ChartOfAccounts,
 
 TABLES = (
     "client_summaries",
+    "account_suggestions",
+    "suggestion_runs",
     "withholding_payments",
     "reconciliation_matches",
     "reconciliation_cases",

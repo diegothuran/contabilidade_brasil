@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 
+from contabil.platform import conferences
 from contabil.platform.conferences import Thresholds, load_thresholds
 from contabil.platform.settings import Settings, get_settings
 
@@ -16,7 +19,9 @@ def clean_caches():
 
 
 def test_load_thresholds_reads_versioned_file(clean_caches, monkeypatch):
-    monkeypatch.delenv("CONFIGS_DIR", raising=False)
+    # No repositório vale o caminho padrão; na imagem não há repositório e vale o CONFIGS_DIR do Dockerfile.
+    if (Path(conferences.__file__).resolve().parents[5] / "configs" / "conferencias.yaml").exists():
+        monkeypatch.delenv("CONFIGS_DIR", raising=False)
     thresholds = load_thresholds()
     assert isinstance(thresholds, Thresholds)
     assert thresholds.version == "2026.11-provisorio"

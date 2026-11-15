@@ -58,3 +58,22 @@ def test_alert_carries_rule_version():
     alert = statement_alerts([tx("t1", 0), tx("t2", 1)], load_thresholds())[0]
     assert alert.rule_version == "2026.11-provisorio"
     assert set(alert_dict(alert)) == {"kind", "transaction_ids", "explanation", "rule_version"}
+
+
+def test_own_transfer_window_edges():
+    th = load_thresholds()
+    two_days = [tx("t1", 0, bank="b1"), tx("t2", 2, bank="b2", direction="inflow")]
+    three_days = [tx("t1", 0, bank="b1"), tx("t2", 3, bank="b2", direction="inflow")]
+    assert [a.kind for a in statement_alerts(two_days, th)] == ["own_transfer"]
+    assert statement_alerts(three_days, th) == []
+
+
+def test_duplicate_at_three_days_is_not_also_own_transfer():
+    alerts = statement_alerts([tx("t1", 0), tx("t2", 3)], load_thresholds())
+    assert [a.kind for a in alerts] == ["duplicate_payment"]
+
+
+def test_three_equal_payments_make_three_distinct_pairs():
+    alerts = statement_alerts([tx("t1", 0), tx("t2", 1), tx("t3", 2)], load_thresholds())
+    assert [a.kind for a in alerts] == ["duplicate_payment"] * 3
+    assert sorted(a.transaction_ids for a in alerts) == [("t1", "t2"), ("t1", "t3"), ("t2", "t3")]
