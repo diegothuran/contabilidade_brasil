@@ -698,3 +698,31 @@ class WithholdingPayment(Base):
     description: Mapped[str | None] = mapped_column(String(200), nullable=True)
     created_by: Mapped[str] = mapped_column(String(160))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+
+class ClientSummary(Base):
+    """Resumo do mês em frases fixas para o empresário. Publicado, o payload não muda (ADR 034)."""
+
+    __tablename__ = "client_summaries"
+    __table_args__ = (
+        CheckConstraint("status IN ('draft', 'published', 'withdrawn')", name="ck_client_summaries_status"),
+        Index(
+            "uq_client_summaries_period",
+            "tenant_id",
+            "period_id",
+            unique=True,
+            postgresql_where=text("status <> 'withdrawn'"),
+        ),
+    )
+
+    id: Mapped[str] = mapped_column(String(160), primary_key=True)
+    tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.id"))
+    legal_entity_id: Mapped[str] = mapped_column(ForeignKey("legal_entities.id"))
+    period_id: Mapped[str] = mapped_column(ForeignKey("accounting_periods.id"))
+    status: Mapped[str] = mapped_column(String(20))
+    payload: Mapped[dict] = mapped_column(JSONB)
+    created_by: Mapped[str] = mapped_column(String(160))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+    published_by: Mapped[str | None] = mapped_column(String(160), nullable=True)
+    published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    withdrawn_reason: Mapped[str | None] = mapped_column(String(500), nullable=True)

@@ -7,6 +7,7 @@ from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel, ConfigDict, Field
 
 from contabil.document_requests.service import add_comment, client_document, list_client_requests, receive_content, request_detail
+from contabil.client_summaries.service import client_summary, list_client_summaries
 from contabil.documents.service import open_content
 from contabil.identity.notices import client_preference, set_client_preference
 from contabil.submissions.service import create_submission, list_submissions
@@ -133,3 +134,13 @@ def get_portal_preferences(ctx: Ctx = Depends(get_context)) -> dict:
 @router.patch("/portal/preferences")
 def patch_portal_preferences(body: PreferenceBody, request: Request, ctx: Ctx = Depends(replay_guard)):
     return persist(ctx, request, 200, set_client_preference(ctx.session, ctx.principal, body.notify_client))
+
+
+@router.get("/portal/summaries")
+def get_portal_summaries(ctx: Ctx = Depends(get_context)) -> dict:
+    return list_client_summaries(ctx.session, ctx.principal)
+
+
+@router.get("/portal/summaries/{summary_id}")
+def get_portal_summary(summary_id: str, ctx: Ctx = Depends(get_context)) -> dict:
+    return client_summary(ctx.session, ctx.principal, summary_id)
