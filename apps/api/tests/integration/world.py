@@ -11,6 +11,8 @@ from contabil.seed.cnpj import cnpj_digits
 from contabil.tables import Account, AccountingPeriod, AppUser, ChartOfAccounts, LegalEntity, Membership, Tenant
 
 TABLES = (
+    "account_suggestions",
+    "suggestion_runs",
     "withholding_payments",
     "reconciliation_matches",
     "reconciliation_cases",

@@ -2,10 +2,11 @@ from __future__ import annotations
 
 from uuid import uuid4
 
-from sqlalchemy import select
+import pytest
+from sqlalchemy import select, text
 
 from contabil.platform.auth import apply_tenant
-from contabil.platform.db import session_factory
+from contabil.platform.db import get_engine, session_factory
 from contabil.suggestions.history import history_suggestions
 from contabil.tables import BankAccount, BankTransaction, ReconciliationCase
 
@@ -122,3 +123,18 @@ def test_history_ignores_other_entity(client, tokens, world):
     _statement(client, tokens["preparer"], bank_id, [("2026-09-20", "TARIFA PACOTE SERVICOS", "-45.90")])
     case = _case_by_description(client, tokens["preparer"], bank_id, "TARIFA PACOTE SERVICOS")
     assert _history_for(case["case_id"]) == []
+
+
+@pytest.mark.parametrize("table", ["account_suggestions", "suggestion_runs"])
+def test_suggestion_tables_are_insert_only(client, world, table):
+    del client, world
+    with get_engine().begin() as connection:
+        apply = text("SELECT set_config('app.tenant_id', 'tenant_demo', true)")
+        connection.execute(apply)
+        assert connection.execute(text(f"SELECT count(*) FROM {table}")).scalar_one() == 0
+    with pytest.raises(Exception, match="permission denied"):
+        with get_engine().begin() as connection:
+            connection.execute(text(f"UPDATE {table} SET created_at = now()"))
+    with pytest.raises(Exception, match="permission denied"):
+        with get_engine().begin() as connection:
+            connection.execute(text(f"DELETE FROM {table}"))

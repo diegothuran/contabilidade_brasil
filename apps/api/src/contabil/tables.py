@@ -698,3 +698,44 @@ class WithholdingPayment(Base):
     description: Mapped[str | None] = mapped_column(String(200), nullable=True)
     created_by: Mapped[str] = mapped_column(String(160))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+
+class AccountSuggestion(Base):
+    """Contrapartida sugerida pelo modelo para um caso de conciliação. Só inserção; vale a mais recente (ADR 035)."""
+
+    __tablename__ = "account_suggestions"
+    __table_args__ = (
+        CheckConstraint("confidence IN ('alta', 'média', 'baixa')", name="ck_account_suggestions_confidence"),
+        CheckConstraint("source IN ('model')", name="ck_account_suggestions_source"),
+        Index("ix_account_suggestions_case", "tenant_id", "case_id", "created_at"),
+    )
+
+    id: Mapped[str] = mapped_column(String(160), primary_key=True)
+    tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.id"))
+    legal_entity_id: Mapped[str] = mapped_column(ForeignKey("legal_entities.id"))
+    case_id: Mapped[str] = mapped_column(ForeignKey("reconciliation_cases.id"))
+    account_id: Mapped[str] = mapped_column(ForeignKey("accounts.id"))
+    confidence: Mapped[str] = mapped_column(String(10))
+    justification: Mapped[str] = mapped_column(String(300))
+    source: Mapped[str] = mapped_column(String(10))
+    provider_version: Mapped[str] = mapped_column(String(120))
+    operation_id: Mapped[str] = mapped_column(ForeignKey("operations.id"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+
+class SuggestionRun(Base):
+    """Um lote enviado ao modelo: tokens, stop_reason e transações, para custo e teto diário (ADR 035)."""
+
+    __tablename__ = "suggestion_runs"
+    __table_args__ = (Index("ix_suggestion_runs_day", "tenant_id", "created_at"),)
+
+    id: Mapped[str] = mapped_column(String(160), primary_key=True)
+    tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.id"))
+    operation_id: Mapped[str] = mapped_column(ForeignKey("operations.id"))
+    model: Mapped[str] = mapped_column(String(80))
+    prompt_version: Mapped[str] = mapped_column(String(40))
+    transactions_sent: Mapped[int] = mapped_column(Integer)
+    input_tokens: Mapped[int] = mapped_column(Integer)
+    output_tokens: Mapped[int] = mapped_column(Integer)
+    stop_reason: Mapped[str] = mapped_column(String(40))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
