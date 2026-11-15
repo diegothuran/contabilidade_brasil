@@ -141,7 +141,7 @@ def test_refusal_yields_no_answer():
     assert result.answer is not None and result.answer.picks[0].account_code == "5.1.01"
     kwargs = sdk.messages.kwargs
     assert kwargs["model"] == "claude-haiku-5-5"
-    assert kwargs["max_tokens"] == 4096
+    assert kwargs["max_tokens"] == 16000
     assert kwargs["output_config"]["effort"] == "low"
     assert kwargs["output_config"]["format"]["type"] == "json_schema"
     assert kwargs["output_config"]["format"]["schema"]["properties"]["picks"]["type"] == "array"

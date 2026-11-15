@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from decimal import Decimal
 from uuid import uuid4
 
 import pytest
@@ -8,6 +9,7 @@ from sqlalchemy import select, text
 
 from contabil.platform.auth import apply_tenant
 from contabil.platform.db import get_admin_engine, get_engine, session_factory
+from contabil.platform.outbox import HandlerOutcome
 from contabil.platform.settings import get_settings
 from contabil.suggestions.history import history_suggestions
 from contabil.suggestions.model import FakeModelClient, ModelCallError
@@ -19,14 +21,14 @@ from tests.integration.test_phase_c import _drain, _validate
 from tests.integration.world import add_entity
 
 
-def _bank(client, token: str, entity: str = "le_test") -> str:
+def _bank(client, token: str, entity: str = "le_test", account_id: str | None = None) -> str:
     created = _post(
         client,
         token,
         "/v1/bank-accounts",
         {
             "legal_entity_id": entity,
-            "account_id": f"{entity}-1.1.02",
+            "account_id": account_id or f"{entity}-1.1.02",
             "name": "Conta teste",
             "bank_code": "001",
             "branch": "1234",
@@ -163,22 +165,55 @@ def _operation() -> str:
         session.close()
 
 
-def _run_worker(bank_id: str, client_fake: FakeModelClient, operation_id: str | None = None) -> str:
-    operation_id = operation_id or _operation()
+def _payload(bank_id: str, operation_id: str) -> dict:
+    return {
+        "bank_account_id": bank_id,
+        "period_id": "le_test-2026-09",
+        "operation_id": operation_id,
+        "legal_entity_id": "le_test",
+    }
+
+
+def _dispatch(payload: dict, client_fake: FakeModelClient):
+    """Um despacho do handler, numa transação, como o relay faz."""
     session = session_factory(admin=True)()
     try:
         apply_tenant(session, "tenant_demo")
-        payload = {
-            "bank_account_id": bank_id,
-            "period_id": "le_test-2026-09",
-            "operation_id": operation_id,
-            "legal_entity_id": "le_test",
-        }
-        run_counterpart_suggestions(session, "tenant_demo", payload, client=client_fake)
+        outcome = run_counterpart_suggestions(session, "tenant_demo", payload, client=client_fake)
         session.commit()
-        return operation_id
+        return outcome
     finally:
         session.close()
+
+
+def _next_payload(operation_id: str) -> dict | None:
+    """Tira da fila a continuação enfileirada pelo despacho anterior."""
+    with get_admin_engine().begin() as connection:
+        row = connection.execute(
+            text(
+                """
+                SELECT id, payload FROM outbox_events
+                WHERE event_type = 'CounterpartSuggestionRequested' AND dispatched_at IS NULL
+                  AND payload->>'operation_id' = :operation_id
+                ORDER BY created_at LIMIT 1
+                """
+            ),
+            {"operation_id": operation_id},
+        ).first()
+        if row is None:
+            return None
+        connection.execute(text("UPDATE outbox_events SET dispatched_at = now() WHERE id = :id"), {"id": row[0]})
+        return row[1]
+
+
+def _run_worker(bank_id: str, client_fake: FakeModelClient, operation_id: str | None = None, payload: dict | None = None) -> str:
+    """Roda o despacho e as continuações até a operação não ter mais lote."""
+    operation_id = operation_id or _operation()
+    current: dict | None = payload or _payload(bank_id, operation_id)
+    while current is not None:
+        _dispatch(current, client_fake)
+        current = _next_payload(operation_id)
+    return operation_id
 
 
 def _rows(sql: str) -> list:
@@ -248,10 +283,16 @@ def test_worker_stops_at_daily_limit(client, tokens, world, settings_env):
     settings_env.setenv("SUGGESTION_DAILY_LIMIT", "1")
     get_settings.cache_clear()
     fake = FakeModelClient({"t1": ("5.1.01", "alta")})
-    _run_worker(bank_id, fake)
-    assert fake.calls == 0
-    assert _rows("SELECT count(*) FROM suggestion_runs") == [(0,)]
-    assert _rows("SELECT count(*) FROM account_suggestions") == [(0,)]
+    operation_id = _run_worker(bank_id, fake)
+    # Manda o que couber no teto (1 transação) e conclui com aviso.
+    assert fake.sizes == [1]
+    assert sorted(_rows("SELECT transactions_sent, stop_reason FROM suggestion_runs")) == [(0, "end_turn"), (1, "reserved")]
+    assert _rows("SELECT count(*) FROM account_suggestions") == [(1,)]
+    assert _rows(f"SELECT error_code FROM operations WHERE id = '{operation_id}'") == [("limite_diario",)]
+    again = FakeModelClient({"*": ("5.1.01", "alta")})
+    second = _run_worker(bank_id, again)
+    assert again.calls == 0
+    assert _rows(f"SELECT error_code FROM operations WHERE id = '{second}'") == [("limite_diario",)]
 
 
 def test_worker_batches_of_40(client, tokens, world):
@@ -288,8 +329,11 @@ def test_failed_batch_keeps_runs_and_retry_skips_saved_cases(client, tokens, wor
     bank_id = _forty_five(client, tokens)
     operation_id = _operation()
     failing = FakeModelClient({"*": ("5.1.01", "média")}, fail_on_calls={2})
+    assert _dispatch(_payload(bank_id, operation_id), failing) is HandlerOutcome.CONTINUES
+    second = _next_payload(operation_id)
+    assert second is not None and second["cursor"]
     with pytest.raises(ModelCallError):
-        _run_worker(bank_id, failing, operation_id)
+        _dispatch(second, failing)
     assert failing.sizes == [40, 5]
     # O rollback do handler não apaga o que foi gravado na transação autônoma.
     assert sorted(_rows("SELECT transactions_sent, stop_reason FROM suggestion_runs")) == [
@@ -300,8 +344,9 @@ def test_failed_batch_keeps_runs_and_retry_skips_saved_cases(client, tokens, wor
     ]
     assert _rows("SELECT count(*) FROM account_suggestions") == [(40,)]
     assert _used_today() == 45
+    # A falha desfez a transação do segundo despacho; a reentrega usa o mesmo payload.
     retry = FakeModelClient({"*": ("5.1.01", "média")})
-    _run_worker(bank_id, retry, operation_id)
+    _run_worker(bank_id, retry, operation_id, payload=second)
     assert retry.sizes == [5]
     assert _rows("SELECT count(*) FROM account_suggestions") == [(45,)]
     assert _rows(f"SELECT count(DISTINCT case_id) FROM account_suggestions WHERE operation_id = '{operation_id}'") == [(45,)]
@@ -314,8 +359,9 @@ def test_daily_limit_counts_reservation_and_stops_before_second_batch(client, to
     get_settings.cache_clear()
     fake = FakeModelClient({"*": ("5.1.01", "média")})
     operation_id = _run_worker(bank_id, fake)
-    assert fake.sizes == [40]
-    assert _used_today() == 40
+    # O segundo despacho manda o que cabe (4 de 5) e conclui com aviso.
+    assert fake.sizes == [40, 4]
+    assert _used_today() == 44
     assert _rows(f"SELECT error_code FROM operations WHERE id = '{operation_id}'") == [("limite_diario",)]
 
 
@@ -384,15 +430,55 @@ def test_request_without_key_is_503(client, tokens, world, settings_env):
     assert _suggestion_operations() == 0
 
 
+def _reserve(sent: int) -> None:
+    operation_id = _operation()
+    session = session_factory(admin=True)()
+    try:
+        apply_tenant(session, "tenant_demo")
+        session.add(
+            SuggestionRun(
+                id=f"sgrun_{uuid4().hex}",
+                tenant_id="tenant_demo",
+                operation_id=operation_id,
+                model="teste",
+                prompt_version="contrapartida-1",
+                transactions_sent=sent,
+                input_tokens=0,
+                output_tokens=0,
+                stop_reason="reserved",
+                created_at=datetime.now(timezone.utc),
+            )
+        )
+        session.commit()
+    finally:
+        session.close()
+
+
+def test_request_with_more_pending_than_limit_is_accepted(client, tokens, world, settings_env):
+    del world
+    bank_id = _bank(client, tokens["preparer"])
+    _statement(client, tokens["preparer"], bank_id, [("2026-09-01", "COMPRA LOJA ZERO", "-1.00")])
+    _clone_cases(bank_id, 599)
+    assert _rows(f"SELECT count(*) FROM reconciliation_cases WHERE bank_account_id = '{bank_id}'") == [(600,)]
+    _with_key(settings_env, limit=500)
+    assert _used_today() == 0
+    response = _request(client, tokens["preparer"], bank_id)
+    assert response.status_code == 202, response.text
+    audit = _rows("SELECT metadata->>'pending_cases' FROM audit_events WHERE metadata->>'action' = 'counterpart_suggestions_requested'")
+    assert audit == [("600",)]
+
+
 def test_request_over_limit_is_429_and_creates_no_operation(client, tokens, world, settings_env):
     del world
     bank_id = _bank(client, tokens["preparer"])
     _statement(client, tokens["preparer"], bank_id, [("2026-09-05", "TARIFA PACOTE", "-45.90"), ("2026-09-06", "ALUGUEL", "-900.00")])
-    _with_key(settings_env, limit=1)
+    _with_key(settings_env, limit=3)
+    _reserve(3)
+    before = _suggestion_operations()
     response = _request(client, tokens["preparer"], bank_id)
     assert response.status_code == 429, response.text
     assert response.json()["title"] == "Limite diário de sugestões por IA atingido"
-    assert _suggestion_operations() == 0
+    assert _suggestion_operations() == before
     assert _rows("SELECT count(*) FROM outbox_events WHERE event_type = 'CounterpartSuggestionRequested'") == [(0,)]
 
 
@@ -476,8 +562,9 @@ def test_journal_records_suggestion_source(client, tokens, world):
                 "action": "reconciliation_counterpart_chosen",
                 "case_id": case["case_id"],
                 "journal_id": created.json()["journal_id"],
-                "suggestion_source": "history",
-                "suggestion_rank": 1,
+                # Sem sugestão calculada para o caso, a origem declarada vira manual.
+                "suggestion_source": "manual",
+                "suggestion_rank": None,
             },
         )
     ]
@@ -513,3 +600,206 @@ def test_journal_origin_and_rank_must_agree(client, tokens, world):
     assert manual.status_code == 201, manual.text
     events = _rows("SELECT metadata FROM audit_events WHERE metadata->>'action' = 'reconciliation_counterpart_chosen'")
     assert [(item[0]["suggestion_source"], item[0]["suggestion_rank"]) for item in events] == [("manual", None)]
+
+
+def _clone_cases(bank_id: str, count: int) -> None:
+    """Copia o caso do extrato em `count` transações novas, direto no banco (rápido para volume)."""
+    session = session_factory(admin=True)()
+    try:
+        apply_tenant(session, "tenant_demo")
+        base = session.scalar(select(BankTransaction).where(BankTransaction.bank_account_id == bank_id))
+        case = session.scalar(select(ReconciliationCase).where(ReconciliationCase.transaction_id == base.id))
+        for index in range(count):
+            transaction = BankTransaction(
+                id=f"btx_{uuid4().hex}",
+                tenant_id="tenant_demo",
+                bank_account_id=bank_id,
+                statement_id=base.statement_id,
+                transaction_date=base.transaction_date.replace(day=(index % 28) + 1),
+                amount=Decimal(index + 2),
+                direction="outflow",
+                description=f"COMPRA LOJA {chr(65 + index % 26)}{index // 26}",
+                external_id=None,
+                fingerprint=uuid4().hex,
+            )
+            session.add(transaction)
+            session.flush()
+            session.add(
+                ReconciliationCase(
+                    id=f"rcase_{uuid4().hex}",
+                    schema_version=case.schema_version,
+                    tenant_id="tenant_demo",
+                    bank_account_id=bank_id,
+                    account_id=case.account_id,
+                    transaction_id=transaction.id,
+                    status="open",
+                    candidates=[],
+                )
+            )
+        session.commit()
+    finally:
+        session.close()
+
+
+def test_request_at_limit_is_429(client, tokens, world, settings_env):
+    del world
+    bank_id = _bank(client, tokens["preparer"])
+    _statement(client, tokens["preparer"], bank_id, [("2026-09-05", "TARIFA PACOTE", "-45.90")])
+    _with_key(settings_env, limit=10)
+    _reserve(9)
+    assert _request(client, tokens["preparer"], bank_id).status_code == 202
+    _reserve(1)
+    assert _used_today() == 10
+    refused = _request(client, tokens["preparer"], bank_id)
+    assert refused.status_code == 429, refused.text
+
+
+def _relay_once() -> int:
+    from contabil.worker import relay_once
+
+    session = session_factory(admin=True)()
+    try:
+        count = relay_once(session)
+        session.commit()
+        return count
+    finally:
+        session.close()
+
+
+def test_eighty_five_cases_take_three_dispatches(client, tokens, world, settings_env):
+    del world
+    bank_id = _bank(client, tokens["preparer"])
+    _statement(client, tokens["preparer"], bank_id, [("2026-09-01", "COMPRA LOJA ZERO", "-1.00")])
+    _clone_cases(bank_id, 84)
+    _with_key(settings_env)
+    fake = FakeModelClient({"*": ("5.1.01", "média")})
+    settings_env.setattr("contabil.suggestions.worker.AnthropicModelClient", lambda api_key, model: fake)
+    response = _request(client, tokens["preparer"], bank_id)
+    assert response.status_code == 202, response.text
+    operation_id = response.json()["operation_id"]
+    statuses = []
+    for _ in range(3):
+        assert _relay_once() == 1
+        statuses.append(_rows(f"SELECT status FROM operations WHERE id = '{operation_id}'")[0][0])
+    assert _relay_once() == 0
+    assert fake.calls == 3
+    assert fake.sizes == [40, 40, 5]
+    assert statuses == ["running", "running", "completed"]
+    assert _rows(f"SELECT count(DISTINCT case_id) FROM account_suggestions WHERE operation_id = '{operation_id}'") == [(85,)]
+    assert _used_today() == 85
+    events = _rows(
+        "SELECT payload->'cursor' IS NOT NULL, dispatched_at IS NOT NULL FROM outbox_events "
+        "WHERE event_type = 'CounterpartSuggestionRequested' ORDER BY created_at"
+    )
+    assert events == [(False, True), (True, True), (True, True)]
+
+
+def test_redelivered_dispatch_does_not_pay_again(client, tokens, world):
+    del world
+    bank_id = _bank(client, tokens["preparer"])
+    _statement(client, tokens["preparer"], bank_id, [("2026-09-01", "COMPRA LOJA ZERO", "-1.00")])
+    _clone_cases(bank_id, 84)
+    operation_id = _operation()
+    first = _payload(bank_id, operation_id)
+    fake = FakeModelClient({"*": ("5.1.01", "média")})
+    assert _dispatch(first, fake) is HandlerOutcome.CONTINUES
+    # A reentrega do mesmo despacho cai na mesma janela, já sugerida: não chama o modelo.
+    assert _dispatch(first, fake) is HandlerOutcome.CONTINUES
+    assert fake.sizes == [40]
+    assert _used_today() == 40
+    # As duas continuações apontam para o mesmo cursor; a segunda também não paga de novo.
+    second = _next_payload(operation_id)
+    duplicate = _next_payload(operation_id)
+    assert second == duplicate
+    assert _dispatch(second, fake) is HandlerOutcome.CONTINUES
+    assert _dispatch(duplicate, fake) is HandlerOutcome.CONTINUES
+    assert fake.sizes == [40, 40]
+    _run_worker(bank_id, fake, operation_id, payload=_next_payload(operation_id))
+    assert fake.sizes == [40, 40, 5]
+    assert _used_today() == 85
+
+
+def test_history_never_suggests_the_current_bank_account(client, tokens, world):
+    del world
+    session = session_factory(admin=True)()
+    try:
+        session.add(
+            Account(
+                id="le_test-1.1.03",
+                tenant_id="tenant_demo",
+                legal_entity_id="le_test",
+                chart_id="chart_le_test",
+                code="1.1.03",
+                name="Banco dois",
+                account_type="asset",
+                postable=True,
+                active=True,
+            )
+        )
+        session.commit()
+    finally:
+        session.close()
+    bank_a = _bank(client, tokens["preparer"])
+    bank_b = _bank(client, tokens["preparer"], account_id="le_test-1.1.03")
+    _statement(client, tokens["preparer"], bank_b, [("2026-09-05", "TRANSF ENTRE CONTAS PROPRIAS", "-300.00")])
+    past = _case_by_description(client, tokens["preparer"], bank_b, "TRANSF ENTRE CONTAS PROPRIAS")
+    # No banco B, a contrapartida foi a conta contábil do banco A.
+    _resolve_with(client, tokens, past["case_id"], "le_test-1.1.02")
+    _statement(client, tokens["preparer"], bank_a, [("2026-09-20", "TRANSF ENTRE CONTAS PROPRIAS", "-300.00")])
+    current = _case_by_description(client, tokens["preparer"], bank_a, "TRANSF ENTRE CONTAS PROPRIAS")
+    assert _history_for(current["case_id"]) == []
+    assert current["counterpart_suggestions"] == []
+
+
+def test_journal_refuses_bank_account_as_counterpart(client, tokens, world):
+    del world
+    bank_id = _bank(client, tokens["preparer"])
+    _statement(client, tokens["preparer"], bank_id, [("2026-09-05", "TARIFA PACOTE", "-45.90")])
+    case = _case_by_description(client, tokens["preparer"], bank_id, "TARIFA PACOTE")
+    response = _post(
+        client,
+        tokens["preparer"],
+        f"/v1/reconciliation-cases/{case['case_id']}/journal",
+        {"counterpart_account_id": "le_test-1.1.02"},
+    )
+    assert response.status_code == 422, response.text
+    assert "A contrapartida não pode ser a própria conta do banco." in response.text
+    assert _rows("SELECT count(*) FROM journal_entries WHERE source_type = 'bank'") == [(0,)]
+
+
+def test_journal_origin_is_checked_against_first_suggestion(client, tokens, world):
+    del world
+    bank_id = _bank(client, tokens["preparer"])
+    _statement(client, tokens["preparer"], bank_id, [("2026-09-02", "TARIFA PACOTE SERVICOS", "-45.90")])
+    first = _case_by_description(client, tokens["preparer"], bank_id, "TARIFA PACOTE SERVICOS")
+    _resolve_with(client, tokens, first["case_id"], "le_test-5.1.01")
+    _statement(
+        client,
+        tokens["preparer"],
+        bank_id,
+        [
+            ("2026-09-10", "TARIFA PACOTE SERVICOS", "-45.91"),
+            ("2026-09-15", "TARIFA PACOTE SERVICOS", "-45.92"),
+            ("2026-09-20", "TARIFA PACOTE SERVICOS", "-45.93"),
+        ],
+    )
+    others = sorted(
+        (item for item in _cases(client, tokens["preparer"], bank_id) if item["case_id"] != first["case_id"]),
+        key=lambda item: item["bank_transaction"]["date"],
+    )
+    assert [item["counterpart_suggestions"][0]["account_id"] for item in others] == ["le_test-5.1.01"] * 3
+    chosen = [
+        (others[0], {"counterpart_account_id": "le_test-2.1.01", "suggestion_source": "history", "suggestion_rank": 1}),
+        (others[1], {"counterpart_account_id": "le_test-5.1.01", "suggestion_source": "model", "suggestion_rank": 1}),
+        (others[2], {"counterpart_account_id": "le_test-5.1.01", "suggestion_source": "history", "suggestion_rank": 1}),
+    ]
+    journals = []
+    for case, body in chosen:
+        created = _post(client, tokens["preparer"], f"/v1/reconciliation-cases/{case['case_id']}/journal", body)
+        assert created.status_code == 201, created.text
+        journals.append(created.json()["journal_id"])
+    events = {
+        item[0]["journal_id"]: (item[0]["suggestion_source"], item[0]["suggestion_rank"])
+        for item in _rows("SELECT metadata FROM audit_events WHERE metadata->>'action' = 'reconciliation_counterpart_chosen'")
+    }
+    assert [events[journal_id] for journal_id in journals] == [("manual", None), ("manual", None), ("history", 1)]

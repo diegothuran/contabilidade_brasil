@@ -496,6 +496,9 @@ def create_journal_from_case(session: Session, principal: Principal, case_id: st
     )
     if period is None:
         raise DomainError(409, "Período fechado", "Não há período aberto para a data da transação.")
+    if body.counterpart_account_id == bank.account_id:
+        raise DomainError(422, "Contrapartida inválida", "A contrapartida não pode ser a própria conta do banco.")
+    source, rank = _chosen_origin(session, principal.tenant_id, case, transaction, bank, body)
     description = (body.description or transaction.description or "Conciliação bancária").strip()[:2000]
     amount = format_amount(transaction.amount)
     bank_side = "debit" if transaction.direction == "inflow" else "credit"
@@ -537,12 +540,26 @@ def create_journal_from_case(session: Session, principal: Principal, case_id: st
             "action": "reconciliation_counterpart_chosen",
             "case_id": case.id,
             "journal_id": created["journal_id"],
-            "suggestion_source": getattr(body, "suggestion_source", "manual"),
-            "suggestion_rank": getattr(body, "suggestion_rank", None),
+            "suggestion_source": source,
+            "suggestion_rank": rank,
         },
     )
     session.flush()
     return created
+
+
+def _chosen_origin(
+    session: Session, tenant_id: str, case: ReconciliationCase, transaction: BankTransaction, bank: BankAccount, body
+) -> tuple[str, int | None]:
+    """Confere a origem declarada contra a 1ª sugestão calculada agora; o que não bate vira manual."""
+    declared = getattr(body, "suggestion_source", "manual")
+    if declared == "manual":
+        return "manual", None
+    suggestions = counterpart_suggestions(session, tenant_id, case, transaction, bank)
+    first = suggestions[0] if suggestions else None
+    if first is None or first["account_id"] != body.counterpart_account_id or first["source"] != declared:
+        return "manual", None
+    return declared, 1
 
 
 def resolve_case_from_journal(session: Session, tenant_id: str, payload: dict) -> None:

@@ -134,6 +134,9 @@ export function PortalPage({ me }: { me: Me }) {
             <article className="metric metric--neutral"><span>Próximo prazo</span><strong>{summary.next_due_on ? day(summary.next_due_on) : "—"}</strong><small>entre os pedidos em aberto</small></article>
           </section>
         ) : null}
+        {summaries.isError ? (
+          <p className="error" data-testid="portal-summary-error">Não foi possível carregar o resumo do mês.</p>
+        ) : null}
         {summaries.data && summaries.data.items.length > 0 ? (
           <section className="panel portal-summary-card" data-testid="portal-summary">
             <span className="eyebrow">Resumo do mês</span>

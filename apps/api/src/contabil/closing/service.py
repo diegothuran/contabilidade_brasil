@@ -418,7 +418,7 @@ def _gather(session: Session, principal: Principal, period: AccountingPeriod) ->
             "documents": len(documents),
             "document_requests_open": int(open_requests or 0),
             "statement_alerts": period_alert_count(session, principal.tenant_id, period.legal_entity_id, period),
-            "trial_balance_checks": len(trial_balance_checks(session, principal, period.id)["items"]),
+            "trial_balance_checks": len(trial_balance_checks(session, principal, period.id, balance=balance)["items"]),
             "trial_debit": balance["debit_total"],
             "trial_credit": balance["credit_total"],
         },

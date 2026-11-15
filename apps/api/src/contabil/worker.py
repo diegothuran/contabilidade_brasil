@@ -21,6 +21,7 @@ from contabil.suggestions.worker import run_counterpart_suggestions
 from contabil.platform.auth import apply_tenant
 from contabil.platform.clock import brasilia_today
 from contabil.platform.db import session_factory
+from contabil.platform.outbox import HandlerOutcome
 from contabil.tables import Operation, Tenant
 
 T = TypeVar("T")
@@ -102,8 +103,10 @@ def relay_once(session: Session) -> int:
         apply_tenant(session, row["tenant_id"])
         try:
             with session.begin_nested():
-                handler(session, row["tenant_id"], payload)
-                _complete_operation(session, row["tenant_id"], payload.get("operation_id"))
+                outcome = handler(session, row["tenant_id"], payload)
+                # Handler em partes (sugestão por IA, ADR 035) devolve CONTINUES até o último despacho.
+                if outcome is not HandlerOutcome.CONTINUES:
+                    _complete_operation(session, row["tenant_id"], payload.get("operation_id"))
             session.execute(text("UPDATE outbox_events SET dispatched_at = now() WHERE id = :id"), {"id": row["id"]})
             dispatched += 1
             logger.info("outbox dispatched type=%s tenant=%s id=%s", row["event_type"], row["tenant_id"], row["id"])

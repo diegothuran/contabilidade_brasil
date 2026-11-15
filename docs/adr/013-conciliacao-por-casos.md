@@ -27,13 +27,13 @@ O worker segue com a conexão administrativa, então a RLS não se aplica a ele.
 
 O extrato também gera avisos, sem decidir nada:
 
-- **Pagamento em duplicidade:** duas saídas de mesmo valor na mesma conta, dentro da janela, com descrição parecida.
-- **Transferência entre contas próprias:** saída numa conta e entrada noutra da mesma empresa, mesmo valor, dentro da janela.
+- **Pagamento em duplicidade:** saídas de mesmo valor na mesma conta, dentro da janela, com descrição parecida. O aviso sai por grupo, não por par: cada par que cumpre a regra liga as duas transações, e as ligadas formam um grupo só, com um alerta que lista o grupo em `transaction_ids` e diz quantas são. Dez tarifas iguais no mesmo dia dão um alerta com dez ids, e não 45 pares.
+- **Transferência entre contas próprias:** saída numa conta e entrada noutra da mesma empresa, mesmo valor, dentro da janela. Esse aviso continua por par.
 
 Regras de projeto:
 
 - Os alertas são calculados na leitura, sem tabela nova, só entre transações da mesma empresa. Nunca cruzam `legal_entity_id`.
 - Não bloqueiam o fechamento. Servem de atenção para quem revisa; a contagem da competência aparece no resumo da conta.
-- O checklist `2026.11-1` ganha o item "Pontos de atenção do extrato" (`statement_alerts`, categoria `bank`), não bloqueante: fica pendente enquanto houver alerta com transação na competência e não impede o fechamento. Toda resposta que devolve o caso, inclusive aprovar, rejeitar, ignorar, reverter e ressugerir, traz os alertas do próprio caso.
+- O checklist `2026.11-1` ganha o item "Pontos de atenção do extrato" (`statement_alerts`, categoria `bank`), não bloqueante: fica pendente enquanto houver alerta com transação na competência e não impede o fechamento. Toda resposta que devolve o caso, inclusive aprovar, rejeitar, ignorar, reverter e ressugerir, traz os alertas do próprio caso, no máximo 20. A contagem da competência (`alert_count` e o item do checklist) conta grupos de duplicidade e pares de transferência.
 - Os limiares ficam em `configs/conferencias.yaml` (versão `2026.11-provisorio`: 3 dias para duplicidade, 2 dias para transferência) e seguem como perguntas ao contador.
 - Cartão e empréstimo ficam fora: a fatura do cartão e a parcela do empréstimo repetem valor e descrição por natureza, o que geraria falso positivo, e ainda não há regra do contador para distingui-los.

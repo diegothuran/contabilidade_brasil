@@ -13,11 +13,10 @@ from contabil.platform.principal import Principal, ensure_role
 from contabil.platform.settings import get_settings
 from contabil.suggestions.history import history_suggestions
 from contabil.suggestions.types import suggestion_dict
-from contabil.suggestions.worker import pending_cases, scope_of, used_today
+from contabil.suggestions.worker import EVENT_TYPE, pending_cases, scope_of, used_today
 from contabil.tables import Account, AccountSuggestion, BankAccount, BankTransaction, Operation, ReconciliationCase
 
 OPERATION_KIND = "counterpart_suggestions"
-EVENT_TYPE = "CounterpartSuggestionRequested"
 
 
 def request_counterpart_suggestions(session: Session, principal: Principal, bank_account_id: str, period_id: str) -> dict:
@@ -31,13 +30,15 @@ def request_counterpart_suggestions(session: Session, principal: Principal, bank
         raise DomainError(404, "Não encontrado", "Conta banco não encontrada.")
     if period is None:
         raise DomainError(404, "Não encontrado", "Período não encontrado.")
-    pending = len(pending_cases(session, principal.tenant_id, bank, period))
-    if used_today(session, principal.tenant_id) + pending > settings.suggestion_daily_limit:
+    # Só recusa quando o teto do dia já acabou; com saldo, o worker manda o que couber e
+    # conclui com o aviso `limite_diario` (ADR 035).
+    if used_today(session, principal.tenant_id) >= settings.suggestion_daily_limit:
         raise DomainError(
             429,
             "Limite diário de sugestões por IA atingido",
             "O escritório já enviou o máximo de transações ao modelo hoje. Tente amanhã ou siga sem a sugestão.",
         )
+    pending = len(pending_cases(session, principal.tenant_id, bank, period))
     operation = Operation(
         id=new_id("op"),
         tenant_id=principal.tenant_id,

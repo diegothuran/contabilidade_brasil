@@ -19,7 +19,8 @@ from contabil.suggestions.types import CONFIDENCES
 
 PROMPT_VERSION = "contrapartida-1"
 BATCH_SIZE = 40
-MAX_TOKENS = 4096
+# O pensamento adaptativo do Haiku 5.5 conta no limite de saída; 16000 deixa folga para o lote de 40.
+MAX_TOKENS = 16000
 JUSTIFICATION_LIMIT = 300
 INVALID_OUTPUT = "invalid_output"
 # stop_reason que deixam o lote sem resposta aproveitável; a operação conclui com aviso.

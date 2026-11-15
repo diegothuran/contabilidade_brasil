@@ -108,8 +108,10 @@ def history_suggestions(
             JournalEntry.source_type == "bank",
             JournalEntry.status.in_(EFFECTIVE_JOURNAL_STATUSES),
             JournalLine.tenant_id == tenant_id,
-            # A contrapartida é a linha que não é da conta banco do caso passado.
+            # A contrapartida é a linha que não é da conta banco do caso passado, e nunca é a
+            # conta contábil do banco atual (transferência entre contas próprias lançada antes).
             JournalLine.account_id != past_bank.account_id,
+            JournalLine.account_id != bank.account_id,
         )
         .order_by(ReconciliationCase.created_at.desc())
         .limit(_HISTORY_LIMIT)

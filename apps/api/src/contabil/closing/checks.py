@@ -19,6 +19,9 @@ from contabil.tables import Account, AccountingPeriod, JournalEntry, JournalLine
 
 DEBIT_NATURE = frozenset({"asset", "expense"})
 CREDIT_NATURE = frozenset({"liability", "equity", "revenue"})
+# Patrimônio líquido tem saldo de natureza permanente e não entra no "saldo parado" (ADR 020).
+# Imobilizado e outras contas permanentes ainda entram, até o contador decidir (caderno).
+IDLE_EXCLUDED_TYPES = frozenset({"equity"})
 
 
 @dataclass(frozen=True)
@@ -73,6 +76,8 @@ def evaluate_checks(
                     thresholds.version,
                 )
             )
+        if row.account_type in IDLE_EXCLUDED_TYPES:
+            continue
         if row.last_movement is None or row.last_movement < since:
             found.append(
                 Check(
@@ -81,20 +86,23 @@ def evaluate_checks(
                     row.code,
                     row.name,
                     balance,
-                    f"Saldo parado há {thresholds.idle_balance_months} meses ou mais. Confira se ainda é devido.",
+                    f"Saldo parado há {thresholds.idle_balance_months} meses ou mais. Confira se ainda é devido. "
+                    "Patrimônio líquido fica fora desta conferência; conta permanente, como imobilizado, ainda entra.",
                     thresholds.version,
                 )
             )
     return sorted(found, key=lambda check: (check.kind, check.code))
 
 
-def trial_balance_checks(session: Session, principal: Principal, period_id: str) -> dict:
+def trial_balance_checks(session: Session, principal: Principal, period_id: str, *, balance: dict | None = None) -> dict:
+    """`balance` evita recalcular o balancete quando quem chama já o tem (fechamento)."""
     period = session.scalar(
         select(AccountingPeriod).where(AccountingPeriod.id == period_id, AccountingPeriod.tenant_id == principal.tenant_id)
     )
     if period is None:
         raise DomainError(404, "Não encontrado", "Período não encontrado.")
-    balance = trial_balance(session, principal, period.legal_entity_id, period.id)
+    if balance is None:
+        balance = trial_balance(session, principal, period.legal_entity_id, period.id)
     ids = [item["account_id"] for item in balance["rows"]]
     types = dict(
         session.execute(

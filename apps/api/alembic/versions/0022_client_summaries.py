@@ -27,6 +27,12 @@ BEGIN
   IF OLD.status <> 'draft' AND NEW.payload IS DISTINCT FROM OLD.payload THEN
     RAISE EXCEPTION 'published client summary payload is immutable';
   END IF;
+  IF OLD.status <> 'draft'
+     AND (NEW.published_by IS DISTINCT FROM OLD.published_by
+          OR NEW.published_at IS DISTINCT FROM OLD.published_at
+          OR NEW.created_by IS DISTINCT FROM OLD.created_by) THEN
+    RAISE EXCEPTION 'published client summary authorship is immutable';
+  END IF;
   IF OLD.status = 'withdrawn' AND NEW.status <> 'withdrawn' THEN
     RAISE EXCEPTION 'withdrawn client summary cannot come back';
   END IF;

@@ -255,7 +255,12 @@ export function ReconciliationPage() {
       {errorText ? <p className="error">{errorText}</p> : null}
       {(cases.data?.items ?? []).map((item) => {
         const suggestions = item.counterpart_suggestions ?? [];
-        const counterpart = chosenCounterparts[item.case_id] ?? suggestions[0]?.account_id ?? "";
+        // Só pré-seleciona a 1ª sugestão quando o caso não tem candidato de conciliação e a conta está
+        // entre as opções de contrapartida (nunca a própria conta do banco).
+        const firstSuggestion = suggestions[0]?.account_id ?? "";
+        const preselected =
+          item.candidates.length === 0 && counterparts.some((account) => account.account_id === firstSuggestion) ? firstSuggestion : "";
+        const counterpart = chosenCounterparts[item.case_id] ?? preselected;
         const selectedSuggestion = suggestions.find((suggestion) => suggestion.account_id === counterpart);
         return (
         <article key={item.case_id} data-testid="reconciliation-case">

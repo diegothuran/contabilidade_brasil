@@ -907,9 +907,11 @@ paths:
       description: >-
         Cria uma operação e o evento CounterpartSuggestionRequested no outbox (ADR 035). Nada é chamado na leitura da tela.
         O worker junta os casos abertos sem par da conta e da competência que o histórico não resolve com confiança alta,
-        em lotes de até 40 transações, com a descrição pseudonimizada. A sugestão aparece depois em counterpart_suggestions
-        do caso, com source model. Pedido sem caso pendente também cria a operação, que termina sem chamar o modelo.
-        A operação pode terminar completed com error_code limite_diario (o teto parou o worker antes de um lote) ou
+        em lotes de até 40 transações, com a descrição pseudonimizada. Cada despacho do outbox manda um lote só e, se
+        restarem casos e couber no teto, enfileira a continuação com o mesmo operation_id; a operação fica running até o
+        último lote e só então vira completed. A sugestão aparece depois em counterpart_suggestions do caso, com source
+        model. Pedido sem caso pendente também cria a operação, que termina sem chamar o modelo. A operação pode terminar
+        completed com error_code limite_diario (o teto acabou no meio: o worker mandou o que cabia e parou) ou
         resposta_incompleta (recusa, max_tokens ou saída inválida em algum lote).
       operationId: requestCounterpartSuggestions
       parameters:
@@ -929,7 +931,7 @@ paths:
         '202': { description: Pedido aceito, content: { application/json: { schema: { $ref: '#/components/schemas/OperationAccepted' } } } }
         '403': { description: "Papel diferente de preparer, approver ou admin" }
         '404': { description: Conta banco ou período não encontrado }
-        '429': { description: "Limite diário de sugestões por IA atingido: o pedido passaria do SUGGESTION_DAILY_LIMIT do escritório no dia de Brasília. Nenhuma operação é criada." }
+        '429': { description: "Limite diário de sugestões por IA atingido: o escritório já usou todo o SUGGESTION_DAILY_LIMIT no dia de Brasília. Nenhuma operação é criada. Com saldo, o pedido é aceito mesmo com mais pendentes que o saldo; o worker manda o que couber e conclui com error_code limite_diario." }
         '503': { description: "Sugestão por IA indisponível: CLAUDE_API_KEY vazia. Nenhuma operação é criada." }
   /v1/bank-accounts/{bank_account_id}/statements:
     post:
@@ -1925,18 +1927,23 @@ components:
     ReconciliationCase:
       type: object
       description: >-
-        Validado por schemas/reconciliation-case.schema.json. alerts é calculado na leitura (ADR 013), em toda resposta
-        que devolve o caso. counterpart_suggestions traz primeiro as do histórico, depois a mais recente do modelo, sem
+        Validado por schemas/reconciliation-case.schema.json. alerts, counterpart_suggestions e model_suggestions_enabled
+        vêm sempre. alerts é calculado na leitura (ADR 013), em toda resposta que devolve o caso, com no máximo 20
+        itens; a duplicidade vem agrupada (um alerta por grupo de saídas iguais) e a transferência própria, por par. counterpart_suggestions traz primeiro as do histórico, depois a mais recente do modelo, sem
         repetir conta, e vem vazio para caso approved ou ignored. model_suggestions_enabled diz se o ambiente tem
         CLAUDE_API_KEY.
       additionalProperties: true
+      required: [alerts, counterpart_suggestions, model_suggestions_enabled]
       properties:
         alerts: { type: array, maxItems: 20, items: { $ref: '#/components/schemas/StatementAlert' } }
         counterpart_suggestions: { type: array, maxItems: 4, items: { $ref: '#/components/schemas/CounterpartSuggestion' } }
         model_suggestions_enabled: { type: boolean }
     StatementAlert:
       type: object
-      description: Ponto de atenção do extrato (ADR 013). Não bloqueia o fechamento e não muda o caso.
+      description: >-
+        Ponto de atenção do extrato (ADR 013). Não bloqueia o fechamento e não muda o caso. duplicate_payment lista o
+        grupo inteiro de saídas de mesmo valor e histórico parecido ligadas pela janela, e a explicação diz quantas são;
+        own_transfer lista o par.
       additionalProperties: false
       required: [kind, transaction_ids, explanation, rule_version]
       properties:
@@ -1957,7 +1964,7 @@ components:
         pending_outflow_total: { type: string }
         unmatched_ledger_count: { type: integer }
         unmatched_ledger_total: { type: string }
-        alert_count: { type: integer, description: Alertas distintos com alguma transação desta conta dentro da competência }
+        alert_count: { type: integer, description: Alertas distintos (grupo de duplicidade ou par de transferência) com alguma transação desta conta dentro da competência }
     CounterpartSuggestion:
       type: object
       description: Conta sugerida para a contrapartida (ADR 035). É sempre sugestão; a pessoa confirma com o botão que já existe.
@@ -2047,7 +2054,12 @@ components:
         operation_id: { type: string }
         status: { type: string, enum: [accepted, running, completed, failed, cancelled] }
         correlation_id: { type: string }
-        error_code: { type: [string, 'null'] }
+        error_code:
+          type: [string, 'null']
+          enum: [limite_diario, resposta_incompleta, handler_failed, null]
+          description: >-
+            Códigos conhecidos. handler_failed: o handler do outbox falhou três vezes e a operação virou failed.
+            limite_diario e resposta_incompleta: a sugestão por IA (ADR 035) concluiu completed com aviso.
     MyProfessionalRegistration:
       type: object
       required: [user_id, display_name, registration]

@@ -14,6 +14,7 @@ from sqlalchemy.orm import Session
 from contabil.imports.service import mark_operation_running
 from contabil.platform.clock import BRASILIA, brasilia_today
 from contabil.platform.ids import new_id
+from contabil.platform.outbox import HandlerOutcome, enqueue
 from contabil.platform.settings import get_settings
 from contabil.suggestions.history import history_suggestions
 from contabil.platform.auth import apply_tenant
@@ -43,6 +44,7 @@ logger = logging.getLogger("contabil.suggestions")
 PENDING_STATUSES = frozenset({"open", "suggested", "reversed"})
 # Operação concluída com aviso (operations.error_code), mostrado na tela.
 LIMIT_WARNING = "limite_diario"
+EVENT_TYPE = "CounterpartSuggestionRequested"
 INCOMPLETE_WARNING = "resposta_incompleta"
 
 
@@ -136,12 +138,40 @@ def _run(
     )
 
 
+def _cursor_key(case: ReconciliationCase, transaction: BankTransaction) -> tuple[str, str]:
+    # Ordem própria do handler (data ISO, id do caso), comparada em Python e não pela collation do banco.
+    return (transaction.transaction_date.isoformat(), case.id)
+
+
+def _cursor_of(payload: dict) -> tuple[str, str] | None:
+    cursor = payload.get("cursor")
+    if not isinstance(cursor, dict) or not cursor.get("date") or not cursor.get("case_id"):
+        return None
+    return (str(cursor["date"]), str(cursor["case_id"]))
+
+
+def _warn(session: Session, tenant_id: str, operation_id: str, warning: str) -> None:
+    """O limite diário prevalece; `resposta_incompleta` não apaga um aviso já gravado."""
+    operation = session.scalar(select(Operation).where(Operation.id == operation_id, Operation.tenant_id == tenant_id))
+    if operation is None:
+        return
+    if warning == LIMIT_WARNING or operation.error_code is None:
+        operation.error_code = warning
+        operation.updated_at = datetime.now(timezone.utc)
+
+
 def run_counterpart_suggestions(
     session: Session,
     tenant_id: str,
     payload: dict,
     client: ModelClient | None = None,
-) -> None:
+) -> HandlerOutcome | None:
+    """Um lote por despacho (ADR 035).
+
+    A chamada ao modelo roda dentro da transação do relay; com um lote só, o relay não fica preso
+    por minutos. Se restarem casos e o teto deixar, enfileira a continuação com o mesmo
+    `operation_id` e um cursor, e devolve `HandlerOutcome.CONTINUES` para a operação seguir `running`.
+    """
     operation_id = payload.get("operation_id")
     mark_operation_running(session, tenant_id, operation_id)
     bank, period = scope_of(
@@ -153,8 +183,18 @@ def run_counterpart_suggestions(
     )
     if bank is None or period is None or not operation_id:
         logger.info("counterpart suggestions skipped tenant=%s operation=%s reason=scope", tenant_id, operation_id)
-        return
-    # Reentrega: caso que já recebeu sugestão desta operação não é pago de novo.
+        return None
+    cursor = _cursor_of(payload)
+    ordered = sorted(pending_cases(session, tenant_id, bank, period), key=lambda item: _cursor_key(*item))
+    if cursor is not None:
+        ordered = [item for item in ordered if _cursor_key(*item) > cursor]
+    if not ordered:
+        logger.info("counterpart suggestions nothing to send tenant=%s operation=%s", tenant_id, operation_id)
+        return None
+    # A janela do despacho é fixada antes de tirar os casos já sugeridos: a reentrega do mesmo
+    # despacho cai na mesma janela, não paga de novo e não invade o lote seguinte.
+    window = ordered[:BATCH_SIZE]
+    rest = ordered[BATCH_SIZE:]
     done = set(
         session.scalars(
             select(AccountSuggestion.case_id).where(
@@ -163,11 +203,69 @@ def run_counterpart_suggestions(
             )
         ).all()
     )
-    cases = [item for item in pending_cases(session, tenant_id, bank, period) if item[0].id not in done]
-    if not cases:
-        logger.info("counterpart suggestions nothing to send tenant=%s operation=%s", tenant_id, operation_id)
-        return
     settings = get_settings()
+    to_send = [item for item in window if item[0].id not in done]
+    capacity = settings.suggestion_daily_limit - used_today(session, tenant_id)
+    if to_send and capacity <= 0:
+        logger.info(
+            "counterpart suggestions daily limit tenant=%s operation=%s pending=%s",
+            tenant_id,
+            operation_id,
+            len(to_send) + len(rest),
+        )
+        _warn(session, tenant_id, operation_id, LIMIT_WARNING)
+        return None
+    # Manda o que couber no teto; o que sobrar fica para outro pedido, com aviso.
+    trimmed = len(to_send) > capacity
+    batch = to_send[:capacity] if trimmed else to_send
+    if batch:
+        _send_batch(session, tenant_id, operation_id, bank, batch, settings, client)
+    if trimmed:
+        logger.info(
+            "counterpart suggestions daily limit tenant=%s operation=%s pending=%s",
+            tenant_id,
+            operation_id,
+            len(to_send) - len(batch) + len(rest),
+        )
+        _warn(session, tenant_id, operation_id, LIMIT_WARNING)
+        return None
+    if not rest:
+        return None
+    if used_today(session, tenant_id) >= settings.suggestion_daily_limit:
+        logger.info(
+            "counterpart suggestions daily limit tenant=%s operation=%s pending=%s",
+            tenant_id,
+            operation_id,
+            len(rest),
+        )
+        _warn(session, tenant_id, operation_id, LIMIT_WARNING)
+        return None
+    last_case, last_transaction = window[-1]
+    date_key, case_key = _cursor_key(last_case, last_transaction)
+    enqueue(
+        session,
+        tenant_id=tenant_id,
+        event_type=EVENT_TYPE,
+        payload={
+            "bank_account_id": bank.id,
+            "period_id": period.id,
+            "operation_id": operation_id,
+            "legal_entity_id": bank.legal_entity_id,
+            "cursor": {"date": date_key, "case_id": case_key},
+        },
+    )
+    return HandlerOutcome.CONTINUES
+
+
+def _send_batch(
+    session: Session,
+    tenant_id: str,
+    operation_id: str,
+    bank: BankAccount,
+    batch: list[tuple[ReconciliationCase, BankTransaction]],
+    settings,
+    client: ModelClient | None,
+) -> None:
     model = settings.suggestion_model
     accounts = session.scalars(
         select(Account)
@@ -185,70 +283,53 @@ def run_counterpart_suggestions(
     if client is None:
         client = AnthropicModelClient(settings.claude_api_key, model)
     provider_version = f"{model}/{PROMPT_VERSION}"[:120]
-    warning: str | None = None
-    for start in range(0, len(cases), BATCH_SIZE):
-        batch = cases[start : start + BATCH_SIZE]
-        if used_today(session, tenant_id) + len(batch) > settings.suggestion_daily_limit:
-            warning = LIMIT_WARNING
-            logger.info(
-                "counterpart suggestions daily limit tenant=%s operation=%s pending=%s",
-                tenant_id,
-                operation_id,
-                len(cases) - start,
-            )
-            break
-        refs = {f"t{index + 1}": case.id for index, (case, _transaction) in enumerate(batch)}
-        txs = [
-            (f"t{index + 1}", transaction.direction, str(transaction.amount), transaction.description)
-            for index, (_case, transaction) in enumerate(batch)
-        ]
-        system, user = build_prompt(chart, txs)
-        # A reserva entra antes da chamada: o teto conta o lote mesmo que a chamada falhe.
-        _autonomous(tenant_id, [_run(tenant_id, operation_id, model, len(batch), "reserved")])
-        try:
-            result = client.suggest(system=system, user=user)
-        except Exception as exc:
-            _autonomous(tenant_id, [_run(tenant_id, operation_id, model, 0, "error")])
-            logger.warning(
-                "counterpart suggestions batch failed tenant=%s operation=%s sent=%s error=%s",
-                tenant_id,
-                operation_id,
-                len(batch),
-                exc.__class__.__name__,
-            )
-            raise
-        picks = validate_picks(result.answer, refs, accounts_by_code) if result.answer is not None else []
-        if result.answer is None or result.stop_reason in INCOMPLETE_STOPS:
-            warning = warning or INCOMPLETE_WARNING
-        now = datetime.now(timezone.utc)
-        rows: list = [_run(tenant_id, operation_id, model, 0, result.stop_reason, result.input_tokens, result.output_tokens)]
-        rows.extend(
-            AccountSuggestion(
-                id=new_id("sugg"),
-                tenant_id=tenant_id,
-                legal_entity_id=bank.legal_entity_id,
-                case_id=case_id,
-                account_id=account.id,
-                confidence=confidence,
-                justification=justification,
-                source="model",
-                provider_version=provider_version,
-                operation_id=operation_id,
-                created_at=now,
-            )
-            for case_id, account, confidence, justification in picks
-        )
-        _autonomous(tenant_id, rows)
-        logger.info(
-            "counterpart suggestions batch tenant=%s operation=%s sent=%s saved=%s stop_reason=%s",
+    refs = {f"t{index + 1}": case.id for index, (case, _transaction) in enumerate(batch)}
+    txs = [
+        (f"t{index + 1}", transaction.direction, str(transaction.amount), transaction.description)
+        for index, (_case, transaction) in enumerate(batch)
+    ]
+    system, user = build_prompt(chart, txs)
+    # A reserva entra antes da chamada: o teto conta o lote mesmo que a chamada falhe.
+    _autonomous(tenant_id, [_run(tenant_id, operation_id, model, len(batch), "reserved")])
+    try:
+        result = client.suggest(system=system, user=user)
+    except Exception as exc:
+        _autonomous(tenant_id, [_run(tenant_id, operation_id, model, 0, "error")])
+        logger.warning(
+            "counterpart suggestions batch failed tenant=%s operation=%s sent=%s error=%s",
             tenant_id,
             operation_id,
             len(batch),
-            len(picks),
-            result.stop_reason,
+            exc.__class__.__name__,
         )
-    if warning is not None:
-        operation = session.scalar(select(Operation).where(Operation.id == operation_id, Operation.tenant_id == tenant_id))
-        if operation is not None:
-            operation.error_code = warning
-            operation.updated_at = datetime.now(timezone.utc)
+        raise
+    picks = validate_picks(result.answer, refs, accounts_by_code) if result.answer is not None else []
+    if result.answer is None or result.stop_reason in INCOMPLETE_STOPS:
+        _warn(session, tenant_id, operation_id, INCOMPLETE_WARNING)
+    now = datetime.now(timezone.utc)
+    rows: list = [_run(tenant_id, operation_id, model, 0, result.stop_reason, result.input_tokens, result.output_tokens)]
+    rows.extend(
+        AccountSuggestion(
+            id=new_id("sugg"),
+            tenant_id=tenant_id,
+            legal_entity_id=bank.legal_entity_id,
+            case_id=case_id,
+            account_id=account.id,
+            confidence=confidence,
+            justification=justification,
+            source="model",
+            provider_version=provider_version,
+            operation_id=operation_id,
+            created_at=now,
+        )
+        for case_id, account, confidence, justification in picks
+    )
+    _autonomous(tenant_id, rows)
+    logger.info(
+        "counterpart suggestions batch tenant=%s operation=%s sent=%s saved=%s stop_reason=%s",
+        tenant_id,
+        operation_id,
+        len(batch),
+        len(picks),
+        result.stop_reason,
+    )

@@ -302,6 +302,7 @@ def test_office_get_shows_withdrawn_summary_with_reason(client, tokens, world):
 
 
 MOVED = "cannot change tenant, entity or period"
+AUTHORSHIP = "published client summary authorship is immutable"
 
 
 @pytest.mark.parametrize(
@@ -311,6 +312,9 @@ MOVED = "cannot change tenant, entity or period"
         ("UPDATE client_summaries SET period_id = 'le_test-2026-08' WHERE id = 'cs_x'", MOVED),
         ("UPDATE client_summaries SET legal_entity_id = 'le_other' WHERE id = 'cs_x'", MOVED),
         ("UPDATE client_summaries SET tenant_id = 'tenant_other' WHERE id = 'cs_x'", MOVED),
+        ("UPDATE client_summaries SET published_by = 'outra' WHERE id = 'cs_x'", AUTHORSHIP),
+        ("UPDATE client_summaries SET published_at = now() - interval '1 day' WHERE id = 'cs_x'", AUTHORSHIP),
+        ("UPDATE client_summaries SET created_by = 'outra' WHERE id = 'cs_x'", AUTHORSHIP),
     ],
 )
 def test_guard_blocks_backward_status_and_moves(client, tokens, world, statement, message):
@@ -330,3 +334,20 @@ def test_guard_blocks_leaving_withdrawn(client, tokens, world):
     with pytest.raises(DBAPIError, match="withdrawn client summary cannot come back"):
         with get_admin_engine().begin() as connection:
             connection.execute(text("UPDATE client_summaries SET status = 'published' WHERE id = 'cs_x'"))
+
+
+def test_guard_keeps_authorship_after_withdrawal(client, tokens, world):
+    del client, tokens, world
+    with get_admin_engine().begin() as connection:
+        _insert_summary(connection, "withdrawn")
+    with pytest.raises(DBAPIError, match=AUTHORSHIP):
+        with get_admin_engine().begin() as connection:
+            connection.execute(text("UPDATE client_summaries SET published_by = 'outra' WHERE id = 'cs_x'"))
+
+
+def test_guard_lets_draft_change_authorship(client, tokens, world):
+    del client, tokens, world
+    with get_admin_engine().begin() as connection:
+        _insert_summary(connection, "draft")
+    with get_admin_engine().begin() as connection:
+        connection.execute(text("UPDATE client_summaries SET created_by = 'outra' WHERE id = 'cs_x'"))

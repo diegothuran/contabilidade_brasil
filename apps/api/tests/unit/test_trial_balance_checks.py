@@ -60,3 +60,13 @@ def test_no_movement_at_all_is_idle_and_order_is_kind_then_code():
     rows = [_row("asset", "-1", None, code="2"), _row("asset", "1", None, code="1")]
     result = evaluate_checks(rows, START, END, T)
     assert [(c.kind, c.code) for c in result] == [("idle_balance", "1"), ("idle_balance", "2"), ("inverted_balance", "2")]
+
+
+def test_equity_with_idle_balance_has_no_idle_check():
+    rows = [_row("equity", "-1000.00", None), _row("equity", "-50.00", date(2025, 1, 31), code="2.4.01")]
+    assert evaluate_checks(rows, START, END, T) == []
+
+
+def test_idle_explanation_says_equity_is_out():
+    [check] = evaluate_checks([_row("asset", "10", None)], START, END, T)
+    assert "Patrimônio líquido fica fora" in check.explanation

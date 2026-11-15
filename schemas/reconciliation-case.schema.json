@@ -4,7 +4,7 @@
   "title": "Reconciliation case",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version", "case_id", "tenant_id", "account_id", "status", "bank_transaction", "candidates"],
+  "required": ["schema_version", "case_id", "tenant_id", "account_id", "status", "bank_transaction", "candidates", "alerts", "counterpart_suggestions", "model_suggestions_enabled"],
   "properties": {
     "schema_version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" },
     "case_id": { "type": "string", "minLength": 8, "maxLength": 160 },

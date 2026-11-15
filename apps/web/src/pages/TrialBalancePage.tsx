@@ -121,6 +121,9 @@ export function TrialBalancePage() {
         </section>
       ) : null}
 
+      {checks.isError ? (
+        <p className="error" data-testid="attention-error">Não foi possível carregar os pontos de atenção.</p>
+      ) : null}
       {attention.length > 0 ? (
         <section className="panel report-balancete" aria-label="Pontos de atenção" data-testid="attention-panel">
           <h2 className="report-title">Pontos de atenção</h2>
