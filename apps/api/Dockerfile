@@ -3,7 +3,8 @@ FROM python:3.12-slim
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     APP_HOME=/app \
-    SCHEMAS_DIR=/schemas
+    SCHEMAS_DIR=/schemas \
+    CONFIGS_DIR=/configs
 
 WORKDIR /app
 
