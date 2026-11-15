@@ -28,3 +28,5 @@ O convite é do admin, na Administração, com o papel Cliente e a empresa. A se
 ## Consequências
 
 Cinco empresas de teste podem ter um cliente cada. Resolver a pendência é enviar o arquivo. O fechamento só desbloqueia quando o escritório confirma. O cliente vê o que já foi confirmado ou cancelado, mas não age sobre isso. A devolução, os vários arquivos e a conversa estão no [ADR 026](026-devolucao-e-conversa.md). E-mail e lembrete continuam fora.
+
+- O cliente lê o resumo do mês publicado da própria empresa, em `GET /v1/portal/summaries`; rascunho e resumo retirado não aparecem ([ADR 034](034-resumo-do-mes-para-o-cliente.md)).

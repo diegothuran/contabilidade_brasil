@@ -48,6 +48,99 @@ function blockersOf(run: CloseRun | undefined): CloseItem[] {
   return (run?.checklist ?? []).filter((item) => item.blocking && item.status !== "completed" && item.status !== "not_applicable");
 }
 
+type ClientSummary = {
+  summary_id: string;
+  status: "draft" | "published" | "withdrawn";
+  payload: { sentences: string[] };
+  created_by: string;
+  published_by: string | null;
+  withdrawn_reason: string | null;
+};
+
+const SUMMARY_STATUS: Record<string, string> = {
+  draft: "Rascunho, o cliente ainda não vê",
+  published: "Publicado para o cliente",
+  withdrawn: "Retirado",
+};
+
+function ClientSummaryPanel({ periodId }: { periodId: string }) {
+  const { me } = useSession();
+  const queryClient = useQueryClient();
+  const [reason, setReason] = useState("");
+  const [asking, setAsking] = useState(false);
+  const canGenerate = can(me.roles, "preparer", "approver", "admin");
+  const canDecide = can(me.roles, "approver", "admin");
+  const key = ["client-summary", periodId];
+  const summary = useQuery({
+    queryKey: key,
+    queryFn: async (): Promise<ClientSummary | null> => {
+      try {
+        return await api<ClientSummary>(`/v1/periods/${periodId}/client-summary`);
+      } catch (error) {
+        if (error instanceof ApiError && error.status === 404) {
+          return null;
+        }
+        throw error;
+      }
+    },
+  });
+  const done = async () => {
+    setReason("");
+    setAsking(false);
+    await queryClient.invalidateQueries({ queryKey: key });
+  };
+  const generate = useMutation({ mutationFn: () => api(`/v1/periods/${periodId}/client-summary`, { body: {} }), onSuccess: done });
+  const publish = useMutation({ mutationFn: () => api(`/v1/periods/${periodId}/client-summary/publish`, { body: {} }), onSuccess: done });
+  const withdraw = useMutation({
+    mutationFn: () => api(`/v1/periods/${periodId}/client-summary/withdraw`, { body: { reason: reason.trim() } }),
+    onSuccess: done,
+  });
+  const current = summary.data ?? null;
+  const error = summary.error ?? generate.error ?? publish.error ?? withdraw.error;
+  const errorText = error instanceof ApiError ? `${error.title}. ${error.message}` : error ? "Falha na operação." : "";
+  const isOwnDraft = current?.status === "draft" && current.created_by === me.user_id;
+  return (
+    <section className="panel" data-testid="client-summary-panel">
+      <span className="eyebrow">Cliente da empresa</span>
+      <h2>Resumo para o cliente</h2>
+      <p className="muted">Frases fixas calculadas do razão fechado. Quem gera não publica, e a reabertura retira o resumo.</p>
+      {current ? (
+        <>
+          <p><strong>{SUMMARY_STATUS[current.status]}</strong></p>
+          <ul data-testid="client-summary-sentences">
+            {current.payload.sentences.map((sentence) => <li key={sentence}>{sentence}</li>)}
+          </ul>
+        </>
+      ) : (
+        <p className="muted">Ainda não há resumo desta competência.</p>
+      )}
+      {current?.status === "withdrawn" && current.withdrawn_reason ? <p className="muted">Motivo da retirada: {current.withdrawn_reason}</p> : null}
+      {isOwnDraft && canDecide ? <p className="muted">Você gerou este rascunho. Outra pessoa precisa publicar.</p> : null}
+      <div className="row">
+        {canGenerate && (!current || current.status === "draft") ? (
+          <button type="button" className="secondary" disabled={generate.isPending} onClick={() => generate.mutate()}>
+            {current ? "Recalcular resumo" : "Gerar resumo"}
+          </button>
+        ) : null}
+        {canDecide && current?.status === "draft" && !isOwnDraft ? (
+          <button type="button" disabled={publish.isPending} onClick={() => publish.mutate()}>Publicar</button>
+        ) : null}
+        {canDecide && current?.status === "published" ? (
+          <button type="button" className="secondary" onClick={() => setAsking(true)}>Retirar</button>
+        ) : null}
+      </div>
+      {asking ? (
+        <div className="row">
+          <input value={reason} onChange={(event) => setReason(event.target.value)} placeholder="Motivo da retirada (mínimo 10 caracteres)" aria-label="Motivo da retirada" />
+          <button type="button" disabled={reason.trim().length < 10 || withdraw.isPending} onClick={() => withdraw.mutate()}>Confirmar retirada</button>
+          <button type="button" className="secondary" onClick={() => setAsking(false)}>Cancelar</button>
+        </div>
+      ) : null}
+      {errorText ? <p className="error">{errorText}</p> : null}
+    </section>
+  );
+}
+
 export function CloseRunPage() {
   const { periodId = "" } = useParams();
   const { entityId, me } = useSession();
@@ -167,6 +260,7 @@ export function CloseRunPage() {
           )}
         </section>
       ) : null}
+      {run.data?.status === "closed" ? <ClientSummaryPanel periodId={periodId} /> : null}
       {notice ? <p className="ok">{notice}</p> : null}
       {errorText ? <p className="error">{errorText}</p> : null}
       {blockers.length > 0 ? (
