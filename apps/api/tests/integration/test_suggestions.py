@@ -491,3 +491,25 @@ def test_client_cannot_request(client, tokens, world, settings_env):
     assert _request(client, tokens["viewer"], bank_id).status_code == 403
     assert _request(client, tokens["outsider"], bank_id).status_code == 404
     assert _suggestion_operations() == 0
+
+
+def test_journal_origin_and_rank_must_agree(client, tokens, world):
+    del world
+    bank_id = _bank(client, tokens["preparer"])
+    _statement(client, tokens["preparer"], bank_id, [("2026-09-05", "TARIFA PACOTE", "-45.90")])
+    case = _case_by_description(client, tokens["preparer"], bank_id, "TARIFA PACOTE")
+    path = f"/v1/reconciliation-cases/{case['case_id']}/journal"
+    refused = [
+        {"suggestion_source": "history", "suggestion_rank": 2},
+        {"suggestion_source": "model", "suggestion_rank": 3},
+        {"suggestion_source": "model"},
+        {"suggestion_source": "manual", "suggestion_rank": 1},
+        {"suggestion_rank": 1},
+    ]
+    for extra in refused:
+        response = _post(client, tokens["preparer"], path, {"counterpart_account_id": "le_test-5.1.01", **extra})
+        assert response.status_code == 422, (extra, response.text)
+    manual = _post(client, tokens["preparer"], path, {"counterpart_account_id": "le_test-5.1.01", "suggestion_source": "manual"})
+    assert manual.status_code == 201, manual.text
+    events = _rows("SELECT metadata FROM audit_events WHERE metadata->>'action' = 'reconciliation_counterpart_chosen'")
+    assert [(item[0]["suggestion_source"], item[0]["suggestion_rank"]) for item in events] == [("manual", None)]

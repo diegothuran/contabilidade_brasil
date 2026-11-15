@@ -47,12 +47,13 @@ function suggestionLabel(suggestion: CounterpartSuggestion): string {
   return suggestion.source === "model" ? `Sugerido pela IA: ${account} — confira` : `Sugerido pelo histórico: ${account}`;
 }
 
-function chosenOrigin(suggestions: CounterpartSuggestion[], accountId: string): { suggestion_source: string; suggestion_rank: number | null } {
-  const index = suggestions.findIndex((item) => item.account_id === accountId);
-  if (index < 0) {
-    return { suggestion_source: "manual", suggestion_rank: null };
+// Só a primeira sugestão aceita conta como acerto (rank 1); trocar a conta é escolha manual.
+function chosenOrigin(suggestions: CounterpartSuggestion[], accountId: string): { suggestion_source: string; suggestion_rank: 1 | null } {
+  const first = suggestions[0];
+  if (first && first.account_id === accountId) {
+    return { suggestion_source: first.source, suggestion_rank: 1 };
   }
-  return { suggestion_source: suggestions[index].source, suggestion_rank: index + 1 };
+  return { suggestion_source: "manual", suggestion_rank: null };
 }
 
 export function ReconciliationPage() {
