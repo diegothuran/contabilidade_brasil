@@ -16,6 +16,7 @@ A competência fecha por uma execução de fechamento.
 - Ao fechar, a API grava um snapshot JSON no Postgres com SHA-256. Trigger impede UPDATE e DELETE. A reabertura não altera o snapshot: a execução fechada passa a `reopened` e a seguinte nasce com outro número.
 - O pacote é JSON gerado no download, com manifesto, hash e o snapshot. Ele não declara livro autenticado nem assinatura ICP-Brasil. O download registra `document_exported`.
 - `POST /v1/periods/{id}/close` usa a mesma regra e exige execução aberta sem bloqueio.
+- As conferências do balancete (saldo invertido e saldo parado, limiares em `configs/conferencias.yaml`) são informativas e não bloqueiam. O item entra no checklist na versão `2026.11-1`. A pergunta sobre o campo de natureza da conta (para tratar conta redutora) vai ao caderno do contador.
 
 ## Consequências
 
