@@ -174,7 +174,8 @@ def test_reopen_withdraws_published(client, tokens, world):
         row = connection.execute(text("SELECT status, withdrawn_reason FROM client_summaries")).one()
     assert row.status == "withdrawn"
     assert row.withdrawn_reason == "Competência reaberta"
-    assert client.get(URL, headers=_auth(tokens["approver"])).status_code == 404
+    shown = client.get(URL, headers=_auth(tokens["approver"]))
+    assert shown.status_code == 200 and shown.json()["status"] == "withdrawn"
 
 
 def test_withdraw_needs_reason_and_approver(client, tokens, world):
@@ -194,16 +195,23 @@ def test_client_sees_only_published_own_entity(client, tokens, world):
     del world
     _seed_ledger(client, tokens)
     _close(client, tokens)
-    assert _post(client, tokens["preparer"], URL).status_code == 201
+    draft = _post(client, tokens["preparer"], URL)
+    assert draft.status_code == 201
     listed = client.get("/v1/portal/summaries", headers=_auth(tokens["cliente"]))
     assert listed.status_code == 200, listed.text
     assert listed.json()["items"] == []
+    by_id = client.get(f"/v1/portal/summaries/{draft.json()['summary_id']}", headers=_auth(tokens["cliente"]))
+    assert by_id.status_code == 404
     published = _published_after_draft(client, tokens)
     listed = client.get("/v1/portal/summaries", headers=_auth(tokens["cliente"])).json()["items"]
     assert [item["summary_id"] for item in listed] == [published["summary_id"]]
     one = client.get(f"/v1/portal/summaries/{published['summary_id']}", headers=_auth(tokens["cliente"]))
     assert one.status_code == 200
     assert one.json()["payload"]["sentences"][0].startswith("Em setembro/2026")
+    for body in (one.json(), listed[0]):
+        assert "created_by" not in body and "published_by" not in body
+        assert "status" not in body and "withdrawn_reason" not in body
+        assert body["competence"] == "2026-09"
 
     add_entity("le_two", "tenant_demo", "Empresa Dois", "300000000001")
     _seed_ledger(client, tokens, entity="le_two", period="le_two-2026-09")
@@ -241,3 +249,80 @@ def test_office_user_cannot_use_portal_route(client, tokens, world):
     assert client.get("/v1/portal/summaries", headers=_auth(tokens["admin"])).status_code == 403
     assert client.get("/v1/portal/summaries/csum_x", headers=_auth(tokens["preparer"])).status_code == 403
     assert client.get(URL, headers=_auth(tokens["cliente"])).status_code == 403
+
+
+def test_reopen_withdraws_draft_and_new_close_regenerates(client, tokens, world):
+    del world
+    _seed_ledger(client, tokens)
+    _close(client, tokens)
+    old = _post(client, tokens["preparer"], URL)
+    assert old.status_code == 201
+    _reopen(client, tokens)
+    with get_admin_engine().begin() as connection:
+        row = connection.execute(text("SELECT status, withdrawn_reason FROM client_summaries")).one()
+    assert row.status == "withdrawn" and row.withdrawn_reason == "Competência reaberta"
+    _publish(
+        client,
+        tokens,
+        _journal_body(
+            period_id=PERIOD,
+            entry_date="2026-09-20",
+            description="Venda nova",
+            lines=[
+                {"account_id": "le_test-1.1.02", "side": "debit", "amount": "500.00", "description": "Banco"},
+                {"account_id": "le_test-4.1.01", "side": "credit", "amount": "500.00", "description": "Receita"},
+            ],
+        ),
+    )
+    _close(client, tokens)
+    assert _post(client, tokens["approver"], f"{URL}/publish").status_code == 404
+    fresh = _post(client, tokens["preparer"], URL)
+    assert fresh.status_code == 201, fresh.text
+    assert fresh.json()["summary_id"] != old.json()["summary_id"]
+    assert fresh.json()["payload"]["revenue"] == "1500"
+
+
+def test_office_get_shows_withdrawn_summary_with_reason(client, tokens, world):
+    del world
+    assert client.get(URL, headers=_auth(tokens["approver"])).status_code == 404
+    _seed_ledger(client, tokens)
+    _close(client, tokens)
+    published = _published(client, tokens)
+    done = _post(client, tokens["approver"], f"{URL}/withdraw", {"reason": "Número errado no resumo"})
+    assert done.status_code == 200, done.text
+    shown = client.get(URL, headers=_auth(tokens["approver"]))
+    assert shown.status_code == 200, shown.text
+    assert shown.json()["summary_id"] == published["summary_id"]
+    assert shown.json()["status"] == "withdrawn"
+    assert shown.json()["withdrawn_reason"] == "Número errado no resumo"
+    again = _post(client, tokens["preparer"], URL)
+    assert again.status_code == 201
+    live = client.get(URL, headers=_auth(tokens["approver"])).json()
+    assert live["status"] == "draft" and live["summary_id"] == again.json()["summary_id"]
+
+
+@pytest.mark.parametrize(
+    "statement",
+    [
+        "UPDATE client_summaries SET status = 'draft' WHERE id = 'cs_x'",
+        "UPDATE client_summaries SET period_id = 'le_test-2026-08' WHERE id = 'cs_x'",
+        "UPDATE client_summaries SET legal_entity_id = 'le_other' WHERE id = 'cs_x'",
+        "UPDATE client_summaries SET tenant_id = 'tenant_other' WHERE id = 'cs_x'",
+    ],
+)
+def test_guard_blocks_backward_status_and_moves(client, tokens, world, statement):
+    del client, tokens, world
+    with get_admin_engine().begin() as connection:
+        _insert_summary(connection)
+    with pytest.raises(DBAPIError):
+        with get_admin_engine().begin() as connection:
+            connection.execute(text(statement))
+
+
+def test_guard_blocks_leaving_withdrawn(client, tokens, world):
+    del client, tokens, world
+    with get_admin_engine().begin() as connection:
+        _insert_summary(connection, "withdrawn")
+    with pytest.raises(DBAPIError):
+        with get_admin_engine().begin() as connection:
+            connection.execute(text("UPDATE client_summaries SET status = 'published' WHERE id = 'cs_x'"))

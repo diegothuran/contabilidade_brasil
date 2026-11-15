@@ -138,14 +138,14 @@ export function PortalPage({ me }: { me: Me }) {
           <section className="panel portal-summary-card" data-testid="portal-summary">
             <span className="eyebrow">Resumo do mês</span>
             <h2>{summaries.data.items[0].payload.competence.split("-").reverse().join("/")}</h2>
-            {summaries.data.items[0].payload.sentences.map((sentence) => <p key={sentence}>{sentence}</p>)}
+            {summaries.data.items[0].payload.sentences.map((sentence, index) => <p key={index}>{sentence}</p>)}
             {summaries.data.items.length > 1 ? (
               <details>
                 <summary>Meses anteriores</summary>
                 {summaries.data.items.slice(1).map((item) => (
                   <div key={item.summary_id}>
                     <h3>{item.payload.competence.split("-").reverse().join("/")}</h3>
-                    {item.payload.sentences.map((sentence) => <p key={sentence}>{sentence}</p>)}
+                    {item.payload.sentences.map((sentence, index) => <p key={index}>{sentence}</p>)}
                   </div>
                 ))}
               </details>

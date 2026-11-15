@@ -41,3 +41,11 @@ def test_compose_without_revenue():
     assert payload["margin_percent"] is None
     assert payload["sentences"][1] == "O resultado foi prejuízo de R$ 40,00."
     assert payload["sentences"][2] == "Não houve faturamento na competência."
+
+
+def test_compose_rounds_sentence_margin_once():
+    payload = compose_summary(
+        revenue=Decimal("10000"), expense=Decimal("7055"), cash=Decimal("0"), fiscal_year=2026, month=9
+    )
+    assert payload["margin_percent"] == "29.5"
+    assert payload["sentences"][2] == "De cada R$ 100 faturados, sobraram R$ 29."

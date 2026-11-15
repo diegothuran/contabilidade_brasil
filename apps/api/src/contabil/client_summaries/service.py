@@ -37,6 +37,17 @@ def summary_dict(row: ClientSummary) -> dict:
     }
 
 
+def portal_dict(row: ClientSummary) -> dict:
+    """O cliente não vê quem gerou nem quem publicou (ADR 025)."""
+    return {
+        "summary_id": row.id,
+        "period_id": row.period_id,
+        "competence": row.payload.get("competence"),
+        "payload": row.payload,
+        "published_at": format_utc(row.published_at) if row.published_at else None,
+    }
+
+
 def _live(session: Session, tenant_id: str, period_id: str, *, lock: bool = False) -> ClientSummary | None:
     query = select(ClientSummary).where(
         ClientSummary.tenant_id == tenant_id, ClientSummary.period_id == period_id, ClientSummary.status != "withdrawn"
@@ -110,8 +121,24 @@ def generate_summary(session: Session, principal: Principal, period_id: str) -> 
 
 
 def get_summary(session: Session, principal: Principal, period_id: str) -> dict:
-    period = lock_period(session, principal.tenant_id, period_id)
+    """O não retirado mais recente; sem ele, o retirado mais recente, com o motivo."""
+    period = session.scalar(
+        select(AccountingPeriod).where(AccountingPeriod.id == period_id, AccountingPeriod.tenant_id == principal.tenant_id)
+    )
+    if period is None:
+        raise DomainError(404, "Não encontrado", "Período não encontrado.")
     row = _live(session, principal.tenant_id, period.id)
+    if row is None:
+        row = session.scalar(
+            select(ClientSummary)
+            .where(
+                ClientSummary.tenant_id == principal.tenant_id,
+                ClientSummary.period_id == period.id,
+                ClientSummary.status == "withdrawn",
+            )
+            .order_by(ClientSummary.created_at.desc(), ClientSummary.id.desc())
+            .limit(1)
+        )
     if row is None:
         raise DomainError(404, "Não encontrado", "Não há resumo para esta competência.")
     return summary_dict(row)
@@ -171,10 +198,11 @@ def withdraw_summary(session: Session, principal: Principal, period_id: str, rea
 
 
 def withdraw_on_reopen(session: Session, tenant_id: str, period_id: str) -> None:
-    """Chamada na mesma transação da reabertura: o resumo publicado deixa de valer."""
+    """Chamada na mesma transação da reabertura: o resumo publicado ou em rascunho deixa de valer."""
     row = _live(session, tenant_id, period_id, lock=True)
-    if row is None or row.status != "published":
+    if row is None:
         return
+    # Rascunho também sai: depois do novo fechamento ele teria números velhos.
     row.status = "withdrawn"
     row.withdrawn_reason = REOPEN_REASON
     session.flush()
@@ -202,7 +230,7 @@ def list_client_summaries(session: Session, principal: Principal) -> dict:
         )
         .order_by(ClientSummary.published_at.desc(), ClientSummary.id.desc())
     ).all()
-    return {"items": [summary_dict(row) for row in rows]}
+    return {"items": [portal_dict(row) for row in rows]}
 
 
 def client_summary(session: Session, principal: Principal, summary_id: str) -> dict:
@@ -217,4 +245,4 @@ def client_summary(session: Session, principal: Principal, summary_id: str) -> d
     )
     if row is None:
         raise DomainError(404, "Não encontrado", "Resumo não encontrado.")
-    return summary_dict(row)
+    return portal_dict(row)

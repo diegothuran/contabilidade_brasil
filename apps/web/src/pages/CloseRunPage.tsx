@@ -108,7 +108,7 @@ function ClientSummaryPanel({ periodId }: { periodId: string }) {
         <>
           <p><strong>{SUMMARY_STATUS[current.status]}</strong></p>
           <ul data-testid="client-summary-sentences">
-            {current.payload.sentences.map((sentence) => <li key={sentence}>{sentence}</li>)}
+            {current.payload.sentences.map((sentence, index) => <li key={index}>{sentence}</li>)}
           </ul>
         </>
       ) : (
@@ -117,9 +117,9 @@ function ClientSummaryPanel({ periodId }: { periodId: string }) {
       {current?.status === "withdrawn" && current.withdrawn_reason ? <p className="muted">Motivo da retirada: {current.withdrawn_reason}</p> : null}
       {isOwnDraft && canDecide ? <p className="muted">Você gerou este rascunho. Outra pessoa precisa publicar.</p> : null}
       <div className="row">
-        {canGenerate && (!current || current.status === "draft") ? (
+        {canGenerate && (!current || current.status !== "published") ? (
           <button type="button" className="secondary" disabled={generate.isPending} onClick={() => generate.mutate()}>
-            {current ? "Recalcular resumo" : "Gerar resumo"}
+            {current?.status === "draft" ? "Recalcular resumo" : "Gerar resumo"}
           </button>
         ) : null}
         {canDecide && current?.status === "draft" && !isOwnDraft ? (

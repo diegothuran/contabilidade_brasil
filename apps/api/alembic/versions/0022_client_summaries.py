@@ -19,8 +19,19 @@ BEGIN
   IF TG_OP = 'DELETE' THEN
     RAISE EXCEPTION 'client summary cannot be deleted';
   END IF;
+  IF NEW.tenant_id IS DISTINCT FROM OLD.tenant_id
+     OR NEW.legal_entity_id IS DISTINCT FROM OLD.legal_entity_id
+     OR NEW.period_id IS DISTINCT FROM OLD.period_id THEN
+    RAISE EXCEPTION 'client summary cannot change tenant, entity or period';
+  END IF;
   IF OLD.status <> 'draft' AND NEW.payload IS DISTINCT FROM OLD.payload THEN
     RAISE EXCEPTION 'published client summary payload is immutable';
+  END IF;
+  IF OLD.status = 'withdrawn' AND NEW.status <> 'withdrawn' THEN
+    RAISE EXCEPTION 'withdrawn client summary cannot come back';
+  END IF;
+  IF OLD.status = 'published' AND NEW.status = 'draft' THEN
+    RAISE EXCEPTION 'published client summary cannot go back to draft';
   END IF;
   RETURN NEW;
 END;

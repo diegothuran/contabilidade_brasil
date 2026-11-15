@@ -23,17 +23,20 @@ def brl(value: Decimal) -> str:
 def compose_summary(*, revenue: Decimal, expense: Decimal, cash: Decimal, fiscal_year: int, month: int) -> dict:
     result = revenue - expense
     margin: Decimal | None = None
+    raw_margin: Decimal | None = None
     if revenue != 0:
-        margin = (result / revenue * 100).quantize(Decimal("0.1"), rounding=ROUND_HALF_UP)
+        raw_margin = result / revenue * 100
+        margin = raw_margin.quantize(Decimal("0.1"), rounding=ROUND_HALF_UP)
     sentences = [
         f"Em {MONTHS[month - 1]}/{fiscal_year}, a empresa faturou R$ {brl(revenue)} e gastou R$ {brl(expense)}.",
         f"O resultado foi lucro de R$ {brl(result)}." if result >= 0 else f"O resultado foi prejuízo de R$ {brl(abs(result))}.",
     ]
-    if margin is None:
+    if margin is None or raw_margin is None:
         sentences.append("Não houve faturamento na competência.")
     else:
-        whole = int(abs(margin).quantize(Decimal("1"), rounding=ROUND_HALF_UP))
-        verb = "sobraram" if margin >= 0 else "faltaram"
+        # Arredonda a margem exata uma vez só: 29,45 vira 29, não 29,5 e depois 30.
+        whole = int(abs(raw_margin).quantize(Decimal("1"), rounding=ROUND_HALF_UP))
+        verb = "sobraram" if raw_margin >= 0 else "faltaram"
         sentences.append(f"De cada R$ 100 faturados, {verb} R$ {whole}.")
     sentences.append(f"No fim do mês, havia R$ {brl(cash)} nas contas bancárias.")
     return {
