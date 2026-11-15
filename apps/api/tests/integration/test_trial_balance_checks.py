@@ -19,9 +19,9 @@ def test_checks_route_flags_inverted_asset(client, tokens, world):
     payload = response.json()
     assert payload["period_id"] == "le_test-2026-09"
     assert payload["rule_version"]
-    assert payload["items"][0]["kind"] == "inverted_balance"
-    assert payload["items"][0]["code"] == "1.1.02"
-    assert payload["items"][0]["amount"].startswith("-")
+    inverted = [i for i in payload["items"] if i["kind"] == "inverted_balance" and i["code"] == "1.1.02"]
+    assert len(inverted) == 1
+    assert inverted[0]["amount"].startswith("-")
 
 
 def test_checks_route_other_tenant_404(client, tokens, world):

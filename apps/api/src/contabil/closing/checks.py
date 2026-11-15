@@ -10,12 +10,12 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from contabil.ledger.service import trial_balance
-from contabil.periods.service import lock_period
+from contabil.platform.errors import DomainError
 from contabil.platform.conferences import Thresholds, load_thresholds
 from contabil.platform.constants import EFFECTIVE_JOURNAL_STATUSES
 from contabil.platform.money import format_signed
 from contabil.platform.principal import Principal
-from contabil.tables import Account, JournalEntry, JournalLine
+from contabil.tables import Account, AccountingPeriod, JournalEntry, JournalLine
 
 DEBIT_NATURE = frozenset({"asset", "expense"})
 CREDIT_NATURE = frozenset({"liability", "equity", "revenue"})
@@ -89,7 +89,11 @@ def evaluate_checks(
 
 
 def trial_balance_checks(session: Session, principal: Principal, period_id: str) -> dict:
-    period = lock_period(session, principal.tenant_id, period_id)
+    period = session.scalar(
+        select(AccountingPeriod).where(AccountingPeriod.id == period_id, AccountingPeriod.tenant_id == principal.tenant_id)
+    )
+    if period is None:
+        raise DomainError(404, "Não encontrado", "Período não encontrado.")
     balance = trial_balance(session, principal, period.legal_entity_id, period.id)
     ids = [item["account_id"] for item in balance["rows"]]
     types = dict(
