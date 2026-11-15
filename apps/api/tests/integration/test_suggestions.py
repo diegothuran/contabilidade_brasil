@@ -6,9 +6,12 @@ import pytest
 from sqlalchemy import select, text
 
 from contabil.platform.auth import apply_tenant
-from contabil.platform.db import get_engine, session_factory
+from contabil.platform.db import get_admin_engine, get_engine, session_factory
+from contabil.platform.settings import get_settings
 from contabil.suggestions.history import history_suggestions
-from contabil.tables import BankAccount, BankTransaction, ReconciliationCase
+from contabil.suggestions.model import FakeModelClient
+from contabil.suggestions.worker import run_counterpart_suggestions
+from contabil.tables import Account, BankAccount, BankTransaction, Operation, ReconciliationCase
 
 from tests.integration.test_phase_a import _auth, _post
 from tests.integration.test_phase_c import _drain
@@ -138,3 +141,124 @@ def test_suggestion_tables_are_insert_only(client, world, table):
     with pytest.raises(Exception, match="permission denied"):
         with get_engine().begin() as connection:
             connection.execute(text(f"DELETE FROM {table}"))
+
+
+def _operation() -> str:
+    session = session_factory(admin=True)()
+    try:
+        apply_tenant(session, "tenant_demo")
+        operation = Operation(
+            id=f"op_{uuid4().hex}",
+            tenant_id="tenant_demo",
+            kind="counterpart_suggestions",
+            status="accepted",
+            correlation_id="teste",
+            target_ref="teste",
+        )
+        session.add(operation)
+        session.commit()
+        return operation.id
+    finally:
+        session.close()
+
+
+def _run_worker(bank_id: str, client_fake: FakeModelClient, operation_id: str | None = None) -> str:
+    operation_id = operation_id or _operation()
+    session = session_factory(admin=True)()
+    try:
+        apply_tenant(session, "tenant_demo")
+        payload = {
+            "bank_account_id": bank_id,
+            "period_id": "le_test-2026-09",
+            "operation_id": operation_id,
+            "legal_entity_id": "le_test",
+        }
+        run_counterpart_suggestions(session, "tenant_demo", payload, client=client_fake)
+        session.commit()
+        return operation_id
+    finally:
+        session.close()
+
+
+def _rows(sql: str) -> list:
+    with get_admin_engine().connect() as connection:
+        return list(connection.execute(text(sql)).all())
+
+
+@pytest.fixture
+def settings_env(monkeypatch):
+    get_settings.cache_clear()
+    yield monkeypatch
+    monkeypatch.undo()
+    get_settings.cache_clear()
+
+
+def test_worker_saves_valid_suggestions(client, tokens, world):
+    del world
+    bank_id = _bank(client, tokens["preparer"])
+    _statement(client, tokens["preparer"], bank_id, [("2026-09-05", "TARIFA PACOTE", "-45.90"), ("2026-09-06", "PIX RECEBIDO ANA", "120.00")])
+    fake = FakeModelClient({"t1": ("5.1.01", "alta"), "t2": ("3.1.01", "palpite")})
+    operation_id = _run_worker(bank_id, fake)
+    assert fake.calls == 1
+    saved = _rows("SELECT account_id, confidence, source, provider_version, operation_id FROM account_suggestions ORDER BY account_id")
+    assert {(row[0], row[1], row[2]) for row in saved} == {("le_test-5.1.01", "alta", "model"), ("le_test-3.1.01", "baixa", "model")}
+    assert all(row[3] == f"{get_settings().suggestion_model}/contrapartida-1" and row[4] == operation_id for row in saved)
+    runs = _rows("SELECT transactions_sent, input_tokens, output_tokens, stop_reason, prompt_version FROM suggestion_runs")
+    assert runs == [(2, 100, 20, "end_turn", "contrapartida-1")]
+    assert _rows(f"SELECT status FROM operations WHERE id = '{operation_id}'") == [("running",)]
+
+
+def test_worker_discards_other_entity_account(client, tokens, world):
+    del world
+    add_entity("le_second", "tenant_demo", "Segunda Empresa", "100000000002")
+    session = session_factory(admin=True)()
+    try:
+        session.add(
+            Account(
+                id="le_second-9.9.99",
+                tenant_id="tenant_demo",
+                legal_entity_id="le_second",
+                chart_id="chart_le_second",
+                code="9.9.99",
+                name="Conta só da outra empresa",
+                account_type="expense",
+                postable=True,
+                active=True,
+            )
+        )
+        session.commit()
+    finally:
+        session.close()
+    bank_id = _bank(client, tokens["preparer"])
+    _statement(client, tokens["preparer"], bank_id, [("2026-09-05", "TARIFA PACOTE", "-45.90")])
+    fake = FakeModelClient({"t1": ("9.9.99", "alta"), "t7": ("5.1.01", "alta")})
+    _run_worker(bank_id, fake)
+    assert fake.calls == 1
+    assert _rows("SELECT count(*) FROM account_suggestions") == [(0,)]
+    assert _rows("SELECT transactions_sent FROM suggestion_runs") == [(1,)]
+
+
+def test_worker_stops_at_daily_limit(client, tokens, world, settings_env):
+    del world
+    bank_id = _bank(client, tokens["preparer"])
+    _statement(client, tokens["preparer"], bank_id, [("2026-09-05", "TARIFA PACOTE", "-45.90"), ("2026-09-06", "ALUGUEL", "-900.00")])
+    settings_env.setenv("SUGGESTION_DAILY_LIMIT", "1")
+    get_settings.cache_clear()
+    fake = FakeModelClient({"t1": ("5.1.01", "alta")})
+    _run_worker(bank_id, fake)
+    assert fake.calls == 0
+    assert _rows("SELECT count(*) FROM suggestion_runs") == [(0,)]
+    assert _rows("SELECT count(*) FROM account_suggestions") == [(0,)]
+
+
+def test_worker_batches_of_40(client, tokens, world):
+    del world
+    bank_id = _bank(client, tokens["preparer"])
+    rows = [(f"2026-09-{(index % 28) + 1:02d}", f"COMPRA LOJA {chr(65 + index % 26)}{index // 26}", f"-{index + 1}.00") for index in range(45)]
+    _statement(client, tokens["preparer"], bank_id, rows)
+    assert len(_cases(client, tokens["preparer"], bank_id)) == 45
+    fake = FakeModelClient({})
+    _run_worker(bank_id, fake)
+    assert fake.calls == 2
+    assert fake.sizes == [40, 5]
+    assert sorted(row[0] for row in _rows("SELECT transactions_sent FROM suggestion_runs")) == [5, 40]
