@@ -7,6 +7,9 @@ from sqlalchemy import text
 from sqlalchemy.exc import DBAPIError
 
 from contabil.platform.db import get_admin_engine
+from tests.integration.test_close_runs import _ready_run
+from tests.integration.test_phase_a import _auth, _journal_body, _post, _publish
+from tests.integration.world import add_entity
 
 
 def _insert_summary(connection, status: str = "published") -> None:
@@ -29,3 +32,159 @@ def test_published_payload_is_immutable(client, tokens, world):
     with pytest.raises(DBAPIError):
         with get_admin_engine().begin() as connection:
             connection.execute(text("DELETE FROM client_summaries WHERE id = 'cs_x'"))
+
+
+PERIOD = "le_test-2026-09"
+URL = f"/v1/periods/{PERIOD}/client-summary"
+
+
+def _seed_ledger(client, tokens, entity: str = "le_test", period: str = PERIOD, revenue: str = "1000.00", expense: str = "710.00") -> None:
+    """Conta de receita, conta bancária, uma receita e uma despesa publicadas."""
+    with get_admin_engine().begin() as connection:
+        connection.execute(
+            text(
+                "INSERT INTO accounts (id, tenant_id, legal_entity_id, chart_id, code, name, account_type, postable, active, created_at) "
+                "VALUES (:id, 'tenant_demo', :entity, :chart, '4.1.01', 'Receita de serviços', 'revenue', true, true, now()) "
+                "ON CONFLICT DO NOTHING"
+            ),
+            {"id": f"{entity}-4.1.01", "entity": entity, "chart": f"chart_{entity}"},
+        )
+        connection.execute(
+            text(
+                "INSERT INTO bank_accounts (id, tenant_id, legal_entity_id, account_id, name, bank_code, branch, "
+                "account_number_masked, currency, active, created_at) "
+                "VALUES (:id, 'tenant_demo', :entity, :account, 'Conta', '001', '0001', '1234', 'BRL', true, now())"
+            ),
+            {"id": f"ba_{entity}", "entity": entity, "account": f"{entity}-1.1.02"},
+        )
+    day = f"{period[-7:]}-10"
+    _publish(
+        client,
+        tokens,
+        _journal_body(
+            legal_entity_id=entity,
+            period_id=period,
+            entry_date=day,
+            description="Venda",
+            lines=[
+                {"account_id": f"{entity}-1.1.02", "side": "debit", "amount": revenue, "description": "Banco"},
+                {"account_id": f"{entity}-4.1.01", "side": "credit", "amount": revenue, "description": "Receita"},
+            ],
+        ),
+    )
+    _publish(
+        client,
+        tokens,
+        _journal_body(
+            legal_entity_id=entity,
+            period_id=period,
+            entry_date=day,
+            description="Despesa",
+            lines=[
+                {"account_id": f"{entity}-5.1.01", "side": "debit", "amount": expense, "description": "Despesa"},
+                {"account_id": f"{entity}-1.1.02", "side": "credit", "amount": expense, "description": "Banco"},
+            ],
+        ),
+    )
+
+
+def _close(client, tokens, period: str = PERIOD) -> None:
+    run_id = _ready_run(client, tokens, period)
+    assert _post(client, tokens["approver"], f"/v1/close-runs/{run_id}/close").status_code == 200
+
+
+def _reopen(client, tokens, period: str = PERIOD) -> None:
+    request = _post(client, tokens["preparer"], f"/v1/periods/{period}/reopen-requests", {"reason": "Ajuste de competência"})
+    assert request.status_code == 201, request.text
+    approved = _post(client, tokens["approver"], f"/v1/reopen-requests/{request.json()['reopen_request_id']}/approve")
+    assert approved.status_code == 200, approved.text
+
+
+def _published(client, tokens) -> dict:
+    created = _post(client, tokens["preparer"], URL)
+    assert created.status_code == 201, created.text
+    published = _post(client, tokens["approver"], f"{URL}/publish")
+    assert published.status_code == 200, published.text
+    return published.json()
+
+
+def test_generate_requires_closed_period(client, tokens, world):
+    del world
+    response = _post(client, tokens["preparer"], URL)
+    assert response.status_code == 409
+    assert "Competência aberta" in response.text
+
+
+def test_generate_and_publish_by_other_person(client, tokens, world):
+    del world
+    _seed_ledger(client, tokens)
+    _close(client, tokens)
+    denied = _post(client, tokens["viewer"], URL)
+    assert denied.status_code == 403
+    created = _post(client, tokens["preparer"], URL)
+    assert created.status_code == 201, created.text
+    body = created.json()
+    assert body["status"] == "draft"
+    assert body["payload"]["revenue"] == "1000"
+    assert body["payload"]["expense"] == "710"
+    assert body["payload"]["result"] == "290"
+    assert body["payload"]["cash"] == "290"
+    assert body["payload"]["margin_percent"] == "29.0"
+    assert _post(client, tokens["preparer"], f"{URL}/publish").status_code == 403
+    published = _post(client, tokens["approver"], f"{URL}/publish")
+    assert published.status_code == 200, published.text
+    assert published.json()["status"] == "published"
+    assert published.json()["published_by"] == "approver"
+    assert _post(client, tokens["preparer"], URL).status_code == 409
+    fetched = client.get(URL, headers=_auth(tokens["approver"]))
+    assert fetched.status_code == 200 and fetched.json()["status"] == "published"
+
+
+def test_creator_cannot_publish(client, tokens, world):
+    del world
+    _seed_ledger(client, tokens)
+    _close(client, tokens)
+    assert _post(client, tokens["approver"], URL).status_code == 201
+    response = _post(client, tokens["approver"], f"{URL}/publish")
+    assert response.status_code == 409
+    assert "Quem gerou não publica" in response.text
+
+
+def test_regenerate_draft_recalculates(client, tokens, world):
+    del world
+    _seed_ledger(client, tokens)
+    _close(client, tokens)
+    first = _post(client, tokens["preparer"], URL)
+    assert first.status_code == 201
+    with get_admin_engine().begin() as connection:
+        connection.execute(text("UPDATE client_summaries SET payload = CAST('{}' AS jsonb)"))
+    second = _post(client, tokens["preparer"], URL)
+    assert second.status_code == 200, second.text
+    assert second.json()["summary_id"] == first.json()["summary_id"]
+    assert second.json()["payload"]["revenue"] == "1000"
+
+
+def test_reopen_withdraws_published(client, tokens, world):
+    del world
+    _seed_ledger(client, tokens)
+    _close(client, tokens)
+    _published(client, tokens)
+    _reopen(client, tokens)
+    with get_admin_engine().begin() as connection:
+        row = connection.execute(text("SELECT status, withdrawn_reason FROM client_summaries")).one()
+    assert row.status == "withdrawn"
+    assert row.withdrawn_reason == "Competência reaberta"
+    assert client.get(URL, headers=_auth(tokens["approver"])).status_code == 404
+
+
+def test_withdraw_needs_reason_and_approver(client, tokens, world):
+    del world
+    _seed_ledger(client, tokens)
+    _close(client, tokens)
+    _published(client, tokens)
+    assert _post(client, tokens["preparer"], f"{URL}/withdraw", {"reason": "Número errado no resumo"}).status_code == 403
+    assert _post(client, tokens["approver"], f"{URL}/withdraw", {"reason": "curto"}).status_code in (400, 422)
+    done = _post(client, tokens["approver"], f"{URL}/withdraw", {"reason": "Número errado no resumo"})
+    assert done.status_code == 200, done.text
+    assert done.json()["status"] == "withdrawn"
+    assert done.json()["withdrawn_reason"] == "Número errado no resumo"

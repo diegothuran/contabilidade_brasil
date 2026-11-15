@@ -179,6 +179,10 @@ def close_open_run_for_period(session: Session, principal: Principal, period_id:
 
 
 def reopen_closed_run(session: Session, tenant_id: str, period_id: str, reason: str) -> None:
+    from contabil.client_summaries.service import withdraw_on_reopen
+
+    # Antes do retorno antecipado: vale também para competência fechada sem execução de fechamento.
+    withdraw_on_reopen(session, tenant_id, period_id)
     run = session.scalar(
         select(CloseRun)
         .where(CloseRun.tenant_id == tenant_id, CloseRun.period_id == period_id, CloseRun.status == "closed")
