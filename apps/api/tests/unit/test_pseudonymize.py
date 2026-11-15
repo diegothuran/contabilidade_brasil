@@ -73,3 +73,12 @@ def test_keeps_known_terms():
 def test_heuristic_gap_documented():
     # Lacuna conhecida (ADR 035): nome sem prefixo de PIX, TED, DOC ou transferência passa sem máscara.
     assert pseudonymize("MARIA SOUZA ALUGUEL") == "MARIA SOUZA ALUGUEL"
+    cpf = _cpf("418273650")
+    # CPF que o próprio banco já mascarou: os dígitos do meio passam (grupos de 3, abaixo da regra de 6).
+    bank_masked = f"***.{cpf[3:6]}.{cpf[6:9]}-**"
+    assert pseudonymize(f"PAGAMENTO CPF {bank_masked}") == f"PAGAMENTO CPF {bank_masked}"
+    # CPF escrito com espaços não casa com nenhuma regra e passa inteiro.
+    spaced = f"{cpf[:3]} {cpf[3:6]} {cpf[6:9]} {cpf[9:]}"
+    assert pseudonymize(f"PAGAMENTO {spaced}") == f"PAGAMENTO {spaced}"
+    # Prefixo colado ao nome por hífen não é reconhecido: o nome passa.
+    assert pseudonymize("PIX-JOAO SILVA PAGAMENTO") == "PIX-JOAO SILVA PAGAMENTO"

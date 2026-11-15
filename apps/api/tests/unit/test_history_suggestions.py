@@ -59,3 +59,9 @@ def test_at_most_three_suggestions():
         ("acc_energy", "alta"),
         ("acc_fee", "média"),
     ]
+
+
+def test_justification_is_cut_at_300():
+    long_description = "ALUGUEL " + " ".join(f"SALA{index}" for index in range(120))
+    result = rank_history(long_description, _past(long_description, "acc_rent", 1), ACCOUNTS)
+    assert len(result[0].justification) == 300

@@ -41,6 +41,13 @@ type Summary = {
 
 const DIRECTION: Record<string, string> = { inflow: "Entrada", outflow: "Saída" };
 
+// Operação de sugestão por IA concluída com aviso (operations.error_code) ou com falha.
+const SUGGESTION_WARNING: Record<string, string> = {
+  limite_diario: "Limite diário de sugestões por IA atingido: parte dos casos ficou sem sugestão da IA.",
+  resposta_incompleta: "A IA não respondeu todos os casos. Confira os que ficaram sem sugestão.",
+};
+type SuggestionNotice = { kind: "error" | "warning"; text: string };
+
 // Sugestão é sempre "sugerida" (SPEC §7, ADR 035): a tela pré-seleciona e a pessoa confirma.
 function suggestionLabel(suggestion: CounterpartSuggestion): string {
   const account = `${suggestion.code} ${suggestion.name} (confiança ${suggestion.confidence})`;
@@ -69,6 +76,8 @@ export function ReconciliationPage() {
   const [reason, setReason] = useState("");
   const [chosenCounterparts, setChosenCounterparts] = useState<Record<string, string>>({});
   const [suggestionOperationId, setSuggestionOperationId] = useState<string | null>(null);
+  // Guarda o desfecho da última operação: a consulta da operação some quando ela termina.
+  const [suggestionNotice, setSuggestionNotice] = useState<SuggestionNotice | null>(null);
   const banks = useQuery({
     queryKey: ["bank-accounts", entityId],
     queryFn: () => api<{ items: BankAccount[] }>(`/v1/bank-accounts?legal_entity_id=${entityId}`),
@@ -113,6 +122,14 @@ export function ReconciliationPage() {
   useEffect(() => {
     const finished = suggestionOperation.data?.status;
     if (finished === "completed" || finished === "failed") {
+      const code = suggestionOperation.data?.error_code ?? null;
+      if (finished === "failed") {
+        setSuggestionNotice({ kind: "error", text: "A sugestão por IA falhou. Siga com a escolha manual." });
+      } else if (code && SUGGESTION_WARNING[code]) {
+        setSuggestionNotice({ kind: "warning", text: SUGGESTION_WARNING[code] });
+      } else {
+        setSuggestionNotice(null);
+      }
       setSuggestionOperationId(null);
       void queryClient.invalidateQueries({ queryKey: ["cases", selectedBank] });
     }
@@ -147,6 +164,7 @@ export function ReconciliationPage() {
   const requestSuggestions = useMutation({
     mutationFn: () =>
       api<{ operation_id: string }>(`/v1/bank-accounts/${selectedBank}/counterpart-suggestions`, { body: { period_id: periodId } }),
+    onMutate: () => setSuggestionNotice(null),
     onSuccess: (operation) => setSuggestionOperationId(operation.operation_id),
   });
   const modelEnabled = (cases.data?.items ?? []).some((item) => item.model_suggestions_enabled);
@@ -225,7 +243,11 @@ export function ReconciliationPage() {
           {suggestionRunning || requestSuggestions.isPending ? <span className="muted">Pedindo sugestões…</span> : null}
         </p>
       ) : null}
-      {suggestionOperation.data?.status === "failed" ? <p className="error">A sugestão por IA falhou. Siga com a escolha manual.</p> : null}
+      {suggestionNotice ? (
+        <p className={suggestionNotice.kind === "error" ? "error" : "muted"} data-testid="ai-suggestion-notice">
+          {suggestionNotice.text}
+        </p>
+      ) : null}
       {statement.data?.status === "received" ? <p className="muted">Lendo extrato…</p> : null}
       {statement.data?.status === "failed" ? <p className="error">{statement.data.error_message}</p> : null}
       {errorText ? <p className="error">{errorText}</p> : null}

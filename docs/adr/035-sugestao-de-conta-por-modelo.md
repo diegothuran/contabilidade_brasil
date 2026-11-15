@@ -18,7 +18,7 @@ Mandar descrição bancária a um terceiro expõe dado de cliente. A descrição
 - O worker junta os casos `open`, `suggested` ou `reversed` da conta na competência que não têm sugestão `alta` do histórico. Ele manda lotes de até 40 transações, uma chamada por lote.
 
 **O que sai para a Anthropic**
-- O plano da empresa: código, nome e tipo das contas ativas e lançáveis, menos a própria conta banco.
+- O plano da empresa: código, nome e tipo das contas ativas e lançáveis, menos a própria conta banco. **Os nomes das contas saem como estão no plano, sem pseudonimização.** Um plano pode ter conta com nome de sócio ("Empréstimo de João Silva"), de fornecedor ou de cliente, e esse nome vai para a Anthropic.
 - Por transação: um id local (`t1`, `t2`…), a direção (entrada ou saída), a faixa de valor (`até 100`, `100 a 1.000`, `1.000 a 10.000`, `acima de 10.000`) e a descrição pseudonimizada.
 - A pseudonimização (`suggestions/pseudonymize.py`) troca, por regra, e-mail por `[EMAIL]`, CNPJ (com ou sem máscara, inclusive alfanumérico) por `[CNPJ]`, CPF por `[CPF]`, telefone por `[TELEFONE]` e qualquer sequência de 6 dígitos ou mais por `[NUMERO]`. Por heurística, troca por `[PESSOA]` as palavras que vêm depois de `PIX`, `TED`, `DOC`, `TRANSF`, `TRANSFERÊNCIA`, `RECEBIDO DE` ou `ENVIADO PARA`, até o primeiro termo bancário ou comercial conhecido (`LTDA`, `PAGAMENTO`, `BOLETO`, `TARIFA`…).
 - `build_prompt` aplica a faixa e a pseudonimização. Não existe outro caminho de montagem do texto enviado.
@@ -27,23 +27,26 @@ Mandar descrição bancária a um terceiro expõe dado de cliente. A descrição
 - Valor exato, data, nome e CNPJ da empresa, nome do escritório, ids internos de caso, conta, transação ou tenant, documentos anexados e linhas do razão. O mapa `t1 → caso` fica só na memória do worker.
 
 **Lacuna conhecida da heurística de nomes**
-- Nome de pessoa sem um dos prefixos passa sem máscara. "MARIA SOUZA ALUGUEL" sai como está. O teste `test_heuristic_gap_documented` registra essa lacuna. Por isso o uso fica restrito a dados fictícios.
+- Nome de pessoa sem um dos prefixos passa sem máscara. "MARIA SOUZA ALUGUEL" sai como está. O teste `test_heuristic_gap_documented` registra essa lacuna e também estas: CPF já mascarado pelo banco (`***.273.650-**`, os dígitos do meio passam), CPF escrito com espaços e prefixo colado por hífen (`PIX-JOAO`). Por isso o uso fica restrito a dados fictícios.
 
 **Chamada e validação**
-- SDK oficial `anthropic`: `Anthropic(api_key=..., timeout=30, max_retries=2)` e `messages.parse(model=SUGGESTION_MODEL, max_tokens=4096, output_config={"effort": "low"}, output_format=ModelAnswer)`. O modelo padrão é `claude-haiku-5-5` e a versão do prompt é `contrapartida-1`. A chamada não usa `temperature`, `top_p` nem prefill.
-- Com `stop_reason` igual a `refusal` ou `max_tokens`, o lote não gera sugestão. A operação termina como concluída e o lote fica registrado com esse `stop_reason`.
+- SDK oficial `anthropic`: `Anthropic(api_key=..., timeout=30, max_retries=2)` e `messages.create(model=SUGGESTION_MODEL, max_tokens=4096, output_config={"effort": "low", "format": {"type": "json_schema", "schema": <schema de ModelAnswer>}})`. O modelo padrão é `claude-haiku-5-5` e a versão do prompt é `contrapartida-1`. A chamada não usa `temperature`, `top_p` nem prefill.
+- A aplicação valida o JSON por conta própria (`ModelAnswer.model_validate_json`) e só quando o `stop_reason` é `end_turn`. O `messages.parse` não é usado: com JSON truncado ou texto de recusa, ele levanta uma exceção que leva a saída do modelo e perde os tokens.
+- Com `refusal`, `max_tokens` ou JSON inválido (`invalid_output`), o lote não gera sugestão e fica registrado com esse `stop_reason` e os tokens reais. A operação termina `completed` com `error_code = resposta_incompleta`, e a tela mostra o aviso.
 - Erro de API ou de conexão falha a operação pelo caminho do worker (3 tentativas e depois `failed`). A mensagem leva só o tipo do erro, nunca o texto enviado.
 - A resposta é validada contra o plano da empresa. Um ref que não foi enviado é descartado, e uma conta ausente, inativa ou não lançável também. A conta de outra empresa nunca está no mapa. Confiança fora de `alta`, `média` ou `baixa` vira `baixa`, e a justificativa é cortada em 300 caracteres. Nada disso gera erro.
 
 **Registro e custo**
-- `account_suggestions` (migração `0023_account_suggestions`) guarda empresa, caso, conta, confiança, justificativa, `source = model`, `provider_version` (modelo e versão do prompt) e a operação. `suggestion_runs` guarda, por lote, modelo, versão do prompt, transações enviadas, tokens de entrada e saída e `stop_reason`. As duas tabelas têm `tenant_id` e RLS forçada, e o `contabil_app` só tem `SELECT` e `INSERT`.
+- `account_suggestions` (migração `0023_account_suggestions`) guarda empresa, caso, conta, confiança, justificativa, `source = model`, `provider_version` (modelo e versão do prompt) e a operação. As duas tabelas têm `tenant_id` e RLS forçada, e o `contabil_app` só tem `SELECT` e `INSERT`.
+- `suggestion_runs` recebe duas linhas por lote, sempre por INSERT e numa transação própria do worker, que sobrevive ao rollback do handler. Antes da chamada entra a **reserva**: `transactions_sent` igual ao tamanho do lote, tokens 0 e `stop_reason = reserved`. Depois entra o **resultado**: `transactions_sent = 0`, tokens e o `stop_reason` real, ou `error` quando a chamada falha. As sugestões válidas do lote entram na mesma transação do resultado.
+- Reentrega: quando um lote falha, o outbox tenta de novo e pula os casos que já têm sugestão da mesma operação. Assim os lotes anteriores não são pagos de novo. Caso de uma operação anterior pode ser reenviado num pedido novo.
 - O log leva ids, contagens e `stop_reason`. Prompt, resposta, descrição e nome ficam fora do log.
-- **Teto diário:** `SUGGESTION_DAILY_LIMIT` (padrão 500) transações enviadas por escritório desde 00:00 de Brasília, somadas em `suggestion_runs.transactions_sent`. A rota responde 429 "Limite diário de sugestões por IA atingido" quando o pedido passaria do teto, sem criar operação. O worker confere de novo antes de cada lote e para sem chamar o modelo.
+- **Teto diário:** `SUGGESTION_DAILY_LIMIT` (padrão 500) transações enviadas por escritório desde 00:00 de Brasília, somadas em `suggestion_runs.transactions_sent`. A soma conta as reservas, inclusive as de chamada que falhou. A rota responde 429 "Limite diário de sugestões por IA atingido" quando o pedido passaria do teto, sem criar operação. O worker confere de novo antes de cada lote e para sem chamar o modelo. Nesse caso, a operação termina `completed` com `error_code = limite_diario`, e a tela mostra o aviso.
 - Sem chave (`CLAUDE_API_KEY` vazia), a rota responde 503 "Sugestão por IA indisponível". O caso informa `model_suggestions_enabled: false`, e a tela esconde o botão.
 
 **Sempre sugestão**
 - A tela pré-seleciona a primeira sugestão no campo de contrapartida, com "Sugerido pelo histórico: …" ou "Sugerido pela IA: … — confira". A pessoa confirma com o botão "Criar lançamento", e o journal segue o fluxo normal de envio, aprovação e publicação ([ADR 004](004-aprovacao-humana.md)).
-- A criação do journal grava em auditoria `reconciliation_counterpart_chosen` com `suggestion_source` (`history`, `model` ou `manual`) e `suggestion_rank`, para medir o acerto depois.
+- A criação do journal grava em auditoria `reconciliation_counterpart_chosen` com `suggestion_source` (`history`, `model` ou `manual`) e `suggestion_rank`, para medir o acerto depois. Só a primeira sugestão aceita conta como acerto: ela leva a origem dela e `suggestion_rank = 1`. Qualquer outra conta vai como `manual`, sem rank. A API recusa com 422 a combinação incoerente.
 - `python -m contabil.suggestions.smoke` faz uma chamada real com 3 transações e 6 contas fictícias. Ele só roda à mão, com autorização do usuário para o gasto. Os testes usam um cliente falso e nunca a rede.
 
 ## Condições para usar com dado real de cliente

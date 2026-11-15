@@ -16,6 +16,7 @@ PROVIDER_VERSION = "history-1"
 MAX_SUGGESTIONS = 3
 HIGH_USES = 3
 MIN_SHARED_WORDS = 2
+JUSTIFICATION_LIMIT = 300
 # Casos passados lidos por pedido; os mais recentes valem mais que um histórico longo.
 _HISTORY_LIMIT = 2000
 
@@ -73,7 +74,7 @@ def _build(account_id: str, accounts: Mapping[str, tuple[str, str]], confidence:
         code=code,
         name=name,
         confidence=confidence,  # type: ignore[arg-type]
-        justification=f"Usada {uses} vez(es) para '{description}'",
+        justification=f"Usada {uses} vez(es) para '{description}'"[:JUSTIFICATION_LIMIT],
         source="history",
         provider_version=PROVIDER_VERSION,
     )
