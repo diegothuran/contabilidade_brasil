@@ -34,16 +34,18 @@ O primeiro público é um escritório com cerca de **20 a 200 CNPJs**, em dois o
 | Signatários | Cada pessoa do escritório cadastra o próprio CRC. O admin escolhe o contador e o representante legal de cada empresa. | Perfil; Administração › Assinaturas |
 | Prévia da ECD | Arquivo do leiaute 9 do ano, montado do razão para conferir no PVA, com a lista do que falta. O leiaute é dado versionado no registry. Os dados da escrituração pedem a data do arquivamento na Junta ou, no cartório sem NIRE, a data de abertura do CNPJ. Na Junta, a empresa que era sociedade simples informa também a data da conversão. Não transmite nem assina. | Relatórios › Prévia da ECD |
 | Prévia da EFD-Reinf | Eventos R-4010, R-4020 e R-4099 da série R-4000 da competência, montados dos pagamentos com retenção informados na tela e validados no XSD oficial, num .zip para conferência com as pendências por severidade. O sistema não calcula imposto, não assina e não transmite. | Relatórios › Prévia da EFD-Reinf |
-| Períodos | O checklist bloqueia o fechamento. O snapshot fica gravado com SHA-256. Reabrir pede motivo e aprovação de outra pessoa e não altera o snapshot. | Fechamentos |
+| Períodos | O checklist (`2026.11-1`) bloqueia o fechamento. Os pontos de atenção do extrato e as conferências do balancete aparecem nele sem bloquear. O snapshot fica gravado com SHA-256. Reabrir pede motivo e aprovação de outra pessoa e não altera o snapshot. | Fechamentos |
+| Conferências | Pagamento em duplicidade e transferência entre contas próprias no extrato; saldo invertido pela natureza da conta e saldo parado no balancete. Calculadas na leitura, com limiares provisórios em `configs/conferencias.yaml`. Só avisam ([ADR 013](docs/adr/013-conciliacao-por-casos.md), [ADR 020](docs/adr/020-fechamento-com-evidencia.md)). | Conciliação; Relatórios › balancete; Fechamentos |
+| Resumo do mês | Na competência fechada, o escritório gera um resumo em frases fixas (faturamento, despesas, resultado, margem e dinheiro em conta), sem IA. Outra pessoa publica, e o cliente lê no portal. A reabertura retira o resumo ([ADR 034](docs/adr/034-resumo-do-mes-para-o-cliente.md)). | Fechamentos; portal do cliente |
 | Pendências | Pedido de documento na competência. Aberto ou recebido bloqueia o fechamento. Hoje mostra a fila do escritório. | Hoje e Pendências |
 | Importação | Lote CSV em simulação, relatório de diferenças e publicação por outra pessoa. Identificador já importado não entra de novo. | Migrações |
-| Bancos e conciliação | Conta bancária ligada ao plano, extrato CSV ou OFX, casos Sugerido e Sem candidato, aprovação humana do vínculo. | Conciliação; Rotinas do razão › Bancos |
+| Bancos e conciliação | Conta bancária ligada ao plano, extrato CSV ou OFX, casos Sugerido e Sem candidato, aprovação humana do vínculo. No caso sem par, a contrapartida vem sugerida pelo histórico da empresa e, por pedido, pelo Claude Haiku 5.5 com a descrição pseudonimizada e teto diário; a pessoa confirma ([ADR 035](docs/adr/035-sugestao-de-conta-por-modelo.md), só dados fictícios). | Conciliação; Rotinas do razão › Bancos |
 | Documentos | Arquivo original no object storage com hash SHA-256, tipo e competência. | Evidências |
 | Exportação | JSON da competência com lançamentos, documentos, pedidos, auditoria, totais do balancete e SHA-256. | Evidências |
-| Portal do cliente | O cliente envia o arquivo do próprio pedido, vê o resumo, o histórico, a conversa e pode mandar um documento sem pedido. Não vê o razão e não confirma. | Casca do cliente |
+| Portal do cliente | O cliente envia o arquivo do próprio pedido, vê o resumo, o histórico, a conversa e pode mandar um documento sem pedido. Lê o resumo do mês publicado da própria empresa. Não vê o razão e não confirma. | Casca do cliente |
 | Auditoria | Eventos encadeados por hash, com verificação da cadeia. | Rotinas do razão › Auditoria |
 
-Revisões de IA, obrigações e entregas e integrações externas aparecem no menu, mas a tela diz que ainda não há contrato. Elas não simulam estado.
+Revisões de IA, obrigações e entregas e integrações externas aparecem no menu, mas a tela diz que ainda não há contrato. Elas não simulam estado. A sugestão de contrapartida por IA fica na própria Conciliação, não em Revisões de IA.
 
 ## Como usar
 
@@ -51,11 +53,11 @@ Revisões de IA, obrigações e entregas e integrações externas aparecem no me
 
 | Papel | Pode |
 | --- | --- |
-| `preparer` | Criar conta e rascunho, enviar para aprovação, montar lote de importação, enviar documento e extrato, pedir reabertura, pedir documento e pedir a exportação da competência. |
-| `approver` | Aprovar, rejeitar e publicar o lançamento de outra pessoa; publicar lote; aprovar conciliação; fechar período e aprovar a reabertura pedida por outra pessoa; confirmar o pedido de documento. |
+| `preparer` | Criar conta e rascunho, enviar para aprovação, montar lote de importação, enviar documento e extrato, pedir reabertura, pedir documento, pedir a exportação da competência, gerar o resumo do mês e pedir a sugestão por IA. |
+| `approver` | Aprovar, rejeitar e publicar o lançamento de outra pessoa; publicar lote; aprovar conciliação; fechar período e aprovar a reabertura pedida por outra pessoa; confirmar o pedido de documento; publicar o resumo do mês gerado por outra pessoa e retirá-lo com motivo. |
 | `admin` | O que os dois acima podem, mais cadastrar empresa, convidar pessoas para o escritório e convidar o cliente de uma empresa. |
 | `viewer` | Consultar, inclusive a fila de pendências e a exportação já gerada. Não dispara exportação. |
-| `client` | Ver o resumo, o histórico e a conversa da própria empresa, enviar arquivo e um documento sem pedido, e escolher o aviso por e-mail. Não confirma, não cancela e não abre a sala do escritório. |
+| `client` | Ver o resumo, o resumo do mês publicado, o histórico e a conversa da própria empresa, enviar arquivo e um documento sem pedido, e escolher o aviso por e-mail. Não confirma, não cancela e não abre a sala do escritório. |
 
 A segregação vale mesmo para quem tem vários papéis: quem criou o lançamento não aprova nem publica esse lançamento.
 
@@ -70,7 +72,7 @@ O primeiro admin nasce no comando `contabil.bootstrap`. Os seguintes entram em *
 5. Em **Rotinas do razão › Novo lançamento**, monte um rascunho equilibrado e envie para aprovação.
 6. Outra pessoa, com papel `approver`, abre o lançamento, aprova e publica.
 7. Confira o saldo em **Rotinas do razão › Balancete** e desça até a linha.
-8. Em **Conciliação**, envie o extrato e decida cada caso sugerido.
+8. Em **Conciliação**, envie o extrato e decida cada caso sugerido. Confira os casos com **Atenção** e a contrapartida sugerida antes de criar o lançamento.
 9. Em **Evidências**, gere a exportação da competência e confira o SHA-256 quando o estado estiver pronto.
 10. Em **Fechamentos**, abra o checklist, revise o balancete e feche a competência. Baixe o pacote e confira o SHA-256.
 
@@ -111,13 +113,15 @@ flowchart LR
 | Master data | `master_data/` | Plano de contas, centro de custo e o modelo mínimo de contas. |
 | Ledger | `ledger/` | Journals, linhas, aprovação, publicação, estorno e balancete. |
 | Períodos | `periods/` | Abertura, fechamento e reabertura aprovada. |
-| Fechamento | `closing/` | Checklist, snapshot imutável e pacote gerado no download. |
+| Fechamento | `closing/` | Checklist, conferências do balancete, snapshot imutável e pacote gerado no download. |
+| Resumo do mês | `client_summaries/` | Resumo da competência fechada em frases fixas, publicação por outra pessoa e retirada na reabertura. |
 | Importação | `imports/` | Lotes CSV, simulação, relatório de diferenças e publicação. |
-| Conciliação | `reconciliation/` | Contas bancárias, parser de CSV e OFX, matching explicável e casos. |
+| Conciliação | `reconciliation/` | Contas bancárias, parser de CSV e OFX, matching explicável, casos e alertas do extrato. |
+| Sugestões | `suggestions/` | Contrapartida sugerida pelo histórico e pelo modelo de linguagem, pseudonimização, lotes no worker, teto diário e custo por lote. |
 | Documentos | `documents/` | Upload, hash e download do arquivo original. |
 | Pedidos de documento | `document_requests/` | Pedido na competência, envio, confirmação, cancelamento e a fila do escritório. |
 | Exportação | `exports/` | Pacote JSON da competência, gerado pelo outbox, com SHA-256 e auditoria. |
-| Portal do cliente | `portal/` | Rotas do cliente: os pedidos da própria empresa e o envio do arquivo. |
+| Portal do cliente | `portal/` | Rotas do cliente: os pedidos da própria empresa, o envio do arquivo e o resumo do mês publicado. |
 | Signatários | `signatories/` | Registro profissional (CRC) por escritório, signatários da empresa e a leitura que as demonstrações e a ECD usam. |
 | Regulatório | `regulatory/` | Registry mínimo (leiaute da ECD como dado, escolhido pela vigência), dados da escrituração por empresa e a prévia da ECD. |
 | Auditoria | `audit/` | Eventos encadeados por hash e verificação. |
@@ -131,7 +135,7 @@ flowchart LR
 - **Isolamento:** toda tabela de negócio tem `tenant_id` e RLS forçada, inclusive para o dono da tabela ([ADR 005](docs/adr/005-isolamento-de-tenant.md)). O cliente fica preso à empresa da membership: as rotas do escritório respondem 403 para ele, e o banco exige empresa em toda membership `client` ([ADR 025](docs/adr/025-portal-do-cliente.md)).
 - **Aprovação humana:** nenhum efeito contábil sai sem uma segunda pessoa autorizada ([ADR 004](docs/adr/004-aprovacao-humana.md)).
 - **Idempotência:** POSTs que mudam estado aceitam `Idempotency-Key`; o mesmo pedido devolve a mesma resposta ([ADR 006](docs/adr/006-adaptadores-e-idempotencia.md)).
-- **Jobs:** importação, extrato e exportação vão para o outbox, com retry limitado e dead-letter. A resposta traz `operation_id` e `correlation_id`, e `GET /v1/operations` lista as operações ([ADR 008](docs/adr/008-outbox-postgresql.md), [ADR 012](docs/adr/012-jobs-outbox.md), [ADR 023](docs/adr/023-exportacao-operacional.md)).
+- **Jobs:** importação, extrato, exportação e sugestão por IA vão para o outbox, com retry limitado e dead-letter. A resposta traz `operation_id` e `correlation_id`, e `GET /v1/operations` lista as operações ([ADR 008](docs/adr/008-outbox-postgresql.md), [ADR 012](docs/adr/012-jobs-outbox.md), [ADR 023](docs/adr/023-exportacao-operacional.md)).
 - **Evidência:** o arquivo original fica no object storage com hash; o banco guarda metadado e referência ([ADR 011](docs/adr/011-object-storage-s3.md)). O mesmo arquivo pode estar em duas empresas do escritório, cada uma com o seu documento ([ADR 033](docs/adr/033-correcoes-da-auditoria-de-novembro.md)).
 - **Configuração:** a imagem do piloto roda com `ENVIRONMENT=pilot` e não sobe com valor de desenvolvimento, sem as claims de identidade ou com `SEED_DEMO` ([ADR 033](docs/adr/033-correcoes-da-auditoria-de-novembro.md)).
 
@@ -251,7 +255,7 @@ O [CI](.github/workflows/ci.yml) roda os mesmos comandos em todo PR e a cada pus
 
 ## Como usar com o contador
 
-Comece pelo [caderno de descoberta](docs/accountant-discovery-workbook.md). Ele transforma a experiência do contador em decisões testáveis: como o escritório fecha hoje, onde ocorrem retrabalho e risco, quais arquivos realmente chegam, quais obrigações são prioritárias e que evidência precisa ser preservada.
+Comece pelo [caderno de descoberta](docs/accountant-discovery-workbook.md). As perguntas 82 a 87 tratam das conferências e sugestões: os três limiares, o papel de conta para cartão, empréstimo e taxa, o campo de natureza e as contas redutoras, quem publica o resumo do mês, a receita negativa no resumo e a aprovação do uso de IA com dado real. Ele transforma a experiência do contador em decisões testáveis: como o escritório fecha hoje, onde ocorrem retrabalho e risco, quais arquivos realmente chegam, quais obrigações são prioritárias e que evidência precisa ser preservada.
 
 Depois leia:
 
@@ -279,7 +283,7 @@ A visão completa contempla:
 - API versionada, webhooks idempotentes e observabilidade;
 - IA apenas como assistência explicável, sem publicar lançamentos ou transmitir obrigações sozinha.
 
-Ainda não construído: contas a pagar e receber, motor regulatório, obrigações, conectores governamentais, webhooks e assistência por IA. No portal do cliente faltam comentário, e-mail, lembrete e mais de um arquivo por pedido. O checklist de fechamento e o pacote já estão na sala ([ADR 020](docs/adr/020-fechamento-com-evidencia.md)), assim como a fila de pendências, a exportação da competência e o envio pelo cliente ([ADR 024](docs/adr/024-fila-de-pendencias.md), [ADR 023](docs/adr/023-exportacao-operacional.md), [ADR 025](docs/adr/025-portal-do-cliente.md)).
+Ainda não construído: contas a pagar e receber, motor regulatório, obrigações, conectores governamentais e webhooks. A assistência por IA se limita à sugestão de contrapartida na conciliação, com dados fictícios ([ADR 035](docs/adr/035-sugestao-de-conta-por-modelo.md)). No portal do cliente faltam comentário, e-mail, lembrete e mais de um arquivo por pedido. O checklist de fechamento e o pacote já estão na sala ([ADR 020](docs/adr/020-fechamento-com-evidencia.md)), assim como a fila de pendências, a exportação da competência e o envio pelo cliente ([ADR 024](docs/adr/024-fila-de-pendencias.md), [ADR 023](docs/adr/023-exportacao-operacional.md), [ADR 025](docs/adr/025-portal-do-cliente.md)).
 
 Folha completa, cobertura nacional de NFS-e, banking próprio, crédito, manufatura profunda, marketplace amplo e IA autônoma ficam fora do primeiro ciclo.
 

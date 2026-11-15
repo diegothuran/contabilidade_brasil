@@ -14,7 +14,7 @@ O empresário que entra no portal ([ADR 025](025-portal-do-cliente.md)) não lê
 
 **Só competência fechada.** Gerar numa competência aberta responde 409. Um rascunho pode ser recalculado; um resumo publicado precisa ser retirado antes de gerar outro. Há no máximo um resumo não retirado por competência (`uq_client_summaries_period`).
 
-**Retirada na reabertura.** Quando a reabertura é aprovada, o resumo publicado vira `withdrawn` com o motivo "Competência reaberta", na mesma transação, mesmo se a competência fechada não tiver execução de fechamento. O portal deixa de mostrá-lo.
+**Retirada na reabertura.** Quando a reabertura é aprovada, o resumo vivo (publicado ou rascunho) vira `withdrawn` com o motivo "Competência reaberta", na mesma transação, mesmo se a competência fechada não tiver execução de fechamento. O portal deixa de mostrá-lo.
 
 **Payload imutável.** A tabela `client_summaries` (migração `0022_client_summaries`, RLS forçada) tem um trigger que recusa mudar o `payload` quando o resumo já não é rascunho e recusa `DELETE`.
 
@@ -25,3 +25,4 @@ O empresário que entra no portal ([ADR 025](025-portal-do-cliente.md)) não lê
 - O texto do resumo é previsível e auditável, mas não explica causas. Isso fica com o contador.
 - O caixa depende de a empresa ter conta bancária cadastrada; sem ela, o resumo mostra R$ 0,00.
 - Corrigir um número exige reabrir a competência, o que retira o resumo e obriga a gerar e publicar de novo.
+- Quem publica e se o resumo espera o fechamento são a pergunta 85 do [caderno do contador](../accountant-discovery-workbook.md). Receita negativa (devolução maior que a venda) gera frases contraditórias; o tratamento é a pergunta 86.

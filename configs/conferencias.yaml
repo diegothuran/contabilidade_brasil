@@ -1,11 +1,11 @@
 # Limiares das conferências automáticas. Valores provisórios até o contador decidir.
 version: "2026.11-provisorio"
 
-# pergunta a criar na integração: limiar de duplicidade
+# pergunta 82 (a) do caderno do contador: janela do pagamento em duplicidade
 duplicate_payment_window_days: 3
 
-# pergunta a criar na integração: janela de transferência entre contas próprias
+# pergunta 82 (b) do caderno do contador: janela da transferência entre contas próprias
 own_transfer_window_days: 2
 
-# pergunta a criar na integração: tempo de saldo parado
+# pergunta 82 (c) do caderno do contador: tempo de saldo parado
 idle_balance_months: 3

@@ -93,6 +93,22 @@ Não defina `STATIC_DIR`, `SEED_DEMO` nem `OBJECT_STORAGE_CREATE_BUCKETS`. O app
 
 A imagem do piloto fixa `ENVIRONMENT=pilot` ([ADR 033](../../docs/adr/033-correcoes-da-auditoria-de-novembro.md)). Com ela, a API recusa a subida se `DATABASE_URL`, os valores `OIDC_*` ou as chaves do storage forem de desenvolvimento (`dev-only`, `localhost`), se `OIDC_USERNAME_CLAIM` ou `OIDC_TENANT_CLAIM` não estiverem definidos, ou se `SEED_DEMO` estiver ligado. O log da subida diz qual variável falta. A lista completa, com valores de exemplo, está em [env.example](env.example). Confira antes do primeiro deploy desta versão: o release roda as migrações com a mesma checagem.
 
+## Sugestão por IA
+
+A sugestão de contrapartida pelo modelo ([ADR 035](../../docs/adr/035-sugestao-de-conta-por-modelo.md)) usa três variáveis da API. Sem a chave, a rota responde 503, o caso informa `model_suggestions_enabled: false` e a tela esconde o botão; a sugestão pelo histórico continua.
+
+| Variável | Padrão | Uso |
+| --- | --- | --- |
+| `CLAUDE_API_KEY` | vazia | Chave da API da Anthropic. Fica só no config da API; não entra no repositório, no chat, no log nem no `.env.example` com valor. |
+| `SUGGESTION_MODEL` | `claude-haiku-5-5` | Modelo chamado. Trocar muda `provider_version` e não pede migração. |
+| `SUGGESTION_DAILY_LIMIT` | `500` | Transações enviadas ao modelo por escritório e por dia de Brasília. Passou, a rota responde 429 e o worker para antes do lote. |
+
+```bash
+heroku config:set --app NOME-API CLAUDE_API_KEY=CHAVE SUGGESTION_MODEL=claude-haiku-5-5 SUGGESTION_DAILY_LIMIT=500
+```
+
+O piloto só tem dado fictício. Dado real de cliente pede as condições da ADR 035 e a resposta da pergunta 87 do [caderno do contador](../../docs/accountant-discovery-workbook.md). A chamada real de conferência (`python -m contabil.suggestions.smoke`) só roda com autorização do gasto. No compose local, a `api` e o `worker` recebem as três variáveis do ambiente ou do `.env`.
+
 ## Primeiro escritório
 
 O `--user-id` é o `cognito:username` (em geral o e-mail ou o `sub`, o que o token trouxer nesse claim). O bootstrap e o convite gravam esse nome em minúsculas, como o user pool do piloto devolve no token.
@@ -179,6 +195,12 @@ Em **Relatórios**, o link **Prévia da ECD** do balancete abre a tela da ECD ([
 
 Em **Relatórios**, o link **Prévia da EFD-Reinf** do balancete abre a prévia da série R-4000 da competência da barra (Relatórios › Prévia da EFD-Reinf). Quem prepara inclui pagamentos com retenção fictícios: tipo PJ ou PF, CNPJ ou CPF de teste, nome, natureza da tabela da prévia, data dentro da competência, bruto, base e valor do IR e, só para PJ, base e valor da CSRF. O sistema não calcula imposto; guarda o que foi digitado e confere a coerência, e a recusa aparece ao lado do campo. A lista mostra o documento só em parte. "Gerar prévia" pede ao worker o zip `REINF-R4000-PREVIA-<cnpj>-<AAAAMM>.zip`, com um XML por evento e um LEIA-ME; a tela mostra a contagem por evento, se valida no XSD e o que falta. Nada é assinado ou transmitido: o XML sai sem assinatura e o envio exige certificado do próprio CNPJ, fora do piloto. Use só dados fictícios.
 
+Em **Conciliação**, o resumo da conta diz quantos pontos de atenção a competência tem, e o caso com pagamento repetido ou com transferência entre contas da mesma empresa mostra a etiqueta **Atenção** com a explicação. Os limiares estão em `configs/conferencias.yaml` (pergunta 82). No caso sem par, a contrapartida já vem escolhida com "Sugerido pelo histórico: …" quando a empresa tem casos parecidos resolvidos; com a chave configurada, **Pedir sugestão à IA** pede ao modelo os casos que o histórico não resolve, e a conta aparece com "Sugerido pela IA: … — confira". Nada vira lançamento antes de a pessoa apertar **Criar lançamento**.
+
+No balancete, o bloco **Pontos de atenção** aponta saldo invertido pela natureza da conta e saldo parado há três meses ou mais. O checklist `2026.11-1` de **Fechamentos** mostra os dois grupos de pontos (extrato e balancete) como pendentes, sem bloquear o fechamento.
+
+Com a competência fechada, **Fechamentos** mostra o painel **Resumo para o cliente**: quem prepara gera o resumo em frases fixas, outra pessoa com papel de aprovador publica, e o cliente da empresa lê o cartão **Resumo do mês** no portal. Reabrir a competência retira o resumo.
+
 Hoje mostra a fila de pedidos que bloqueiam o fechamento. Abrir um item troca a empresa e a competência da barra. Em Evidências, quem prepara gera a exportação da competência e baixa o JSON quando o estado fica pronto. A lista de operações fica na API, em `GET /v1/operations`.
 
 Cada empresa de teste ganha um usuário `cliente-` seguido do nome interno da história (`andamento`, `fechada`, `banco`, `vazia` e `rascunhos`; no Litoral, `pousada`, `oficina`, `mercado`, `clinica` e `grafica`). Esse usuário existe no banco, ligado só àquela empresa, mas ainda não tem login. Para criar o login, o administrador convida o mesmo nome de usuário em Administração, com o papel Cliente, a mesma empresa e um e-mail de teste. A API reconhece o cliente que já existe, não duplica o acesso e manda o e-mail com a senha temporária. Convidar esse nome com outro papel ou outra empresa continua sendo recusado. O cliente envia o arquivo. Quem confirma continua sendo o escritório. Os cinco casos do escritório piloto são o recibo confirmado da Padaria, o extrato aberto do Studio, a nota aberta do Vale, o contrato aberto do Ateliê e o recibo de frete aberto da Transportes.
@@ -213,4 +235,8 @@ heroku run --no-tty --exit-code --app NOME-API -- python -m contabil.pilot_repor
 - Um cliente convidado para uma empresa vê o resumo, os pedidos em aberto, o histórico e a conversa. Envia arquivo, manda um documento sem pedido e não abre o razão. O escritório devolve, classifica ou confirma. A Transportes Rio Claro e a Gráfica Norte Sul ficam com uma nota devolvida e uma mensagem.
 - O administrador entra, envia um OFX em Conciliação e vê um caso Sugerido. Sem bucket, esse passo fica para depois do storage.
 - O usuário do outro escritório recebe 404 ao abrir um caso do primeiro.
+- Alertas do extrato: um OFX fictício com dois pagamentos iguais e descrição parecida, a até três dias, mostra **Atenção** nos dois casos e "1 ponto(s) de atenção" no resumo da conta.
+- Conferências do balancete: uma conta de despesa com saldo credor aparece em **Pontos de atenção**, e o checklist da competência mostra "Conferências do balancete" pendente sem bloquear o fechamento.
+- Resumo do mês: numa competência fechada, quem prepara gera o resumo, o aprovador publica, e o cliente da mesma empresa o vê no portal; o cliente de outra empresa não vê. Reabrir a competência tira o resumo do portal.
+- Sugestão de contrapartida: depois de resolver um caso de uma tarifa, o caso seguinte com descrição parecida vem com "Sugerido pelo histórico". Com `CLAUDE_API_KEY` e autorização do gasto, **Pedir sugestão à IA** passa por "Pedindo sugestões…" e termina com a conta "Sugerido pela IA"; sem a chave, o botão não aparece.
 - O seed de demonstração não aparece.

@@ -53,7 +53,7 @@ O produto não decide regra contábil nem fiscal sozinho. Tudo o que depende do 
 | 1 | Quem cria não aprova | Depois | [ADR 004](adr/004-aprovacao-humana.md) | sem exceção para escritório de uma pessoa; contador 1 pede CRC ativo em algumas rotinas |
 | 2 | Dimensões obrigatórias | Depois | contrato do lançamento | opcionais |
 | 3 | Conta sintética | Depois | plano de contas | não recebe lançamento |
-| 4 | Fechamento com checklist | Depois | [ADR 020](adr/020-fechamento-com-evidencia.md) | checklist `2026.10-2` |
+| 4 | Fechamento com checklist | Depois | [ADR 020](adr/020-fechamento-com-evidencia.md) | checklist `2026.11-1` |
 | 5 | Reverter em período fechado | Depois | [ADR 001](adr/001-ledger-immutavel.md) | reabre antes |
 | 8 | Lote aprovado dispensa aprovar cada lançamento | Depois | importação | dispensa |
 | 11 | Tolerância de data na conciliação | Depois | [ADR 013](adr/013-conciliacao-por-casos.md) | 3 dias; contador 1 diz zero |

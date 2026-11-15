@@ -39,9 +39,9 @@ Mandar descrição bancária a um terceiro expõe dado de cliente. A descrição
 **Registro e custo**
 - `account_suggestions` (migração `0023_account_suggestions`) guarda empresa, caso, conta, confiança, justificativa, `source = model`, `provider_version` (modelo e versão do prompt) e a operação. As duas tabelas têm `tenant_id` e RLS forçada, e o `contabil_app` só tem `SELECT` e `INSERT`.
 - `suggestion_runs` recebe duas linhas por lote, sempre por INSERT e numa transação própria do worker, que sobrevive ao rollback do handler. Antes da chamada entra a **reserva**: `transactions_sent` igual ao tamanho do lote, tokens 0 e `stop_reason = reserved`. Depois entra o **resultado**: `transactions_sent = 0`, tokens e o `stop_reason` real, ou `error` quando a chamada falha. As sugestões válidas do lote entram na mesma transação do resultado.
-- Reentrega: quando um lote falha, o outbox tenta de novo e pula os casos que já têm sugestão da mesma operação. Assim os lotes anteriores não são pagos de novo. Caso de uma operação anterior pode ser reenviado num pedido novo.
+- Reentrega: quando um lote falha, o outbox tenta de novo e pula os casos que já têm sugestão da mesma operação. Assim os lotes anteriores não são pagos de novo. O caso cujo pick foi descartado num lote concluído não tem sugestão e volta ao modelo na reentrega. Caso de uma operação anterior pode ser reenviado num pedido novo.
 - O log leva ids, contagens e `stop_reason`. Prompt, resposta, descrição e nome ficam fora do log.
-- **Teto diário:** `SUGGESTION_DAILY_LIMIT` (padrão 500) transações enviadas por escritório desde 00:00 de Brasília, somadas em `suggestion_runs.transactions_sent`. A soma conta as reservas, inclusive as de chamada que falhou. A rota responde 429 "Limite diário de sugestões por IA atingido" quando o pedido passaria do teto, sem criar operação. O worker confere de novo antes de cada lote e para sem chamar o modelo. Nesse caso, a operação termina `completed` com `error_code = limite_diario`, e a tela mostra o aviso.
+- **Teto diário:** `SUGGESTION_DAILY_LIMIT` (padrão 500) transações enviadas por escritório desde 00:00 de Brasília, somadas em `suggestion_runs.transactions_sent`. A soma conta as reservas, inclusive as de chamada que falhou. A rota responde 429 "Limite diário de sugestões por IA atingido" quando o pedido passaria do teto, sem criar operação. O worker confere de novo antes de cada lote e para sem chamar o modelo. Nesse caso, a operação termina `completed` com `error_code = limite_diario`, e a tela mostra o aviso. Conferir e reservar não é atômico: a conferência lê a soma e a reserva entra depois, em outra transação. Duas operações concorrentes do mesmo escritório podem passar do teto em até um lote (40 transações). O risco é aceito no piloto; um teto estrito pede um lock por escritório na reserva.
 - Sem chave (`CLAUDE_API_KEY` vazia), a rota responde 503 "Sugestão por IA indisponível". O caso informa `model_suggestions_enabled: false`, e a tela esconde o botão.
 
 **Sempre sugestão**
@@ -58,7 +58,7 @@ Todas precisam estar cumpridas, e cada uma pede registro próprio:
 3. Aprovação do contador responsável, registrada.
 4. Revisão da lacuna da heurística de nomes: uma garantia mais forte ou a aceitação explícita do risco.
 
-Até lá, a ADR vale só para os dados fictícios do piloto.
+Até lá, a ADR vale só para os dados fictícios do piloto. A decisão está na pergunta 87 do [caderno do contador](../accountant-discovery-workbook.md).
 
 ## Consequências
 
