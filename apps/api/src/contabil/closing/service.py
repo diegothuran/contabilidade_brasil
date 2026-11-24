@@ -19,6 +19,7 @@ from contabil.closing.checklist import (
     decision_error,
     evaluate,
 )
+from contabil.closing.checks import trial_balance_checks
 from contabil.ledger.service import trial_balance
 from contabil.periods.service import lock_period, period_dict
 from contabil.platform.auth import apply_tenant, format_utc
@@ -27,6 +28,7 @@ from contabil.platform.errors import DomainError
 from contabil.platform.ids import new_id
 from contabil.platform.money import format_amount
 from contabil.platform.outbox import enqueue
+from contabil.reconciliation.alerts import period_alert_count
 from contabil.platform.principal import Principal, ensure_role
 from contabil.tables import (
     AccountingPeriod,
@@ -179,6 +181,10 @@ def close_open_run_for_period(session: Session, principal: Principal, period_id:
 
 
 def reopen_closed_run(session: Session, tenant_id: str, period_id: str, reason: str) -> None:
+    from contabil.client_summaries.service import withdraw_on_reopen
+
+    # Antes do retorno antecipado: vale também para competência fechada sem execução de fechamento.
+    withdraw_on_reopen(session, tenant_id, period_id)
     run = session.scalar(
         select(CloseRun)
         .where(CloseRun.tenant_id == tenant_id, CloseRun.period_id == period_id, CloseRun.status == "closed")
@@ -411,6 +417,8 @@ def _gather(session: Session, principal: Principal, period: AccountingPeriod) ->
             "reconciliation_pending": reconciliation["pending_count"],
             "documents": len(documents),
             "document_requests_open": int(open_requests or 0),
+            "statement_alerts": period_alert_count(session, principal.tenant_id, period.legal_entity_id, period),
+            "trial_balance_checks": len(trial_balance_checks(session, principal, period.id, balance=balance)["items"]),
             "trial_debit": balance["debit_total"],
             "trial_credit": balance["credit_total"],
         },

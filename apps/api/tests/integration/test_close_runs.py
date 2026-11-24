@@ -91,3 +91,22 @@ def test_snapshot_rejects_update(client, tokens, world):
         assert "immutable" in str(exc).lower()
         return
     raise AssertionError("o snapshot aceitou alteração")
+
+
+def test_checklist_shows_statement_alerts_without_blocking(client, tokens, world):
+    from tests.integration.test_phase_c import _bank, _statement
+    from tests.integration.test_statement_alerts import DUP
+
+    del world
+    bank_id = _bank(client, tokens["preparer"])
+    _statement(client, tokens["preparer"], bank_id, DUP, "dup.ofx")
+    opened = _post(client, tokens["approver"], "/v1/periods/le_test-2026-09/close-runs", {})
+    assert opened.status_code == 201, opened.text
+    run = client.get(f"/v1/close-runs/{opened.json()['close_run_id']}", headers=_auth(tokens["approver"])).json()
+    assert run["checklist_version"] == "2026.11-1"
+    items = {item["item_id"]: item for item in run["checklist"]}
+    assert items["statement_alerts"]["status"] == "pending"
+    assert items["statement_alerts"]["count"] == 1
+    assert items["statement_alerts"]["blocking"] is False
+    assert items["trial_balance_checks"]["blocking"] is False
+    assert items["trial_balance_checks"]["status"] in {"pending", "completed"}

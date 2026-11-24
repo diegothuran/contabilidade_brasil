@@ -60,6 +60,10 @@ class Settings(BaseSettings):
     ses_access_key: str = ""
     ses_secret_key: str = ""
     portal_base_url: str = ""
+    configs_dir: str = ""
+    claude_api_key: str = ""
+    suggestion_model: str = "claude-haiku-5-5"
+    suggestion_daily_limit: int = 500
 
     @field_validator("database_url", "database_admin_url", mode="before")
     @classmethod

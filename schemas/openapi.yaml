@@ -198,6 +198,35 @@ paths:
         '200': { description: Pedidos do cliente e o resumo }
         '400': { description: Estado ou cursor inválido }
         '403': { description: Quem não é cliente da empresa }
+  /v1/portal/summaries:
+    get:
+      summary: Resumos do mês publicados para a empresa do cliente
+      description: Só resumos published da empresa da membership, do mais recente para o mais antigo. Rascunho e retirado não aparecem.
+      operationId: listPortalSummaries
+      responses:
+        '200':
+          description: Resumos publicados
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items: { type: array, items: { $ref: '#/components/schemas/PortalClientSummary' } }
+        '403': { description: Quem não é cliente da empresa }
+  /v1/portal/summaries/{summary_id}:
+    get:
+      summary: Um resumo do mês publicado da empresa do cliente
+      operationId: getPortalSummary
+      parameters:
+        - in: path
+          name: summary_id
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: Resumo publicado, content: { application/json: { schema: { $ref: '#/components/schemas/PortalClientSummary' } } } }
+        '403': { description: Quem não é cliente da empresa }
+        '404': { description: "Resumo de outra empresa, em rascunho, retirado ou inexistente" }
   /v1/portal/document-requests/{request_id}:
     get:
       summary: Detalhe do pedido do cliente, com arquivos e conversa
@@ -870,8 +899,40 @@ paths:
           required: true
           schema: { type: string }
       responses:
-        '200': { description: Resumo da conta banco }
+        '200': { description: Resumo da conta banco, content: { application/json: { schema: { $ref: '#/components/schemas/BankAccountSummary' } } } }
         '404': { description: Conta ou período não encontrado }
+  /v1/bank-accounts/{bank_account_id}/counterpart-suggestions:
+    post:
+      summary: Pede ao modelo a contrapartida dos casos pendentes da conta na competência
+      description: >-
+        Cria uma operação e o evento CounterpartSuggestionRequested no outbox (ADR 035). Nada é chamado na leitura da tela.
+        O worker junta os casos abertos sem par da conta e da competência que o histórico não resolve com confiança alta,
+        em lotes de até 40 transações, com a descrição pseudonimizada. Cada despacho do outbox manda um lote só e, se
+        restarem casos e couber no teto, enfileira a continuação com o mesmo operation_id; a operação fica running até o
+        último lote e só então vira completed. A sugestão aparece depois em counterpart_suggestions do caso, com source
+        model. Pedido sem caso pendente também cria a operação, que termina sem chamar o modelo. A operação pode terminar
+        completed com error_code limite_diario (o teto acabou no meio: o worker mandou o que cabia e parou) ou
+        resposta_incompleta (recusa, max_tokens ou saída inválida em algum lote).
+      operationId: requestCounterpartSuggestions
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/BankAccountId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [period_id]
+              properties:
+                period_id: { type: string, minLength: 1, maxLength: 160 }
+      responses:
+        '202': { description: Pedido aceito, content: { application/json: { schema: { $ref: '#/components/schemas/OperationAccepted' } } } }
+        '403': { description: "Papel diferente de preparer, approver ou admin" }
+        '404': { description: Conta banco ou período não encontrado }
+        '429': { description: "Limite diário de sugestões por IA atingido: o escritório já usou todo o SUGGESTION_DAILY_LIMIT no dia de Brasília. Nenhuma operação é criada. Com saldo, o pedido é aceito mesmo com mais pendentes que o saldo; o worker manda o que couber e conclui com error_code limite_diario." }
+        '503': { description: "Sugestão por IA indisponível: CLAUDE_API_KEY vazia. Nenhuma operação é criada." }
   /v1/bank-accounts/{bank_account_id}/statements:
     post:
       summary: Recebe um extrato já armazenado e pede a leitura
@@ -926,7 +987,7 @@ paths:
           name: limit
           schema: { type: integer, minimum: 1, maximum: 100 }
       responses:
-        '200': { description: Casos de conciliação }
+        '200': { description: "Casos de conciliação em items (cada um no formato ReconciliationCase, com alerts, counterpart_suggestions e model_suggestions_enabled) e next_cursor" }
   /v1/reconciliation-cases/{case_id}:
     get:
       summary: Consulta um caso de conciliação
@@ -1027,8 +1088,19 @@ paths:
                 counterpart_account_id: { type: string }
                 description: { type: string }
                 cost_center_id: { type: string }
+                suggestion_source:
+                  type: string
+                  enum: [history, model, manual]
+                  default: manual
+                  description: Origem da conta escolhida, gravada na auditoria (reconciliation_counterpart_chosen) para medir o acerto das sugestões (ADR 035).
+                suggestion_rank:
+                  type: [integer, 'null']
+                  enum: [1, null]
+                  default: null
+                  description: Só 1 ou null. history e model vão com 1 (a primeira sugestão aceita); manual vai com null. Qualquer outra conta escolhida é manual.
       responses:
         '201': { description: Rascunho criado, content: { application/json: { schema: { $ref: '#/components/schemas/JournalEntry' } } } }
+        '422': { description: "Origem e posição incoerentes, ou rank diferente de 1 e null" }
   /v1/periods/{period_id}/close-runs:
     post:
       summary: Abre ou devolve a execução de fechamento aberta da competência
@@ -1264,6 +1336,87 @@ paths:
       responses:
         '200': { description: Período fechado }
         '409': { description: Estado inválido }
+  /v1/periods/{period_id}/trial-balance-checks:
+    get:
+      summary: Conferências do balancete da competência (pontos de atenção, não bloqueiam)
+      description: >-
+        Saldo invertido pela natureza da conta (inverted_balance) e saldo parado há idle_balance_months meses ou mais
+        (idle_balance), com limiares em configs/conferencias.yaml. Calculado na leitura. Qualquer papel do escritório lê.
+      operationId: getTrialBalanceChecks
+      parameters:
+        - $ref: '#/components/parameters/PeriodId'
+      responses:
+        '200':
+          description: Conferências da competência
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [period_id, rule_version, items]
+                properties:
+                  period_id: { type: string }
+                  rule_version: { type: string }
+                  items: { type: array, items: { $ref: '#/components/schemas/TrialBalanceCheck' } }
+        '403': { description: Cliente da empresa }
+        '404': { description: Período não encontrado }
+  /v1/periods/{period_id}/client-summary:
+    post:
+      summary: Gera ou recalcula o rascunho do resumo do mês para o cliente
+      description: >-
+        preparer, approver e admin. Só competência fechada. Cria o rascunho (201) ou recalcula o rascunho existente
+        (200). Frases fixas calculadas do razão fechado, sem IA (ADR 034).
+      operationId: generateClientSummary
+      parameters:
+        - $ref: '#/components/parameters/PeriodId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '201': { description: Rascunho criado, content: { application/json: { schema: { $ref: '#/components/schemas/ClientSummary' } } } }
+        '200': { description: Rascunho recalculado, content: { application/json: { schema: { $ref: '#/components/schemas/ClientSummary' } } } }
+        '403': { description: Papel insuficiente }
+        '404': { description: Período não encontrado }
+        '409': { description: "Competência aberta, ou resumo já publicado (retire antes de gerar outro)" }
+    get:
+      summary: Resumo do mês da competência, para o escritório
+      description: >-
+        Devolve o resumo vivo (draft ou published). Sem vivo, devolve o retirado mais recente, com withdrawn_reason.
+        404 só quando a competência não tem nenhum resumo.
+      operationId: getClientSummary
+      parameters:
+        - $ref: '#/components/parameters/PeriodId'
+      responses:
+        '200': { description: Resumo, content: { application/json: { schema: { $ref: '#/components/schemas/ClientSummary' } } } }
+        '404': { description: Período não encontrado ou sem resumo }
+  /v1/periods/{period_id}/client-summary/publish:
+    post:
+      summary: Publica o rascunho para o cliente da empresa
+      description: approver ou admin, que não pode ser quem gerou (ou recalculou) o rascunho. A competência precisa continuar fechada.
+      operationId: publishClientSummary
+      parameters:
+        - $ref: '#/components/parameters/PeriodId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '200': { description: Resumo publicado, content: { application/json: { schema: { $ref: '#/components/schemas/ClientSummary' } } } }
+        '403': { description: Papel insuficiente }
+        '404': { description: Não há resumo para esta competência }
+        '409': { description: "Já publicado, competência reaberta ou quem gerou tentou publicar" }
+  /v1/periods/{period_id}/client-summary/withdraw:
+    post:
+      summary: Retira o resumo publicado, com motivo
+      description: approver ou admin. Motivo de pelo menos 10 caracteres. A reabertura da competência retira o resumo sozinha, com o motivo "Competência reaberta".
+      operationId: withdrawClientSummary
+      parameters:
+        - $ref: '#/components/parameters/PeriodId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/Reason' }
+      responses:
+        '200': { description: Resumo retirado, content: { application/json: { schema: { $ref: '#/components/schemas/ClientSummary' } } } }
+        '400': { description: Motivo com menos de 10 caracteres }
+        '403': { description: Papel insuficiente }
+        '404': { description: Não há resumo publicado nesta competência }
   /v1/periods/{period_id}/reopen-requests:
     post:
       summary: Solicita reabertura com motivo
@@ -1771,7 +1924,111 @@ components:
               message: { type: string }
               event: { type: [string, 'null'], enum: [R-4010, R-4020, R-4099, null] }
               fix: { type: [string, 'null'], enum: [withholding_payments, signatories, legal_entity, null] }
-    ReconciliationCase: { type: object, description: Validado por schemas/reconciliation-case.schema.json, additionalProperties: true }
+    ReconciliationCase:
+      type: object
+      description: >-
+        Validado por schemas/reconciliation-case.schema.json. alerts, counterpart_suggestions e model_suggestions_enabled
+        vêm sempre. alerts é calculado na leitura (ADR 013), em toda resposta que devolve o caso, com no máximo 20
+        itens; a duplicidade vem agrupada (um alerta por grupo de saídas iguais) e a transferência própria, por par. counterpart_suggestions traz primeiro as do histórico, depois a mais recente do modelo, sem
+        repetir conta, e vem vazio para caso approved ou ignored. model_suggestions_enabled diz se o ambiente tem
+        CLAUDE_API_KEY.
+      additionalProperties: true
+      required: [alerts, counterpart_suggestions, model_suggestions_enabled]
+      properties:
+        alerts: { type: array, maxItems: 20, items: { $ref: '#/components/schemas/StatementAlert' } }
+        counterpart_suggestions: { type: array, maxItems: 4, items: { $ref: '#/components/schemas/CounterpartSuggestion' } }
+        model_suggestions_enabled: { type: boolean }
+    StatementAlert:
+      type: object
+      description: >-
+        Ponto de atenção do extrato (ADR 013). Não bloqueia o fechamento e não muda o caso. duplicate_payment lista o
+        grupo inteiro de saídas de mesmo valor e histórico parecido ligadas pela janela, e a explicação diz quantas são;
+        own_transfer lista o par.
+      additionalProperties: false
+      required: [kind, transaction_ids, explanation, rule_version]
+      properties:
+        kind: { type: string, enum: [duplicate_payment, own_transfer] }
+        transaction_ids: { type: array, minItems: 2, items: { type: string } }
+        explanation: { type: string, maxLength: 500 }
+        rule_version: { type: string, description: 'Versão de configs/conferencias.yaml, 2026.11-provisorio' }
+    BankAccountSummary:
+      type: object
+      description: Saldo e pendências da conta banco na competência. Valores em string decimal.
+      additionalProperties: true
+      properties:
+        ledger_balance: { type: string }
+        statement_balance: { type: [string, 'null'] }
+        pending_inflow_count: { type: integer }
+        pending_inflow_total: { type: string }
+        pending_outflow_count: { type: integer }
+        pending_outflow_total: { type: string }
+        unmatched_ledger_count: { type: integer }
+        unmatched_ledger_total: { type: string }
+        alert_count: { type: integer, description: Alertas distintos (grupo de duplicidade ou par de transferência) com alguma transação desta conta dentro da competência }
+    CounterpartSuggestion:
+      type: object
+      description: Conta sugerida para a contrapartida (ADR 035). É sempre sugestão; a pessoa confirma com o botão que já existe.
+      additionalProperties: false
+      required: [account_id, code, name, confidence, justification, source, provider_version]
+      properties:
+        account_id: { type: string }
+        code: { type: string }
+        name: { type: string }
+        confidence: { type: string, enum: [alta, média, baixa] }
+        justification: { type: string, maxLength: 300 }
+        source: { type: string, enum: [history, model] }
+        provider_version: { type: string, description: 'history-1 no histórico; <SUGGESTION_MODEL>/contrapartida-1 no modelo' }
+    TrialBalanceCheck:
+      type: object
+      description: Conferência do balancete (ADR 020). Não bloqueia; o checklist 2026.11-1 conta os itens.
+      additionalProperties: false
+      required: [kind, account_id, code, name, amount, explanation, rule_version]
+      properties:
+        kind: { type: string, enum: [inverted_balance, idle_balance] }
+        account_id: { type: string }
+        code: { type: string }
+        name: { type: string }
+        amount: { type: string, description: Saldo final com sinal; positivo é devedor }
+        explanation: { type: string }
+        rule_version: { type: string }
+    ClientSummaryPayload:
+      type: object
+      description: Números da competência em string decimal e as frases fixas (ADR 034). Sem IA.
+      required: [schema_version, competence, revenue, expense, result, cash, margin_percent, sentences]
+      properties:
+        schema_version: { type: string }
+        competence: { type: string, description: AAAA-MM }
+        revenue: { type: string }
+        expense: { type: string }
+        result: { type: string }
+        cash: { type: string }
+        margin_percent: { type: [string, 'null'], description: 'Resultado dividido pelas receitas, uma casa; null sem faturamento' }
+        sentences: { type: array, items: { type: string } }
+    ClientSummary:
+      type: object
+      description: Resumo do mês visto pelo escritório. status draft, published ou withdrawn.
+      required: [summary_id, period_id, legal_entity_id, status, payload, created_by, published_by, published_at, withdrawn_reason]
+      properties:
+        summary_id: { type: string }
+        period_id: { type: string }
+        legal_entity_id: { type: string }
+        status: { type: string, enum: [draft, published, withdrawn] }
+        payload: { $ref: '#/components/schemas/ClientSummaryPayload' }
+        created_by: { type: string }
+        published_by: { type: [string, 'null'] }
+        published_at: { type: [string, 'null'], format: date-time }
+        withdrawn_reason: { type: [string, 'null'] }
+    PortalClientSummary:
+      type: object
+      description: Resumo publicado visto pelo cliente. Não traz quem gerou, quem publicou, estado nem motivo de retirada.
+      additionalProperties: false
+      required: [summary_id, period_id, competence, payload, published_at]
+      properties:
+        summary_id: { type: string }
+        period_id: { type: string }
+        competence: { type: string, description: AAAA-MM }
+        payload: { $ref: '#/components/schemas/ClientSummaryPayload' }
+        published_at: { type: string, format: date-time }
     CloseRun: { type: object, description: Validado por schemas/close-run.schema.json, additionalProperties: true }
     RegulatoryObligation: { type: object, description: Validado por schemas/regulatory-obligation.schema.json, additionalProperties: true }
     Reason:
@@ -1797,7 +2054,12 @@ components:
         operation_id: { type: string }
         status: { type: string, enum: [accepted, running, completed, failed, cancelled] }
         correlation_id: { type: string }
-        error_code: { type: [string, 'null'] }
+        error_code:
+          type: [string, 'null']
+          enum: [limite_diario, resposta_incompleta, handler_failed, null]
+          description: >-
+            Códigos conhecidos. handler_failed: o handler do outbox falhou três vezes e a operação virou failed.
+            limite_diario e resposta_incompleta: a sugestão por IA (ADR 035) concluiu completed com aviso.
     MyProfessionalRegistration:
       type: object
       required: [user_id, display_name, registration]

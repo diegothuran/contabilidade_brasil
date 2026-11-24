@@ -17,6 +17,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from contabil.audit.router import router as audit_router
 from contabil.closing.router import router as closing_router
+from contabil.client_summaries.router import router as client_summaries_router
 from contabil.document_requests.router import router as document_requests_router
 from contabil.documents.router import router as documents_router
 from contabil.exports.router import router as exports_router
@@ -27,6 +28,7 @@ from contabil.periods.router import router as periods_router
 from contabil.portal.router import router as portal_router
 from contabil.reconciliation.router import router as reconciliation_router
 from contabil.signatories.router import router as signatories_router
+from contabil.suggestions.router import router as suggestions_router
 from contabil.regulatory.router import router as regulatory_router
 from contabil.submissions.router import router as submissions_router
 from contabil.platform.correlation import correlation_id
@@ -176,10 +178,12 @@ def create_app() -> FastAPI:
     app.include_router(imports_router, prefix="/v1", dependencies=office)
     app.include_router(exports_router, prefix="/v1", dependencies=office)
     app.include_router(reconciliation_router, prefix="/v1", dependencies=office)
+    app.include_router(suggestions_router, prefix="/v1", dependencies=office)
     app.include_router(audit_router, prefix="/v1", dependencies=office)
     app.include_router(signatories_router, prefix="/v1", dependencies=office)
     app.include_router(regulatory_router, prefix="/v1", dependencies=office)
     app.include_router(withholdings_router, prefix="/v1", dependencies=office)
+    app.include_router(client_summaries_router, prefix="/v1", dependencies=office)
     app.include_router(portal_router, prefix="/v1")
     if settings.static_dir:
         _mount_spa(app, settings.static_dir)

@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict
 
+from contabil.closing.checks import trial_balance_checks
 from contabil.closing.service import close_run, decide_item, evidence_package, get_close_run, open_close_run
 from contabil.platform.deps import Ctx, get_context
 from contabil.platform.idempotency import persist, replay_guard
@@ -18,6 +19,11 @@ class ItemDecisionBody(BaseModel):
 
     status: Literal["completed", "not_applicable"]
     reason: str | None = None
+
+
+@router.get("/periods/{period_id}/trial-balance-checks")
+def get_trial_balance_checks(period_id: str, ctx: Ctx = Depends(get_context)) -> dict:
+    return trial_balance_checks(ctx.session, ctx.principal, period_id)
 
 
 @router.post("/periods/{period_id}/close-runs")

@@ -26,6 +26,13 @@ type PortalList = {
   summary: { open: number; received: number; overdue: number; next_due_on: string | null };
 };
 
+type MonthSummary = {
+  summary_id: string;
+  period_id: string;
+  published_at: string | null;
+  payload: { competence: string; sentences: string[] };
+};
+
 const STATUS: Record<string, string> = {
   open: "Pedido aberto",
   received: "Arquivo recebido",
@@ -64,6 +71,10 @@ export function PortalPage({ me }: { me: Me }) {
   const savePreference = useMutation({
     mutationFn: (notify: boolean) => api("/v1/portal/preferences", { method: "PATCH", body: { notify_client: notify } }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["portal-preference", me.user_id] }),
+  });
+  const summaries = useQuery({
+    queryKey: ["portal-summaries", me.legal_entity_id],
+    queryFn: () => api<{ items: MonthSummary[] }>("/v1/portal/summaries"),
   });
   const requests = useQuery({
     queryKey: ["portal-requests", me.legal_entity_id, tab],
@@ -121,6 +132,27 @@ export function PortalPage({ me }: { me: Me }) {
             <article className="metric metric--info"><span>Recebidos</span><strong>{summary.received}</strong><small>aguardam o escritório</small></article>
             <article className="metric metric--danger"><span>Vencidos</span><strong>{summary.overdue}</strong><small>prazo já passou</small></article>
             <article className="metric metric--neutral"><span>Próximo prazo</span><strong>{summary.next_due_on ? day(summary.next_due_on) : "—"}</strong><small>entre os pedidos em aberto</small></article>
+          </section>
+        ) : null}
+        {summaries.isError ? (
+          <p className="error" data-testid="portal-summary-error">Não foi possível carregar o resumo do mês.</p>
+        ) : null}
+        {summaries.data && summaries.data.items.length > 0 ? (
+          <section className="panel portal-summary-card" data-testid="portal-summary">
+            <span className="eyebrow">Resumo do mês</span>
+            <h2>{summaries.data.items[0].payload.competence.split("-").reverse().join("/")}</h2>
+            {summaries.data.items[0].payload.sentences.map((sentence, index) => <p key={index}>{sentence}</p>)}
+            {summaries.data.items.length > 1 ? (
+              <details>
+                <summary>Meses anteriores</summary>
+                {summaries.data.items.slice(1).map((item) => (
+                  <div key={item.summary_id}>
+                    <h3>{item.payload.competence.split("-").reverse().join("/")}</h3>
+                    {item.payload.sentences.map((sentence, index) => <p key={index}>{sentence}</p>)}
+                  </div>
+                ))}
+              </details>
+            ) : null}
           </section>
         ) : null}
         <section className="panel portal-upload-card">

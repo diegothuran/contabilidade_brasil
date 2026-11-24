@@ -8,7 +8,10 @@
   "candidates": [
     { "candidate_id": "ln-0001", "candidate_type": "journal", "score": 0.9, "explanation": ["Valor idêntico", "Data a 2 dias", "Histórico compatível: fornecedor"], "matched_fields": ["amount", "date", "description"] }
   ],
+  "alerts": [],
   "selected_candidate_id": null,
   "approved_by": null,
-  "audit_event_id": null
+  "audit_event_id": null,
+  "counterpart_suggestions": [],
+  "model_suggestions_enabled": false
 }

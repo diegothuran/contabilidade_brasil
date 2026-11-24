@@ -16,6 +16,7 @@ A competência fecha por uma execução de fechamento.
 - Ao fechar, a API grava um snapshot JSON no Postgres com SHA-256. Trigger impede UPDATE e DELETE. A reabertura não altera o snapshot: a execução fechada passa a `reopened` e a seguinte nasce com outro número.
 - O pacote é JSON gerado no download, com manifesto, hash e o snapshot. Ele não declara livro autenticado nem assinatura ICP-Brasil. O download registra `document_exported`.
 - `POST /v1/periods/{id}/close` usa a mesma regra e exige execução aberta sem bloqueio.
+- As conferências do balancete (saldo invertido e saldo parado, limiares em `configs/conferencias.yaml`) são informativas e não bloqueiam. O item "Conferências do balancete" (`trial_balance_checks`, categoria `reports`) entra no checklist na versão `2026.11-1`, junto com "Pontos de atenção do extrato" (`statement_alerts`, categoria `bank`). Os dois ficam pendentes enquanto a contagem é maior que zero e não bloqueiam o fechamento. A pergunta sobre o campo de natureza da conta (para tratar conta redutora) vai ao caderno do contador. O saldo parado ignora conta de patrimônio líquido (`account_type = equity`), que fica parada por natureza e dispararia todo mês; a explicação do item diz isso. Imobilizado e outras contas permanentes ainda entram, até o contador responder qual natureza deve ficar fora (pergunta 88 do caderno).
 
 ## Consequências
 

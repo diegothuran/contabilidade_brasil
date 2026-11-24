@@ -4,7 +4,7 @@
   "title": "Reconciliation case",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version", "case_id", "tenant_id", "account_id", "status", "bank_transaction", "candidates"],
+  "required": ["schema_version", "case_id", "tenant_id", "account_id", "status", "bank_transaction", "candidates", "alerts", "counterpart_suggestions", "model_suggestions_enabled"],
   "properties": {
     "schema_version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" },
     "case_id": { "type": "string", "minLength": 8, "maxLength": 160 },
@@ -24,6 +24,21 @@
         "direction": { "type": "string", "enum": ["inflow", "outflow"] },
         "description": { "type": "string", "maxLength": 2000 },
         "external_id": { "type": ["string", "null"], "maxLength": 200 }
+      }
+    },
+    "alerts": {
+      "type": "array",
+      "maxItems": 20,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["kind", "transaction_ids", "explanation", "rule_version"],
+        "properties": {
+          "kind": { "type": "string", "enum": ["duplicate_payment", "own_transfer"] },
+          "transaction_ids": { "type": "array", "minItems": 2, "items": { "type": "string", "maxLength": 200 } },
+          "explanation": { "type": "string", "maxLength": 500 },
+          "rule_version": { "type": "string", "maxLength": 40 }
+        }
       }
     },
     "candidates": {
@@ -46,6 +61,25 @@
     "approved_by": { "type": ["string", "null"], "maxLength": 160 },
     "audit_event_id": { "type": ["string", "null"], "maxLength": 160 },
     "journal_id": { "type": ["string", "null"], "maxLength": 160 },
-    "reason": { "type": ["string", "null"], "maxLength": 2000 }
+    "reason": { "type": ["string", "null"], "maxLength": 2000 },
+    "counterpart_suggestions": {
+      "type": "array",
+      "maxItems": 4,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["account_id", "code", "name", "confidence", "justification", "source", "provider_version"],
+        "properties": {
+          "account_id": { "type": "string", "maxLength": 160 },
+          "code": { "type": "string", "maxLength": 40 },
+          "name": { "type": "string", "maxLength": 200 },
+          "confidence": { "type": "string", "enum": ["alta", "média", "baixa"] },
+          "justification": { "type": "string", "maxLength": 300 },
+          "source": { "type": "string", "enum": ["history", "model"] },
+          "provider_version": { "type": "string", "maxLength": 120 }
+        }
+      }
+    },
+    "model_suggestions_enabled": { "type": "boolean" }
   }
 }

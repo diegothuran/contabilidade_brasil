@@ -19,6 +19,7 @@ type BalanceRow = {
 };
 type Balance = { rows: BalanceRow[]; debit_total: string; credit_total: string };
 type DrillLine = { journal_id: string; line_id: string; entry_date: string; side: string; amount: string; description: string; journal_status: string };
+type Attention = { kind: string; account_id: string; code: string; name: string; amount: string; explanation: string };
 type Ledger = { code: string; name: string; opening_balance: string; lines: DrillLine[] };
 export function TrialBalancePage() {
   const { entityId, periodId, period, entityText, periodText, issuedAt } = useReportContext();
@@ -35,6 +36,12 @@ export function TrialBalancePage() {
     enabled: Boolean(periodId),
     queryFn: () => api<Balance>(`/v1/legal-entities/${entityId}/trial-balance?period_id=${periodId}`),
   });
+  const checks = useQuery({
+    queryKey: ["trial-checks", periodId],
+    enabled: Boolean(periodId),
+    queryFn: () => api<{ items: Attention[] }>(`/v1/periods/${periodId}/trial-balance-checks`),
+  });
+  const attention = checks.data?.items ?? [];
   const drill = useQuery({
     queryKey: ["drill", accountId, periodId],
     enabled: Boolean(accountId && periodId),
@@ -111,6 +118,29 @@ export function TrialBalancePage() {
             <span>Diferença</span><strong>{formatMoney(difference)}</strong><small>{balanced ? "Débitos e créditos fecham" : "Não fecha: revise os lançamentos"}</small>
           </article>
           <article className="metric metric--attention"><span>Contas com movimento</span><strong>{moved}</strong><small>de {rows.length} contas que recebem lançamento</small></article>
+        </section>
+      ) : null}
+
+      {checks.isError ? (
+        <p className="error" data-testid="attention-error">Não foi possível carregar os pontos de atenção.</p>
+      ) : null}
+      {attention.length > 0 ? (
+        <section className="panel report-balancete" aria-label="Pontos de atenção" data-testid="attention-panel">
+          <h2 className="report-title">Pontos de atenção</h2>
+          <p className="muted">Conferências informativas: não bloqueiam o fechamento.</p>
+          <ul>
+            {attention.map((item) => (
+              <li key={`${item.kind}-${item.account_id}`}>
+                <button type="button" className="report-link" onClick={() => setAccountId(item.account_id)} aria-label={`Ver o razão de ${item.code} ${item.name}`}>
+                  {item.code} {item.name}
+                </button>
+                {" · "}
+                {formatBalance(item.amount)}
+                {" · "}
+                {item.explanation}
+              </li>
+            ))}
+          </ul>
         </section>
       ) : null}
 

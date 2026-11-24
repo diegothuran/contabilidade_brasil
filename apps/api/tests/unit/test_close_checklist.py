@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from contabil.audit.hash import content_hash
-from contabil.closing.checklist import BY_ID, ItemDecision, blocking_pending, decision_error, evaluate
+from contabil.closing.checklist import BY_ID, CHECKLIST_VERSION, ItemDecision, blocking_pending, decision_error, evaluate
 
 
 def _counts(**overrides: object) -> dict:
@@ -13,6 +13,8 @@ def _counts(**overrides: object) -> dict:
         "reconciliation_pending": 0,
         "documents": 0,
         "document_requests_open": 0,
+        "statement_alerts": 0,
+        "trial_balance_checks": 0,
         "trial_debit": "0",
         "trial_credit": "0",
     }
@@ -72,3 +74,27 @@ def test_snapshot_hash_ignores_key_order() -> None:
     second = content_hash({"a": {"c": 3, "d": 2}, "b": 1})
     assert first == second
     assert len(first) == 64
+
+
+def test_checklist_version_is_2026_11_1() -> None:
+    assert CHECKLIST_VERSION == "2026.11-1"
+
+
+def test_conference_items_are_attention_only() -> None:
+    expected = {
+        "statement_alerts": ("bank", "Pontos de atenção do extrato", "/app/rastro/conciliacao", "ITG 2000 (R1), item 14"),
+        "trial_balance_checks": ("reports", "Conferências do balancete", "/app/rastro/balancete", "ITG 2000 (R1), item 12"),
+    }
+    items = evaluate(_counts(statement_alerts=2, trial_balance_checks=3), {})
+    for item_id, (category, title, href, reference) in expected.items():
+        item = _item(items, item_id)
+        assert (item["category"], item["title"], item["href"], item["reference"]) == (category, title, href, reference)
+        assert item["blocking"] is False
+        assert item["status"] == "pending"
+    assert _item(items, "statement_alerts")["count"] == 2
+    assert _item(items, "trial_balance_checks")["count"] == 3
+    pending = {item["item_id"] for item in blocking_pending(items)}
+    assert not pending & set(expected)
+    clear = evaluate(_counts(), {})
+    for item_id in expected:
+        assert _item(clear, item_id)["status"] == "completed"
