@@ -99,6 +99,7 @@ async function installPortalApi(page: Page): Promise<void> {
     const path = new URL(route.request().url()).pathname;
     if (path === "/v1/me") return json(route, portalMe);
     if (path === "/v1/portal/preferences") return json(route, { notify_client: true });
+    if (path === "/v1/portal/summaries") return json(route, { items: [] });
     if (path === "/v1/portal/document-requests") {
       return json(route, {
         items: [{
