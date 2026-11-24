@@ -774,3 +774,70 @@ class SuggestionRun(Base):
     output_tokens: Mapped[int] = mapped_column(Integer)
     stop_reason: Mapped[str] = mapped_column(String(40))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+
+class AiReview(Base):
+    """Revisão do mês por IA de uma empresa numa competência (ADR 036). O worker muda o estado."""
+
+    __tablename__ = "ai_reviews"
+    __table_args__ = (
+        CheckConstraint("status IN ('requested', 'completed', 'incomplete', 'failed')", name="ck_ai_reviews_status"),
+        Index("ix_ai_reviews_period", "tenant_id", "period_id", "created_at"),
+        Index("ix_ai_reviews_day", "tenant_id", "created_at"),
+    )
+
+    id: Mapped[str] = mapped_column(String(160), primary_key=True)
+    tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.id"))
+    legal_entity_id: Mapped[str] = mapped_column(ForeignKey("legal_entities.id"))
+    period_id: Mapped[str] = mapped_column(ForeignKey("accounting_periods.id"))
+    operation_id: Mapped[str] = mapped_column(ForeignKey("operations.id"))
+    status: Mapped[str] = mapped_column(String(20))
+    model: Mapped[str] = mapped_column(String(80))
+    prompt_version: Mapped[str] = mapped_column(String(40))
+    packet_version: Mapped[str] = mapped_column(String(40))
+    input_sha256: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    input_tokens: Mapped[int] = mapped_column(Integer, default=0)
+    output_tokens: Mapped[int] = mapped_column(Integer, default=0)
+    stop_reason: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    requested_by: Mapped[str] = mapped_column(String(160))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class AiReviewFinding(Base):
+    """Ponto de atenção sugerido pela IA. Só inserção (ADR 036)."""
+
+    __tablename__ = "ai_review_findings"
+    __table_args__ = (
+        CheckConstraint("relevance IN ('alta', 'média', 'baixa')", name="ck_ai_review_findings_relevance"),
+        Index("ix_ai_review_findings_review", "tenant_id", "review_id", "position"),
+    )
+
+    id: Mapped[str] = mapped_column(String(160), primary_key=True)
+    tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.id"))
+    review_id: Mapped[str] = mapped_column(ForeignKey("ai_reviews.id"))
+    position: Mapped[int] = mapped_column(Integer)
+    relevance: Mapped[str] = mapped_column(String(10))
+    category: Mapped[str] = mapped_column(String(20))
+    title: Mapped[str] = mapped_column(String(120))
+    explanation: Mapped[str] = mapped_column(String(600))
+    evidence: Mapped[list] = mapped_column(JSONB)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+
+class AiReviewDecision(Base):
+    """Decisão do contador sobre um ponto. Só inserção; vale a mais recente (ADR 036)."""
+
+    __tablename__ = "ai_review_decisions"
+    __table_args__ = (
+        CheckConstraint("decision IN ('procede', 'nao_procede')", name="ck_ai_review_decisions_decision"),
+        Index("ix_ai_review_decisions_finding", "tenant_id", "finding_id", "created_at"),
+    )
+
+    id: Mapped[str] = mapped_column(String(160), primary_key=True)
+    tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.id"))
+    finding_id: Mapped[str] = mapped_column(ForeignKey("ai_review_findings.id"))
+    decision: Mapped[str] = mapped_column(String(20))
+    note: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    decided_by: Mapped[str] = mapped_column(String(160))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)

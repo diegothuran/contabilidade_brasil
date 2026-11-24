@@ -64,6 +64,8 @@ class Settings(BaseSettings):
     claude_api_key: str = ""
     suggestion_model: str = "claude-haiku-5-5"
     suggestion_daily_limit: int = 500
+    review_model: str = "claude-opus-5-5"
+    review_daily_limit: int = 20
 
     @field_validator("database_url", "database_admin_url", mode="before")
     @classmethod

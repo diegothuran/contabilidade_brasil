@@ -109,6 +109,21 @@ heroku config:set --app NOME-API CLAUDE_API_KEY=CHAVE SUGGESTION_MODEL=claude-ha
 
 O piloto só tem dado fictício. Dado real de cliente pede as condições da ADR 035 e a resposta da pergunta 87 do [caderno do contador](../../docs/accountant-discovery-workbook.md). A chamada real de conferência (`python -m contabil.suggestions.smoke`) só roda com autorização do gasto. No compose local, a `api` e o `worker` recebem as três variáveis do ambiente ou do `.env`.
 
+## Revisão do mês por IA
+
+A revisão do mês em **Revisões de IA** ([ADR 036](../../docs/adr/036-revisao-do-mes-por-ia.md)) usa a mesma `CLAUDE_API_KEY` e duas variáveis próprias. Sem a chave, o pedido responde 503, a lista informa `ai_reviews_enabled: false` e a tela esconde o botão.
+
+| Variável | Padrão | Uso |
+| --- | --- | --- |
+| `REVIEW_MODEL` | `claude-opus-5-5` | Modelo da revisão, com esforço alto e fallback de recusa no servidor. Trocar muda `model` na revisão e não pede migração. |
+| `REVIEW_DAILY_LIMIT` | `20` | Revisões pedidas por escritório e por dia de Brasília, em qualquer estado. Acima disso, o pedido responde 429. Com chave inválida, uma revisão faz até três chamadas antes de falhar. |
+
+```bash
+heroku config:set --app NOME-API REVIEW_MODEL=claude-opus-5-5 REVIEW_DAILY_LIMIT=20
+```
+
+A chamada segura o ciclo do outbox por até dois minutos por revisão; no dyno único do piloto, outros eventos esperam nesse tempo. O pacote enviado leva os números do balancete e os nomes das contas, sem nome ou CNPJ da empresa e sem descrição de transação. A chamada real de conferência (`python -m contabil.ai_reviews.smoke`), com um pacote fictício fixo, só roda com autorização do gasto. No compose local, a `api` e o `worker` recebem as duas variáveis do ambiente ou do `.env`.
+
 ## Primeiro escritório
 
 O `--user-id` é o `cognito:username` (em geral o e-mail ou o `sub`, o que o token trouxer nesse claim). O bootstrap e o convite gravam esse nome em minúsculas, como o user pool do piloto devolve no token.
@@ -239,4 +254,5 @@ heroku run --no-tty --exit-code --app NOME-API -- python -m contabil.pilot_repor
 - Conferências do balancete: uma conta de despesa com saldo credor aparece em **Pontos de atenção**, e o checklist da competência mostra "Conferências do balancete" pendente sem bloquear o fechamento.
 - Resumo do mês: numa competência fechada, quem prepara gera o resumo, o aprovador publica, e o cliente da mesma empresa o vê no portal; o cliente de outra empresa não vê. Reabrir a competência tira o resumo do portal.
 - Sugestão de contrapartida: depois de resolver um caso de uma tarifa, o caso seguinte com descrição parecida vem com "Sugerido pelo histórico". Com `CLAUDE_API_KEY` e autorização do gasto, **Pedir sugestão à IA** passa por "Pedindo sugestões…" e termina com a conta "Sugerido pela IA"; sem a chave, o botão não aparece.
+- Revisão do mês por IA: com `CLAUDE_API_KEY` no config, quem prepara pede a revisão numa competência com movimento, a tela passa por "Revisando…" e mostra os pontos com as evidências em link; marcar **Procede** num ponto troca o rótulo para "Revisado: Procede". Publicar um lançamento novo na competência faz a revisão aparecer como desatualizada. Sem a chave, o botão não aparece. O cliente da empresa não abre a tela.
 - O seed de demonstração não aparece.

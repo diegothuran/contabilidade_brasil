@@ -335,6 +335,11 @@ def _finish(session: Session, principal: Principal, run: CloseRun, period: Accou
     session.flush()
 
 
+def period_counts(session: Session, principal: Principal, period: AccountingPeriod) -> dict:
+    """As contagens do checklist da competência, para quem só precisa dos números (revisão por IA, ADR 036)."""
+    return _gather(session, principal, period)["counts"]
+
+
 def _gather(session: Session, principal: Principal, period: AccountingPeriod) -> dict:
     balance = trial_balance(session, principal, period.legal_entity_id, period.id)
     journals = list(

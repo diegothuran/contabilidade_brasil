@@ -50,6 +50,8 @@ Adicionar sugestões de classificação, conciliação e explicação. A aplica�
 
 **Pronto quando:** o contador consegue aceitar, rejeitar e corrigir uma sugestão, e nenhuma sugestão produz efeito sem aprovação.
 
+Dois cortes estão no código, os dois só para dados fictícios do piloto. A sugestão de contrapartida na conciliação vem pelo histórico da empresa e, por pedido, pelo Claude Haiku 5.5 ([ADR 035](../adr/035-sugestao-de-conta-por-modelo.md)). A revisão do mês por IA, em Revisões de IA, aponta pontos de atenção com evidência; o contador marca procede ou não procede, com nota ([ADR 036](../adr/036-revisao-do-mes-por-ia.md)). Nenhum dos dois tem efeito sem uma pessoa. Falta para fechar a fase: o contador usar os dois numa competência, dizer se a taxa de acerto e de "procede" justifica o custo e responder as perguntas 87 e 89 a 91 do [caderno](../accountant-discovery-workbook.md). Dado real ainda depende da pergunta 87 e do ambiente em São Paulo.
+
 ## Primeiro ambiente hospedado
 
 O primeiro ambiente hospedado testa plano, razão, documentos, conciliação bancária 1:1, fechamento, pedidos de documento, exportação e o portal do cliente no plano mais barato, como no [ADR 015](../adr/015-piloto-barato-heroku.md). A API e o outbox dividem um dyno. A interface, com a sala de fechamento como entrada, ocupa outro, como no [ADR 016](../adr/016-frontend-separado.md). A credencial única do banco obedece ao RLS por `FORCE ROW LEVEL SECURITY`. O dado desse ambiente fica nos Estados Unidos, num bucket S3 privado em `us-east-2`. A obrigação fiscal continua na Fase E. A forma AWS do [ADR 014](../adr/014-deploy-piloto-aws-sa-east-1.md) entra com documento de cliente real ou quando o escritório depender do sistema no dia a dia.

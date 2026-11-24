@@ -22,7 +22,7 @@ Se o ambiente não lê MP4, extrair frames sintéticos locais com ffmpeg e regis
 
 Hoje trabalha empresa/competência reais da sessão; abrir pendência pode trocar contexto conforme SPEC. Não animar troca silenciosa nem manter rascunho/cache de empresa anterior. Saldo/debito/crédito usam precisão e formatação existentes; não interpolar dinheiro ou trocar D/C para caber num mock.
 
-No portal, cliente vê sua empresa da membership; não acrescentar menus de ledger, seletor de escritório/competência ou ações Confirmar/Devolver. Demo Orbe continua explicitamente sintética e separada. Revisões de IA, obrigações e conectores sem contrato permanecem vazios; não preencher com cards de sucesso gerados.
+No portal, cliente vê sua empresa da membership; não acrescentar menus de ledger, seletor de escritório/competência ou ações Confirmar/Devolver. Demo Orbe continua explicitamente sintética e separada. Revisões de IA mostram só a revisão do mês da ADR 036 (pontos `sugerido` ou `revisado`, sem efeito contábil); obrigações e conectores sem contrato permanecem vazios. Não preencher com cards de sucesso gerados.
 
 Recebido não é confirmado, hash exibido não prova cadeia validada, fila não é pacote pronto, protocolo não é aceite. Efeito material depende da API, papel, segregação e idempotência, nunca do fim da animação. Preservar autoria/reversão e documento original.
 
