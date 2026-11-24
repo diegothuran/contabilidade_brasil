@@ -193,3 +193,18 @@ def test_anthropic_client_hides_content_in_errors():
 
 def test_every_pending_key_has_a_checklist_count():
     assert set(_COUNT_KEYS) == set(PENDING_KEYS)
+
+
+def test_smoke_packet_is_balanced():
+    from contabil.ai_reviews.smoke import fictitious_packet
+
+    packet = fictitious_packet()
+    debit = sum(Decimal(item["debito"]) for item in packet["contas"])
+    credit = sum(Decimal(item["credito"]) for item in packet["contas"])
+    assert debit == credit
+
+
+def test_prompt_lists_allowed_categories():
+    from contabil.ai_reviews.model import CATEGORIES, SYSTEM_PROMPT
+
+    assert all(f'"{category}"' in SYSTEM_PROMPT for category in CATEGORIES)

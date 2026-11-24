@@ -54,7 +54,7 @@ A sugestão de contrapartida ([ADR 035](035-sugestao-de-conta-por-modelo.md)) ma
 - Conferir e gravar não é atômico: dois pedidos simultâneos podem passar do teto em um. O risco é aceito no piloto.
 
 **Smoke**
-- `python -m contabil.ai_reviews.smoke` faz uma chamada real com um pacote fictício fixo, que traz dois problemas plantados: a despesa de serviços triplicou, e o lucro não aparece no banco. Ele só roda à mão, com autorização do usuário para o gasto. Os testes usam um cliente falso e nunca a rede.
+- `python -m contabil.ai_reviews.smoke` faz uma chamada real com um pacote fictício fixo, que fecha e traz dois problemas plantados: a despesa de serviços triplicou, e boa parte do lucro não chegou ao banco porque ficou a prazo. Ele só roda à mão, com autorização do usuário para o gasto. Os testes usam um cliente falso e nunca a rede.
 
 ## Condições para usar com dado real de cliente
 

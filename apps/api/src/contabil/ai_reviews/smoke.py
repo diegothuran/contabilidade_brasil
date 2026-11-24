@@ -1,7 +1,8 @@
 """Chamada real ao modelo com um pacote do mês fictício e fixo (ADR 036).
 
 Uso manual, só com autorização do usuário para o gasto: `python -m contabil.ai_reviews.smoke`.
-O pacote traz dois problemas plantados: a despesa de serviços triplicou e o lucro não aparece no banco.
+O pacote fecha (débitos iguais a créditos) e traz dois problemas plantados: a despesa de serviços triplicou
+e boa parte do lucro não chegou ao banco (R$ 6.000 da receita ficaram a prazo).
 Imprime relevância, categoria, título e evidências dos pontos válidos, stop_reason e tokens;
 nunca a explicação inteira ou a chave.
 """
@@ -25,7 +26,8 @@ def fictitious_packet() -> dict:
         competence="2026-11",
         period_status="open",
         accounts=[
-            _line("1.1.02", "Bancos", "asset", "18000.00", "9000.00", "12600.00", ("1500.00", "2100.00", "1800.00")),
+            # Débitos 25.100,00 = créditos 25.100,00.
+            _line("1.1.02", "Bancos", "asset", "18000.00", "9000.00", "6800.00", ("1500.00", "2100.00", "1800.00")),
             _line("1.1.03", "Clientes a receber", "asset", "2000.00", "6000.00", "0.00", ("0.00", "500.00", "-500.00")),
             _line("2.1.01", "Fornecedores", "liability", "-3000.00", "3000.00", "3300.00", ("200.00", "-100.00", "0.00")),
             _line("4.1.01", "Receita de serviços", "revenue", "-30000.00", "0.00", "15000.00", ("-9500.00", "-10200.00", "-9800.00")),
@@ -37,7 +39,7 @@ def fictitious_packet() -> dict:
             "receita": ("15000.00", ["9500.00", "10200.00", "9800.00"]),
             "despesa": ("7100.00", ["3995.00", "3955.00", "4050.00"]),
             "resultado": ("7900.00", ["5505.00", "6245.00", "5750.00"]),
-            "dinheiro_em_conta": ("14400.00", []),
+            "dinheiro_em_conta": ("20200.00", []),
         },
         checks=[],
         pending={
