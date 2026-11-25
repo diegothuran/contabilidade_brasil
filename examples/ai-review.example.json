@@ -1,0 +1,44 @@
+{
+  "review_id": "airev_01HZX8K2Q4",
+  "period_id": "le_orbe-2026-11",
+  "legal_entity_id": "le_orbe",
+  "operation_id": "op_01HZX8K2Q5",
+  "status": "completed",
+  "model": "claude-opus-5-5",
+  "prompt_version": "revisao-1",
+  "packet_version": "pacote-1",
+  "stop_reason": "end_turn",
+  "requested_by": "user_preparer",
+  "requested_at": "2026-11-24T18:10:00Z",
+  "completed_at": "2026-11-24T18:10:41Z",
+  "stale": false,
+  "findings": [
+    {
+      "finding_id": "aifind_01HZX8K2Q6",
+      "position": 1,
+      "relevance": "alta",
+      "category": "variacao",
+      "title": "Despesa de serviços triplicou no mês",
+      "explanation": "A conta 5.1.01 movimentou 4.500,00 no mês, contra cerca de 1.400,00 nos três meses anteriores. Confira se há lançamento em duplicidade ou serviço de outra competência.",
+      "evidence": ["conta:5.1.01", "indicador:despesa"],
+      "source": "model",
+      "decision": {
+        "decision": "procede",
+        "note": "Nota de novembro lançada duas vezes; estorno pedido.",
+        "decided_by": "user_approver",
+        "decided_at": "2026-11-24T18:20:00Z"
+      }
+    },
+    {
+      "finding_id": "aifind_01HZX8K2Q7",
+      "position": 2,
+      "relevance": "média",
+      "category": "coerencia",
+      "title": "Lucro alto com pouco dinheiro em conta",
+      "explanation": "O resultado do mês foi positivo, mas o saldo bancário caiu. Pode ser venda a prazo ainda não recebida.",
+      "evidence": ["indicador:resultado", "indicador:dinheiro_em_conta"],
+      "source": "model",
+      "decision": null
+    }
+  ]
+}

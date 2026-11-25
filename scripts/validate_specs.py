@@ -43,6 +43,7 @@ def main() -> None:
         ("export-package.schema.json", "export-package.example.json"),
         ("regulatory-obligation.schema.json", "regulatory-obligation.example.json"),
         ("audit-event.schema.json", "audit-event.example.json"),
+        ("ai-review.schema.json", "ai-review.example.json"),
     ]
     for pair in pairs:
         validate_pair(schemas, *pair)
@@ -72,6 +73,12 @@ def main() -> None:
             raise SystemExit("closed close_run contains blocking incomplete checklist items")
         if not close_run["snapshot_ref"] or not close_run["evidence_package_ref"]:
             raise SystemExit("closed close_run must have snapshot and evidence package")
+
+    review = load_json(EXAMPLES / "ai-review.example.json")
+    if review["status"] in {"completed", "incomplete"} and not review["completed_at"]:
+        raise SystemExit("finished ai review requires completed_at")
+    if [item["position"] for item in review["findings"]] != list(range(1, len(review["findings"]) + 1)):
+        raise SystemExit("ai review findings must be numbered from 1 in order")
 
     request = load_json(EXAMPLES / "document-request.example.json")
     if request["status"] == "confirmed" and not (request["document_id"] and request["confirmed_by"]):

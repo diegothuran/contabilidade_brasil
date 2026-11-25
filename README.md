@@ -44,8 +44,9 @@ O primeiro público é um escritório com cerca de **20 a 200 CNPJs**, em dois o
 | Exportação | JSON da competência com lançamentos, documentos, pedidos, auditoria, totais do balancete e SHA-256. | Evidências |
 | Portal do cliente | O cliente envia o arquivo do próprio pedido, vê o resumo, o histórico, a conversa e pode mandar um documento sem pedido. Lê o resumo do mês publicado da própria empresa. Não vê o razão e não confirma. | Casca do cliente |
 | Auditoria | Eventos encadeados por hash, com verificação da cadeia. | Rotinas do razão › Auditoria |
+| Revisão do mês por IA | Por pedido, a IA revisa a competência de uma empresa a partir do balancete, da DRE dos quatro últimos meses, das conferências e das pendências, sem ler transação nem documento. Devolve até 10 pontos de atenção, cada um com a evidência, e o contador marca procede ou não procede, com nota. Não altera o razão, não decide o checklist e não vai ao cliente. Teto diário por escritório; só dados fictícios ([ADR 036](docs/adr/036-revisao-do-mes-por-ia.md)). | Revisões de IA |
 
-Revisões de IA, obrigações e entregas e integrações externas aparecem no menu, mas a tela diz que ainda não há contrato. Elas não simulam estado. A sugestão de contrapartida por IA fica na própria Conciliação, não em Revisões de IA.
+Obrigações e entregas e integrações externas aparecem no menu, mas a tela diz que ainda não há contrato. Elas não simulam estado. Revisões de IA mostra a revisão do mês; a sugestão de contrapartida por IA fica na própria Conciliação.
 
 ## Como usar
 
@@ -60,6 +61,8 @@ Revisões de IA, obrigações e entregas e integrações externas aparecem no me
 | `client` | Ver o resumo, o resumo do mês publicado, o histórico e a conversa da própria empresa, enviar arquivo e um documento sem pedido, e escolher o aviso por e-mail. Não confirma, não cancela e não abre a sala do escritório. |
 
 A segregação vale mesmo para quem tem vários papéis: quem criou o lançamento não aprova nem publica esse lançamento.
+
+Preparador, aprovador e admin pedem a revisão do mês por IA e marcam cada ponto como procede ou não procede; consulta só lê, e o cliente não vê a revisão ([ADR 036](docs/adr/036-revisao-do-mes-por-ia.md)).
 
 O primeiro admin nasce no comando `contabil.bootstrap`. Os seguintes entram em **Administração**: o admin informa usuário, nome, e-mail e papéis. Para o cliente, o papel Cliente vem sozinho e a empresa é obrigatória ([ADR 025](docs/adr/025-portal-do-cliente.md)). O Cognito manda a senha temporária por e-mail, e a pessoa troca essa senha no primeiro acesso. A tela não mostra a senha ([ADR 019](docs/adr/019-convite-de-usuario.md)).
 
@@ -118,6 +121,7 @@ flowchart LR
 | Importação | `imports/` | Lotes CSV, simulação, relatório de diferenças e publicação. |
 | Conciliação | `reconciliation/` | Contas bancárias, parser de CSV e OFX, matching explicável, casos e alertas do extrato. |
 | Sugestões | `suggestions/` | Contrapartida sugerida pelo histórico e pelo modelo de linguagem, pseudonimização, lotes no worker, teto diário e custo por lote. |
+| Revisão por IA | `ai_reviews/` | Pacote do mês com agregados, chamada ao modelo no worker, validação das evidências, decisões do contador e teto diário. |
 | Documentos | `documents/` | Upload, hash e download do arquivo original. |
 | Pedidos de documento | `document_requests/` | Pedido na competência, envio, confirmação, cancelamento e a fila do escritório. |
 | Exportação | `exports/` | Pacote JSON da competência, gerado pelo outbox, com SHA-256 e auditoria. |
@@ -135,7 +139,7 @@ flowchart LR
 - **Isolamento:** toda tabela de negócio tem `tenant_id` e RLS forçada, inclusive para o dono da tabela ([ADR 005](docs/adr/005-isolamento-de-tenant.md)). O cliente fica preso à empresa da membership: as rotas do escritório respondem 403 para ele, e o banco exige empresa em toda membership `client` ([ADR 025](docs/adr/025-portal-do-cliente.md)).
 - **Aprovação humana:** nenhum efeito contábil sai sem uma segunda pessoa autorizada ([ADR 004](docs/adr/004-aprovacao-humana.md)).
 - **Idempotência:** POSTs que mudam estado aceitam `Idempotency-Key`; o mesmo pedido devolve a mesma resposta ([ADR 006](docs/adr/006-adaptadores-e-idempotencia.md)).
-- **Jobs:** importação, extrato, exportação e sugestão por IA vão para o outbox, com retry limitado e dead-letter. A resposta traz `operation_id` e `correlation_id`, e `GET /v1/operations` lista as operações ([ADR 008](docs/adr/008-outbox-postgresql.md), [ADR 012](docs/adr/012-jobs-outbox.md), [ADR 023](docs/adr/023-exportacao-operacional.md)).
+- **Jobs:** importação, extrato, exportação, sugestão e revisão por IA vão para o outbox, com retry limitado e dead-letter. A resposta traz `operation_id` e `correlation_id`, e `GET /v1/operations` lista as operações ([ADR 008](docs/adr/008-outbox-postgresql.md), [ADR 012](docs/adr/012-jobs-outbox.md), [ADR 023](docs/adr/023-exportacao-operacional.md)).
 - **Evidência:** o arquivo original fica no object storage com hash; o banco guarda metadado e referência ([ADR 011](docs/adr/011-object-storage-s3.md)). O mesmo arquivo pode estar em duas empresas do escritório, cada uma com o seu documento ([ADR 033](docs/adr/033-correcoes-da-auditoria-de-novembro.md)).
 - **Configuração:** a imagem do piloto roda com `ENVIRONMENT=pilot` e não sobe com valor de desenvolvimento, sem as claims de identidade ou com `SEED_DEMO` ([ADR 033](docs/adr/033-correcoes-da-auditoria-de-novembro.md)).
 

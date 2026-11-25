@@ -17,6 +17,7 @@ from contabil.imports.service import publish_batch, validate_batch
 from contabil.exports.service import run_ecd_preview, run_operational_export, run_reinf_preview
 from contabil.identity.notices import deliver_notice, sweep_reminders
 from contabil.reconciliation.service import import_statement, resolve_case_from_journal
+from contabil.ai_reviews.worker import run_month_review
 from contabil.suggestions.worker import run_counterpart_suggestions
 from contabil.platform.auth import apply_tenant
 from contabil.platform.clock import brasilia_today
@@ -40,6 +41,7 @@ HANDLERS = {
     "DocumentRequestCreated": deliver_notice,
     "DocumentRequestReturned": deliver_notice,
     "CounterpartSuggestionRequested": run_counterpart_suggestions,
+    "MonthReviewRequested": run_month_review,
 }
 
 

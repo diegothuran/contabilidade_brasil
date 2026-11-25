@@ -26,6 +26,7 @@ Cada módulo fica em `apps/api/src/contabil/<módulo>/`, com `router.py` (HTTP) 
 | `imports` | `/import-batches`, `/operations` | `import_batches`, `import_batch_files`, `import_rows`, `external_refs`, `import_batch_journals`, `import_reports`, `operations` | Migrações | [012](adr/012-jobs-outbox.md) |
 | `reconciliation` | `/bank-accounts`, `/bank-statements`, `/reconciliation-cases`. Os alertas do extrato (`alerts`, `alert_count`) saem de `reconciliation/alerts.py`, com limiares de `configs/conferencias.yaml` lidos por `platform/conferences.py` | `bank_accounts`, `bank_statements`, `bank_transactions`, `reconciliation_cases`, `reconciliation_matches` | Conciliação; Rotinas › Bancos | [013](adr/013-conciliacao-por-casos.md) |
 | `suggestions` | `POST /bank-accounts/{id}/counterpart-suggestions`. `history.py` sugere pelo histórico da empresa (na leitura do caso); `pseudonymize.py` mascara a descrição; `model.py` monta o prompt, chama o SDK `anthropic` e valida a resposta; `worker.py` roda um lote por despacho e enfileira a continuação; `smoke.py` é a chamada real manual, só com autorização do gasto | `account_suggestions`, `suggestion_runs` (só INSERT e SELECT) | Conciliação (sugestão pré-selecionada e "Pedir sugestão à IA") | [004](adr/004-aprovacao-humana.md), [035](adr/035-sugestao-de-conta-por-modelo.md) |
+| `ai_reviews` | `POST /periods/{id}/ai-reviews`, `GET /periods/{id}/ai-reviews`, `POST /ai-review-findings/{id}/decisions`. `packet.py` monta o pacote do mês (balancete, movimento das três competências anteriores, indicadores, conferências e contagens de `closing.period_counts`) e o hash; `model.py` monta o prompt, chama `beta.messages.create` com fallback de recusa e valida as evidências; `worker.py` faz uma chamada por despacho; `service.py` pede, lista (com `stale`) e decide; `smoke.py` é a chamada real manual | `ai_reviews` (SELECT, INSERT, UPDATE), `ai_review_findings` e `ai_review_decisions` (só INSERT e SELECT) | Revisões de IA | [004](adr/004-aprovacao-humana.md), [036](adr/036-revisao-do-mes-por-ia.md) |
 | `documents` | `/documents` | `source_documents` | Evidências | [011](adr/011-object-storage-s3.md) |
 | `document_requests` | `/document-requests` (inclui fila, comentários e devolução) | `document_requests`, `document_request_files`, `document_request_comments` | Pendências; Hoje | [021](adr/021-pedido-de-documento.md), [024](adr/024-fila-de-pendencias.md), [026](adr/026-devolucao-e-conversa.md) |
 | `submissions` | `/client-submissions` | `client_submissions` | Pendências (envios sem pedido) | [027](adr/027-envio-sem-pedido.md) |
@@ -100,6 +101,7 @@ flowchart LR
 | `ReinfPreviewRequested` | `exports.service.run_reinf_preview` | pedido da prévia da EFD-Reinf R-4000 (`kind: reinf_r4000_preview_v1`); guarda o .zip no storage como documento `generated` |
 | `DocumentRequestCreated`, `DocumentRequestReturned` | `identity.notices.deliver_notice` | pedido novo e devolução; o lembrete de prazo sai de `sweep_reminders` |
 | `CounterpartSuggestionRequested` | `suggestions.worker.run_counterpart_suggestions` | pedido de sugestão por IA (`kind: counterpart_suggestions`). Um lote de até 40 transações por despacho; se restarem casos e couber no teto, enfileira outro `CounterpartSuggestionRequested` com o mesmo `operation_id` e um `cursor`, e devolve `HandlerOutcome.CONTINUES` para a operação seguir `running`; antes de cada chamada grava a reserva em `suggestion_runs` numa transação própria (`_autonomous`), depois o resultado e as `account_suggestions`. Teto atingido ou resposta incompleta concluem a operação com `error_code` `limite_diario` ou `resposta_incompleta` |
+| `MonthReviewRequested` | `ai_reviews.worker.run_month_review` | pedido de revisão do mês por IA (`kind: month_review`). Uma chamada por despacho: monta o pacote, chama o modelo e grava pontos, tokens, `stop_reason` e `input_sha256` na transação do handler. Falha de API marca a revisão `failed` numa transação própria e relança (o outbox tenta três vezes); revisão `completed` ou `incomplete` não chama de novo. Resposta incompleta conclui com `error_code` `resposta_incompleta` |
 
 O worker usa a sessão admin e chama `apply_tenant` antes de cada handler. Cada ciclo (`run_cycle`) roda o relay, os lembretes e a verificação da cadeia de auditoria em sessões separadas: a falha de uma tarefa não desfaz o commit das outras. `outbox_events` é a única tabela de negócio sem `FORCE ROW LEVEL SECURITY`, porque o relay lê todos os escritórios ([0004_force_rls.py](../apps/api/alembic/versions/0004_force_rls.py)).
 
@@ -162,6 +164,20 @@ stateDiagram-v2
 
 Há no máximo um resumo não retirado por competência (`uq_client_summaries_period`). O trigger `guard_client_summary` ([0022](../apps/api/alembic/versions/0022_client_summaries.py)) recusa DELETE, mudar `payload` fora de `draft`, mudar escritório, empresa ou período, voltar de `published` para `draft` e sair de `withdrawn`. O GET do escritório devolve o vivo ou, sem ele, o retirado mais recente; o portal só vê `published`.
 
+### Revisão do mês por IA (`ai_reviews.status`)
+
+```mermaid
+stateDiagram-v2
+    [*] --> requested: pedir (preparer, approver, admin; teto diário)
+    requested --> completed: resposta válida (pontos com evidência)
+    requested --> incomplete: refusal, max_tokens ou JSON inválido
+    requested --> failed: erro de API (transação própria)
+    failed --> completed: reentrega do outbox
+    failed --> incomplete: reentrega do outbox
+```
+
+O ponto (`ai_review_findings`) não tem estado próprio: é `sugerido` sem decisão e `revisado` com a decisão mais recente em `ai_review_decisions` (`procede` ou `nao_procede`). Nada disso muda razão, checklist ou portal.
+
 ### Outros objetos
 
 | Objeto | Estados | Onde |
@@ -192,6 +208,8 @@ Várias regras têm duas barreiras: o serviço recusa com mensagem clara, e o ba
 | Resumo publicado não muda | estados e quatro olhos em `client_summaries/service.py` | trigger `guard_client_summary` e índice `uq_client_summaries_period` ([0022](../apps/api/alembic/versions/0022_client_summaries.py)) |
 | Sugestão e custo só crescem | `suggestions/worker.py` só insere | grant só `SELECT, INSERT` em `account_suggestions` e `suggestion_runs` ([0023](../apps/api/alembic/versions/0023_account_suggestions.py)) |
 | Sugestão não cruza empresa | `validate_picks` em `suggestions/model.py` descarta conta de outra empresa, inexistente, inativa ou não lançável e ref não enviado; `counterpart_suggestions` filtra por `legal_entity_id` | — |
+| Ponto da revisão sempre tem evidência | `validate_points` em `ai_reviews/model.py` descarta evidência fora de `packet_refs` e o ponto que fica sem nenhuma | `ai-review.schema.json` exige `minItems: 1` |
+| Revisão por IA não tem efeito contábil | `ai_reviews/` não importa ledger de escrita, checklist de decisão nem portal | grant só `SELECT, INSERT` em pontos e decisões ([0024](../apps/api/alembic/versions/0024_ai_reviews.py)) |
 | Isolamento de escritório | `apply_tenant` em toda sessão | política `tenant_isolation` e `FORCE ROW LEVEL SECURITY` |
 | Cliente preso à empresa | `ensure_client` e `principal.legal_entity_id` | membership `client` exige `legal_entity_id` ([0010](../apps/api/alembic/versions/0010_exports_and_client_scope.py)) |
 | Segregação de funções | `_ensure_not_creator` no lançamento; o mesmo princípio na publicação de lote e na aprovação de reabertura. Confirmar pedido e aprovar conciliação dependem só do papel. | — |
@@ -216,7 +234,7 @@ flowchart TB
 ```
 
 - A empresa e a competência escolhidas ficam no [session.tsx](../apps/web/src/session.tsx) e no `sessionStorage`; as telas leem dali e não repetem o seletor.
-- Revisões de IA, Obrigações e Integrações usam `PlannedPage`: dizem que não há contrato e não simulam estado.
+- Revisões de IA (`pages/AiReviewsPage.tsx`) mostra a revisão mais recente da competência da barra, com o estado `sugerido`/`revisado` e as decisões. Obrigações e Integrações usam `PlannedPage`: dizem que não há contrato e não simulam estado.
 - A Demonstração não chama a API.
 
 ## Como acrescentar um módulo
@@ -261,6 +279,8 @@ flowchart TB
 - **A reentrega reenvia caso sem sugestão válida.** A janela do despacho (40 casos depois do cursor) é fixada antes de tirar os casos que já têm `account_suggestions` da operação: a reentrega do mesmo despacho não paga de novo os sugeridos e não invade o lote seguinte, mas o caso cujo pick foi descartado volta ao modelo e é pago de novo. A reentrega também enfileira de novo a continuação; uma continuação duplicada cai numa janela já sugerida e não chama o modelo. Um pedido novo reenvia casos que já têm sugestão de operação anterior.
 - **Chave inválida gasta o teto.** A reserva entra antes de cada chamada. Com chave inválida, cada uma das 3 tentativas do despacho reserva o lote: até 3 × 40 transações por pedido antes de a operação virar `failed`.
 - **`CLAUDE_API_KEY` decide o botão.** Sem a chave, a rota responde 503 e `model_suggestions_enabled` é `false`. O compose repassa a variável à `api` e ao `worker`; os testes de integração nunca chamam a rede e trocam o cliente por um falso.
+- **A revisão por IA segura o relay.** `run_month_review` chama o modelo dentro da transação do relay, com `timeout` de 120 s; os outros eventos esperam. O handler não trava a linha da revisão com `FOR UPDATE`: o caminho de falha grava `failed` numa transação própria, que ficaria presa nessa trava.
+- **`stale` recalcula o pacote.** A leitura de `GET /periods/{id}/ai-reviews` remonta o pacote da revisão concluída mais recente para comparar o hash. É um balancete e quatro somas por leitura.
 
 ## Mapa gerado
 

@@ -85,6 +85,8 @@ services:
       CLAUDE_API_KEY: ${CLAUDE_API_KEY:-}
       SUGGESTION_MODEL: ${SUGGESTION_MODEL:-claude-haiku-5-5}
       SUGGESTION_DAILY_LIMIT: ${SUGGESTION_DAILY_LIMIT:-500}
+      REVIEW_MODEL: ${REVIEW_MODEL:-claude-opus-5-5}
+      REVIEW_DAILY_LIMIT: ${REVIEW_DAILY_LIMIT:-20}
     command: ["uvicorn", "contabil.main:app", "--host", "0.0.0.0", "--port", "8000"]
     ports:
       - "8000:8000"
@@ -111,6 +113,8 @@ services:
       CLAUDE_API_KEY: ${CLAUDE_API_KEY:-}
       SUGGESTION_MODEL: ${SUGGESTION_MODEL:-claude-haiku-5-5}
       SUGGESTION_DAILY_LIMIT: ${SUGGESTION_DAILY_LIMIT:-500}
+      REVIEW_MODEL: ${REVIEW_MODEL:-claude-opus-5-5}
+      REVIEW_DAILY_LIMIT: ${REVIEW_DAILY_LIMIT:-20}
     command: ["python", "-m", "contabil.worker"]
     depends_on:
       migrate:

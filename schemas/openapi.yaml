@@ -1417,6 +1417,68 @@ paths:
         '400': { description: Motivo com menos de 10 caracteres }
         '403': { description: Papel insuficiente }
         '404': { description: Não há resumo publicado nesta competência }
+  /v1/periods/{period_id}/ai-reviews:
+    post:
+      summary: Pede à IA a revisão do mês da empresa na competência
+      description: >-
+        preparer, approver e admin (ADR 036). Cria uma operação month_review, uma revisão requested e o evento
+        MonthReviewRequested no outbox. Vale para competência aberta ou fechada. O worker monta o pacote do mês só com
+        agregados (balancete, movimento das três competências anteriores, indicadores da DRE, conferências e contagens de
+        pendência), sem nome ou CNPJ da empresa e sem descrição de transação, e faz uma chamada ao modelo. A operação pode
+        terminar completed com error_code resposta_incompleta (recusa, max_tokens ou saída inválida). Nada aqui tem efeito
+        contábil.
+      operationId: requestAiReview
+      parameters:
+        - $ref: '#/components/parameters/PeriodId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '202': { description: Pedido aceito, content: { application/json: { schema: { $ref: '#/components/schemas/AiReviewAccepted' } } } }
+        '403': { description: "Papel diferente de preparer, approver ou admin, ou acesso de cliente" }
+        '404': { description: Período não encontrado no escritório }
+        '429': { description: "Limite diário de revisões por IA atingido: o escritório já pediu REVIEW_DAILY_LIMIT revisões no dia de Brasília. Nada é criado." }
+        '503': { description: "Revisão por IA indisponível: o ambiente não tem CLAUDE_API_KEY." }
+    get:
+      summary: Revisões por IA da competência, a mais recente primeiro
+      description: >-
+        Qualquer papel do escritório. Traz ai_reviews_enabled e as revisões com os pontos e a decisão vigente de cada um.
+        A revisão concluída mais recente traz stale verdadeiro quando o pacote do mês mudou desde a revisão.
+      operationId: listAiReviews
+      parameters:
+        - $ref: '#/components/parameters/PeriodId'
+      responses:
+        '200': { description: Revisões, content: { application/json: { schema: { $ref: '#/components/schemas/AiReviewList' } } } }
+        '403': { description: Acesso de cliente }
+        '404': { description: Período não encontrado no escritório }
+  /v1/ai-review-findings/{finding_id}/decisions:
+    post:
+      summary: Registra a decisão do escritório sobre um ponto da revisão por IA
+      description: >-
+        preparer, approver e admin (ADR 036). Só inserção: a decisão mais recente vale e a anterior fica. procede ou
+        nao_procede, com nota opcional; a auditoria registra a decisão sem a nota. Não cria lançamento, não decide item
+        do checklist e não publica nada.
+      operationId: decideAiReviewFinding
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - in: path
+          name: finding_id
+          required: true
+          schema: { type: string, maxLength: 160 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [decision]
+              properties:
+                decision: { type: string, enum: [procede, nao_procede] }
+                note: { type: [string, 'null'], maxLength: 500 }
+      responses:
+        '201': { description: Decisão registrada, content: { application/json: { schema: { $ref: '#/components/schemas/AiReviewDecision' } } } }
+        '403': { description: "Papel diferente de preparer, approver ou admin, ou acesso de cliente" }
+        '404': { description: Ponto não encontrado no escritório }
+        '422': { description: "Decisão fora de procede e nao_procede, ou nota acima de 500 caracteres" }
   /v1/periods/{period_id}/reopen-requests:
     post:
       summary: Solicita reabertura com motivo
@@ -2046,6 +2108,35 @@ components:
         status: { type: string, enum: [accepted, running, completed, failed, cancelled] }
         correlation_id: { type: string }
         statement_id: { type: string }
+    AiReview: { type: object, description: Validado por schemas/ai-review.schema.json, additionalProperties: true }
+    AiReviewAccepted:
+      type: object
+      required: [operation_id, status, review_id]
+      properties:
+        operation_id: { type: string }
+        status: { type: string, enum: [accepted, running, completed, failed, cancelled] }
+        correlation_id: { type: string }
+        error_code: { type: [string, 'null'] }
+        kind: { type: string, enum: [month_review] }
+        target_ref: { type: string, description: period_id da revisão }
+        review_id: { type: string }
+    AiReviewList:
+      type: object
+      required: [period_id, ai_reviews_enabled, items]
+      properties:
+        period_id: { type: string }
+        ai_reviews_enabled: { type: boolean, description: "Falso quando o ambiente não tem CLAUDE_API_KEY; a tela esconde o botão." }
+        items: { type: array, items: { $ref: '#/components/schemas/AiReview' } }
+    AiReviewDecision:
+      type: object
+      required: [finding_id, review_id, decision, note, decided_by, decided_at]
+      properties:
+        finding_id: { type: string }
+        review_id: { type: string }
+        decision: { type: string, enum: [procede, nao_procede] }
+        note: { type: [string, 'null'], maxLength: 500 }
+        decided_by: { type: string }
+        decided_at: { type: string, format: date-time }
     OperationAccepted:
       type: object
       additionalProperties: false
@@ -2059,7 +2150,8 @@ components:
           enum: [limite_diario, resposta_incompleta, handler_failed, null]
           description: >-
             Códigos conhecidos. handler_failed: o handler do outbox falhou três vezes e a operação virou failed.
-            limite_diario e resposta_incompleta: a sugestão por IA (ADR 035) concluiu completed com aviso.
+            limite_diario e resposta_incompleta: a sugestão por IA (ADR 035) concluiu completed com aviso;
+            resposta_incompleta também na revisão do mês por IA (ADR 036).
     MyProfessionalRegistration:
       type: object
       required: [user_id, display_name, registration]

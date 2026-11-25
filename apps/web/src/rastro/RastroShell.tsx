@@ -6,6 +6,7 @@ import { AccountsPage } from "../pages/AccountsPage";
 import { AdministrationPage } from "../pages/AdministrationPage";
 import { AuditPage } from "../pages/AuditPage";
 import { BanksPage } from "../pages/BanksPage";
+import { AiReviewsPage } from "../pages/AiReviewsPage";
 import { CloseRunPage } from "../pages/CloseRunPage";
 import { CompanyFormPage } from "../pages/CompanyFormPage";
 import { CompanySignatoriesPage } from "../pages/CompanySignatoriesPage";
@@ -441,7 +442,7 @@ export function RastroShell() {
             <Route path="/app/rastro/migracoes" element={<Routine><ImportsPage /></Routine>} />
             <Route path="/app/rastro/migracoes/:batchId" element={<Routine><ImportDetailPage /></Routine>} />
             <Route path="/app/rastro/ledger" element={<Routine><JournalsPage /></Routine>} />
-            <Route path="/app/rastro/revisoes-ia" element={<PlannedPage title="Revisões de IA" detail="Não há sugestão ligada a esta empresa. Uma sugestão só passa a ter efeito depois de aprovação humana, e este contrato ainda não está nesta versão." />} />
+            <Route path="/app/rastro/revisoes-ia" element={<Routine><AiReviewsPage /></Routine>} />
             <Route path="/app/rastro/obrigacoes" element={<PlannedPage title="Obrigações e entregas" detail="Não há obrigação versionada para esta empresa. Transmissão, protocolo e recibo continuam fora desta versão." />} />
             <Route path="/app/rastro/biblioteca" element={<Routine><DocumentsPage /></Routine>} />
             <Route path="/app/rastro/integracoes" element={<PlannedPage title="Integrações" detail="Nenhum conector externo está configurado. As contas bancárias da empresa ficam em Rotinas do razão." />} />

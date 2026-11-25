@@ -17,6 +17,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from contabil.audit.router import router as audit_router
 from contabil.closing.router import router as closing_router
+from contabil.ai_reviews.router import router as ai_reviews_router
 from contabil.client_summaries.router import router as client_summaries_router
 from contabil.document_requests.router import router as document_requests_router
 from contabil.documents.router import router as documents_router
@@ -184,6 +185,7 @@ def create_app() -> FastAPI:
     app.include_router(regulatory_router, prefix="/v1", dependencies=office)
     app.include_router(withholdings_router, prefix="/v1", dependencies=office)
     app.include_router(client_summaries_router, prefix="/v1", dependencies=office)
+    app.include_router(ai_reviews_router, prefix="/v1", dependencies=office)
     app.include_router(portal_router, prefix="/v1")
     if settings.static_dir:
         _mount_spa(app, settings.static_dir)
